@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="../src/everything.mjs" type="module"></script>
+<h1>Browser test</h1>
+<pre id="test">
+</pre>
+<script type="module">
+	const client = metro.client().with(metro.mw.oauth2({
+		endpoints: {
+			authorize:
+			'https://oauth-mock.wiremockapi.cloud/authorize',
+			token: 'https://oauth-mock.wiremockapi.cloud/token'
+		},
+		client_id: 'mockClientId',
+		grant_type: 'authorization_code',
+		callbacks: {
+			authorize: (url) => {
+				console.log('callback',url)
+			}
+		}
+	}))
+	metro.trace.add('group', metro.trace.group())
+
+	let res = await	client.get('https://oauth-mock.wiremockapi.cloud/test-auth')
+	let test = await res.text()
+	document.getElementById('test').innerText = test
+</script>
