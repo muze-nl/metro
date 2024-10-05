@@ -1,5 +1,5 @@
 import * as metro from '@muze-nl/metro'
-import * as assert from '@muze-nl/metro/src/assert.mjs'
+import * as assert from '@muze-nl/assert'
 import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
 
 /**
@@ -10,6 +10,7 @@ import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
  * Since implicit flow is deemed insecure, it is not supported
  * (see the OAuth2.1 RFC)
  */
+
 export default function mwOAuth2(options) {
 
 	let site = 'default'
@@ -275,7 +276,7 @@ export default function mwOAuth2(options) {
 			throw metro.metroError('oauth2mw: Missing options.endpoints.authorize url')
 		}
 		let url = metro.url(oauth2.endpoints.authorize, {hash: ''})
-		assert.check(oauth2, {
+		assert.assert(oauth2, {
 			client_id: /.+/,
 			redirect_uri: /.+/,
 			scope: /.*/
@@ -313,7 +314,7 @@ export default function mwOAuth2(options) {
 	 * grant_type. This can then be used in a metro.get.
 	 */
 	function getAccessTokenURL(grant_type=null) {
-		assert.check(oauth2, {
+		assert.assert(oauth2, {
 			client_id: /.+/,
 			redirect_uri: /.+/
 		})

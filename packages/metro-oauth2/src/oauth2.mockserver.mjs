@@ -1,6 +1,5 @@
 import * as metro from '@muze-nl/metro'
-import * as assert from '@muze-nl/metro/src/assert.mjs'
-
+import * as assert from '@muze-nl/assert'
 
 const baseResponse = {
 	status: 200,
@@ -45,7 +44,7 @@ export default function oauth2mockserver(options={}) {
 				if (error = assert.fails(url.searchParams, {
 					response_type: 'code',
 					client_id: 'mockClientId',
-					state: assert.optional(/.*/)
+					state: assert.Optional(/.*/)
 				})) {
 					return metro.response(badRequest(error))
 				}

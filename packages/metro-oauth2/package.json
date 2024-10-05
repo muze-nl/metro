@@ -25,7 +25,8 @@
     "tap": "^16.0.1"
   },
   "dependencies": {
-    "@muze-nl/metro": "^0.3.3"
+    "@muze-nl/metro": "^0.3.3",
+    "@muze-nl/assert": "^0.1.0"
   },
   "engines": {
     "node": ">=20.0.0"

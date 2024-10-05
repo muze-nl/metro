@@ -1,5 +1,4 @@
 import * as metro from '../metro.mjs'
-import * as assert from '../assert.mjs'
 
 export default function mwOAuth2PKCE(options)
 {
