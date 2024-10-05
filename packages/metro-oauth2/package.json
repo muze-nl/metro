@@ -35,5 +35,13 @@
     "/src",
     "/LICENSE",
     "/README.md"
-  ]
+  ],
+  "source": [ "src/browser.mjs" ],
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "optimize": true
+    },
+    "main": false
+  }
 }

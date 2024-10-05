@@ -1,4 +1,4 @@
-import * as metro from '../metro.mjs'
+import * as metro from '@muze-nl/metro'
 
 export default function mwOAuth2PKCE(options)
 {
