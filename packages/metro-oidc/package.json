@@ -1,0 +1,52 @@
+{
+  "name": "@muze-nl/metro-oidc",
+  "version": "0.1.0",
+  "description": "oidc client middleware for @muze-nl/metro",
+  "type": "module",
+  "source": [
+    "src/browser.mjs"
+  ],
+  "main": "src/metro.oidc.mjs",
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "optimize": true
+    },
+    "main": false
+  },
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tap test/*.mjs",
+    "tap": "tap",
+    "build": "parcel build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro-oidc.git"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/muze-nl/metro-oidc/issues"
+  },
+  "homepage": "https://github.com/muze-nl/metro-oidc/#readme",
+  "devDependencies": {
+    "eslint": "^8.13.0",
+    "tap": "^16.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "/src",
+    "/dist",
+    "/LICENSE",
+    "/README.md"
+  ],
+  "dependencies": {
+    "@muze-nl/assert": "^0.3.0",
+    "@muze-nl/metro": "^0.4.1"
+  }
+}
