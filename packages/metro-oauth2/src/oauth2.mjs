@@ -21,21 +21,21 @@ export default function mwOAuth2(options) {
 	let localState, localTokens
 	if (typeof localStorage !== 'undefined') {
 		localState = {
-			get: () => localStorage.getItem('metro/state:'+site),
-			has: () => localStorage.getItem('metro/state:'+site),
-			set: (value) => localStorage.setItem('metro/state:'+site, value)
+			get: ()      => localStorage.getItem('metro/state:'+site),
+			set: (value) => localStorage.setItem('metro/state:'+site, value),
+			has: ()      => localStorage.getItem('metro/state:'+site)!==null
 		}
 		localTokens = {
-			get: (name) => localStorage.getItem(site+':'+name),
+			get: (name)        => localStorage.getItem(site+':'+name),
 			set: (name, value) => localStorage.setItem(site+':'+name, value),
-			has: (name) => localStorage.hasItem(site+':'+name)
+			has: (name)        => localStorage.getItem(site+':'+name)!==null
 		}
 	} else {
 		let stateMap = new Map()
 		localState = {
-			get: () => stateMap.get('metro/state:'+site),
-			has: () => stateMap.get('metro/state:'+site),
-			set: (value) => stateMap.set('metro/state:'+site, value)
+			get: ()      => stateMap.get('metro/state:'+site),
+			set: (value) => stateMap.set('metro/state:'+site, value),
+			has: ()      => stateMap.has('metro/state:'+site)
 		}
 		localTokens = new Map()
 	}
@@ -108,6 +108,8 @@ export default function mwOAuth2(options) {
 					}
 				}
 				Object.assign(oauth2.callbacks, options.callbacks)
+			break
+			case 'site':
 			break
 			default:
 				throw metro.metroError('Unknown oauth2mw option ',option)
