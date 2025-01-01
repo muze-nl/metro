@@ -13,9 +13,14 @@ tap.test('start', async t => {
 
 tap.test('oauth2start', async t => {
 	const oauth2client = client.with(oauth2mw({
-		access_token: {
-			type: 'Bearer',
-			value: 'mockAccessToken'
+		oauth2_configuration: {
+			access_token: {
+				type: 'Bearer',
+				value: 'mockAccessToken'
+			},
+		},
+		callbacks: {
+			authorize: (url) => 'mockAuthorizeToken'
 		},
 		force_authorization: true
 	}))
@@ -29,13 +34,13 @@ tap.test('oauth2start', async t => {
 
 tap.test('authorize', async t => {
 	const oauth2client = client.with(oauth2mw({
-		client: client, // with mock oauth2 middleware
-		client_id: 'mockClientId',
-		client_secret: 'mockClientSecret',
-		grant_type: 'authorization_code',
-		endpoints: {
-			authorize: '/authorize/',
-			token: '/token/'
+		client: client, // with mock oauth2 middleware,
+		oauth2_configuration: {
+			client_id: 'mockClientId',
+			client_secret: 'mockClientSecret',
+			grant_type: 'authorization_code',
+			authorize_endpoint: '/authorize/',
+			token_endpoint: '/token/'
 		},
 		callbacks: {
 			authorize: (url) => 'mockAuthorizeToken'

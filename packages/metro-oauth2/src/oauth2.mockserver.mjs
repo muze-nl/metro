@@ -63,14 +63,17 @@ export default function oauth2mockserver(options={}) {
 				})
 			break
 			case '/token/':
-				if (error = assert.fails(url.searchParams, {
-					grant_type: assert.oneOf('refresh_token','authorization_code')
+				if (error = assert.fails(req, {
+					method: 'POST',
+					body: {
+						grant_type: assert.oneOf('refresh_token','authorization_code')
+					}
 				})) {
 					return metro.response(badRequest(error))
 				}
-				switch(url.searchParams.grant_type) {
+				switch(req.body.grant_type) {
 					case 'refresh_token':
-						if (error = assert.fails(url.searchParams, assert.oneOf({
+						if (error = assert.fails(req.body, assert.oneOf({
 							refresh_token: 'mockRefreshToken',
 							client_id: 'mockClientId',
 							client_secret: 'mockClientSecret'
@@ -83,7 +86,7 @@ export default function oauth2mockserver(options={}) {
 						}
 					break
 					case 'access_token':
-						if (error = assert.fails(url.searchParams, assert.oneOf({
+						if (error = assert.fails(req.body, assert.oneOf({
 							client_id: 'mockClientId',
 							client_secret: 'mockClientSecret'
 						}, {

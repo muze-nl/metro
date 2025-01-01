@@ -1,6 +1,9 @@
 import * as metro from '@muze-nl/metro'
-import * as assert from '@muze-nl/assert'
+import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/assert'
 import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
+import thrower from '@muze-nl/metro/src/mw/thrower.mjs'
+import {tokenStore} from './tokenstore.mjs'
+import crypto from 'node:crypto'
 
 /**
  * oauth2mw returns a middleware for @muze-nl/metro that
@@ -8,118 +11,61 @@ import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
  * it supports the authorization_code, refresh_token and
  * client_credentials grant_type.
  * Since implicit flow is deemed insecure, it is not supported
- * (see the OAuth2.1 RFC)
+ * This library follows the OAuth2.1 RFC - https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-11)
+ * Referenced as Oauth2.1 RFC from here on
  */
 
 export default function mwOAuth2(options) {
 
-	let site = 'default'
-	if (options.site) {
-		site = options.site
-	}
-
-	let localState, localTokens
-	if (typeof localStorage !== 'undefined') {
-		localState = {
-			get: ()      => localStorage.getItem('metro/state:'+site),
-			set: (value) => localStorage.setItem('metro/state:'+site, value),
-			has: ()      => localStorage.getItem('metro/state:'+site)!==null
-		}
-		localTokens = {
-			get: (name)        => localStorage.getItem(site+':'+name),
-			set: (name, value) => localStorage.setItem(site+':'+name, value),
-			has: (name)        => localStorage.getItem(site+':'+name)!==null
-		}
-	} else {
-		let stateMap = new Map()
-		localState = {
-			get: ()      => stateMap.get('metro/state:'+site),
-			set: (value) => stateMap.set('metro/state:'+site, value),
-			has: ()      => stateMap.has('metro/state:'+site)
-		}
-		localTokens = new Map()
-	}
-
-	const oauth2 = {
-		tokens: localTokens,
-		state: localState,
-		endpoints: {
-			authorize: '/authorize',
-			token: '/token'
+	const defaultOptions = {
+		client: metro.client(),
+		force_authorization: false,
+		site: 'default',
+		oauth2_configuration: {
+			authorization_endpoint: '/authorize',
+			token_endpoint: '/token',
+			redirect_uri: globalThis.document?.location.href,
+			grant_type: 'authorization_code',
+			code_verifier: crypto.randomBytes(64).toString('hex')
 		},
 		callbacks: {
 			authorize: url => document.location = url
-		},
-		client: metro.client().with(jsonmw()),
-		client_id: '',
-		client_secret: '',
-		redirect_uri: '',
-		grant_type: 'authorization_code',
-		force_authorization: false
+		}
 	}
 
-	for (let option in options) {
+	assert(options, {})	
+
+	const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration)
+	options = Object.assign({}, defaultOptions, options)
+	options.oauth2_configuration = oauth2
+
+	options.client = options.client.with(jsonmw()).with(thrower()) //FIXME: only add them if not yet added
+
+	const store = tokenStore(options.site)
+	if (!options.tokens) {
+		options.tokens = store.tokens
+	}
+	if (!options.state) {
+		options.state = store.state
+	}
+
+	assert(options, {
+		oauth2_configuration: {
+			client_id: Required(),
+			grant_type: 'authorization_code',
+			authorization_endpoint: Required(),
+			token_endpoint: Required(),
+			redirect_uri: Required(validURL)
+		}
+	})
+
+	for (let option in oauth2) {
 		switch(option) {
 			case 'access_token':
 			case 'authorization_code':
 			case 'refresh_token':
-				oauth2.tokens.set(option, options[option])
+				options.tokens.set(option, oauth2[option])
 			break
-
-			case 'client':
-			case 'client_id':
-			case 'client_secret':
-			case 'grant_type':
-			case 'force_authorization':
-			case 'redirect_uri':
-				oauth2[option] = options[option]
-			break
-			case 'state':
-			case 'tokens':
-				if (typeof options[option].set == 'function' && 
-					typeof options[option].get == 'function' && 
-					typeof options[option].has == 'function' ) {
-					oauth2[option] = options[option]
-				} else if (option == 'tokens' && typeof options.tokens == 'object') {
-					for (let token in options.tokens) {
-						oauth2.tokens.set(token, options.tokens[token])
-					}
-				} else if (option == 'state' && typeof options.state == 'object') {
-					if (!options.state.random) {
-						options.state.random = createState(40)
-					}
-					oauth2.state.set(JSON.stringify(options.state))
-				} else {
-					throw metro.metroError('metro/mw/oauth2: incorrect value for '+option)
-				}
-			break
-			case 'endpoints':
-				for (let endpoint in options.endpoints) {
-					if (endpoint!='authorize' && endpoint!='token') {
-						throw metro.metroError('Unknown endpoint, choose one of "authorize" or "token"',endpoint)
-					}
-				}
-				Object.assign(oauth2.endpoints, options.endpoints)
-			break
-			case 'callbacks':
-				for (let callback in options.callbacks) {
-					if (callback != 'authorize') {
-						throw metro.metroError('Unknown callback, choose one of "authorize"',callback)
-					}
-				}
-				Object.assign(oauth2.callbacks, options.callbacks)
-			break
-			case 'site':
-			break
-			default:
-				throw metro.metroError('Unknown oauth2mw option ',option)
-			break
-		}
-		if (!oauth2.redirect_uri) {
-			oauth2.redirect_uri = typeof window !== 'undefined' ? window.location?.href : ''
-		}
-		if (oauth2.redirect_uri) {
-			oauth2.redirect_uri = metro.url(oauth2.redirect_uri).with('?metroRedirect=true')
 		}
 	}
 
@@ -128,16 +74,18 @@ export default function mwOAuth2(options) {
 	 * go through the OAuth2 authorization flow first.
 	 */
 	return async function(req, next) {
-		if (oauth2.force_authorization) {
+		if (options.force_authorization) {
 			return oauth2authorized(req, next)
 		}
 		let res = await next(req)
 		if (res.ok) {
 			return res
 		}
-		switch(res.status) {
-			case 400:
-			case 401:
+		switch(res.status) { 
+			case 400: // Oauth2.1 RFC 3.2.4
+			case 401: // in case of incorrect authentication method
+				//FIXME: check payload of response as well? yes - may be able to recover
+				//FIXME: using thrower this needs a try/catch somewhere
 				return oauth2authorized(req, next)
 			break
 		}
@@ -149,10 +97,15 @@ export default function mwOAuth2(options) {
 	 */
 	async function oauth2authorized(req, next) {
 		getTokensFromLocation()
-		if (!oauth2.tokens.has('access_token')) {
-			let token = await fetchAccessToken(req)
-			if (!token) {
-				return metro.response('false')
+		if (!options.tokens.has('access_token')) {
+			try {
+				let token = await fetchAccessToken(req)
+				if (!token) {
+					return metro.response('false')
+				}
+			} catch(e){
+				console.log('caught',e)
+				throw(e)
 			}
 			return oauth2authorized(req, next)
 		} else if (isExpired(req)) {
@@ -162,7 +115,7 @@ export default function mwOAuth2(options) {
 			}
 			return oauth2authorized(req, next)
 		} else {
-			let accessToken = oauth2.tokens.get('access_token')
+			let accessToken = options.tokens.get('access_token')
 			req = metro.request(req, {
 				headers: {
 					Authorization: accessToken.type+' '+accessToken.value
@@ -175,6 +128,7 @@ export default function mwOAuth2(options) {
 	/**
 	 * Fetches and stores the authorization_code from a redirected URI
 	 * Then removes the authorization_code from the browser URL
+	 * OAuth2 RFC 4.1.2
 	 */
 	function getTokensFromLocation() {
 		if (typeof window !== 'undefined' && window?.location) {
@@ -193,12 +147,12 @@ export default function mwOAuth2(options) {
 			if (params) {
 				code = params.get('code')
 				state = params.get('state')
-				let storedState = oauth2.state.get('metro/state')
+				let storedState = options.state.get('metro/state')
 				if (!state || state!==storedState) {
 					return
 				}
 				if (code) {
-					oauth2.tokens.set('authorization_code', code)
+					options.tokens.set('authorization_code', code)
 				}
 			}
 		}
@@ -206,29 +160,29 @@ export default function mwOAuth2(options) {
 
 	/**
 	 * Fetches the access_token. If the authorization_code hasn't been retrieved yet,
-	 * it will first try to get that, using the oauth2.callbacks.authorize function.
-	 * If a refresh_token is also returned, it will store that in the oauth2.tokens storage.
+	 * it will first try to get that, using the options.callbacks.authorize function.
+	 * If a refresh_token is also returned, it will store that in the options.tokens storage.
 	 */
 	async function fetchAccessToken(req) {
-		if (oauth2.grant_type === 'authorization_code' && !oauth2.tokens.has('authorization_code')) {
+		if (oauth2.grant_type === 'authorization_code' && !options.tokens.has('authorization_code')) {
 			let authReqURL = getAuthorizationCodeURL()
-			if (!oauth2.callbacks.authorize || typeof oauth2.callbacks.authorize !== 'function') {
-				throw metro.metroError('oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.oauth2.callbacks.authorize')
+			if (!options.callbacks.authorize || typeof options.callbacks.authorize !== 'function') {
+				throw metro.metroError('oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize')
 			}
-			let token = await oauth2.callbacks.authorize(authReqURL)
+			//FIXME: authorize can do a redirect, so allow for that
+			let token = await options.callbacks.authorize(authReqURL)
 			if (token) {
-				oauth2.tokens.set('authorization_code', token)
+				options.tokens.set('authorization_code', token)
 			} else {
 				return metro.response(false)
 			}
 		}
-		let tokenReq = getAccessTokenURL()
-		let response = await oauth2.client.get(tokenReq)
-		if (!response.ok) {
-			throw metro.metroError(response.status+':'+response.statusText, await response.text())
-		}
-		let data = await response.json()
-		oauth2.tokens.set('access_token', {
+		let tokenReq = getAccessTokenRequest()
+		let response = await options.client.post(tokenReq) //OAuth2.1 RFC 3.2
+		let data = response.body
+		console.log('accesstoken', data)
+		// OAuth2.1 RFC 3.2.3
+		options.tokens.set('access_token', {
 			value: data.access_token,
 			expires: getExpires(data.expires_in),
 			type: data.token_type,
@@ -238,7 +192,7 @@ export default function mwOAuth2(options) {
 			let token = {
 				value: data.refresh_token
 			}
-			oauth2.tokens.set('refresh_token', token)
+			options.tokens.set('refresh_token', token)
 		}
 		return data
 	}
@@ -246,16 +200,14 @@ export default function mwOAuth2(options) {
 	/**
 	 * Fetches a new access_token using a stored refresh_token
 	 * If a new refresh_token is also returned, it will update the stored refresh_token
+	 * OAuth2.1 RFC 4.3
 	 */
 	async function fetchRefreshToken(req, next)
 	{
-		let refreshTokenReq = getAccessTokenURL('refresh_token')
-		let response = await oauth2.client.get(refreshTokenReq)
-		if (!response.ok) {
-			throw metro.metroError(response.status+':'+response.statusText, await response.text())
-		}
-		let data = await response.json()
-		oauth2.tokens.set('access_token', {
+		let refreshTokenReq = getAccessTokenRequest('refresh_token')
+		let response = await options.client.post(refreshTokenReq)
+		let data = response.body
+		options.tokens.set('access_token', {
 			value:   data.access_token,
 			expires: getExpires(data.expires_in),
 			type:    data.token_type,
@@ -265,7 +217,7 @@ export default function mwOAuth2(options) {
 			let token = {
 				value: data.refresh_token
 			}
-			oauth2.tokens.set('refresh_token', token)
+			options.tokens.set('refresh_token', token)
 		}
 		return data
 	}
@@ -274,11 +226,11 @@ export default function mwOAuth2(options) {
 	 * Returns the URL to use to get a authorization_code
 	 */
 	function getAuthorizationCodeURL() {
-		if (!oauth2.endpoints.authorize) {
+		if (!oauth2.authorize_endpoint) {
 			throw metro.metroError('oauth2mw: Missing options.endpoints.authorize url')
 		}
-		let url = metro.url(oauth2.endpoints.authorize, {hash: ''})
-		assert.assert(oauth2, {
+		let url = metro.url(oauth2.authorize_endpoint, {hash: ''}) // OAuth2.1 RFC 3.1
+		assert(oauth2, {
 			client_id: /.+/,
 			redirect_uri: /.+/,
 			scope: /.*/
@@ -286,10 +238,15 @@ export default function mwOAuth2(options) {
 		let search = {
 			response_type: 'code', // implicit flow uses 'token' here, but is not considered safe, so not supported
 			client_id:     oauth2.client_id,
+			client_secret: oauth2.client_secret,
 			redirect_uri:  oauth2.redirect_uri,
-			state:         oauth2.state || createState(40)
+			state:         oauth2.state || createState(40) // OAuth2.1 RFC says optional, but its a good idea to always add/check it
 		}
-		search.client_secret = oauth2.client_secret
+		if (oauth2.code_verifier) { //PKCE
+			delete search.client_secret
+			search.code_challenge = generateCodeChallenge(oauth2.code_verifier)
+			search.code_challenge_method = 'S256'
+		}
 		if (oauth2.scope) {
 			search.scope = oauth2.scope
 		}
@@ -307,35 +264,39 @@ export default function mwOAuth2(options) {
 	        randomState += validChars.charAt(Math.floor(Math.random() * validChars.length))
 	        counter++
 	    }
-		oauth2.state.set(randomState)
+		options.state.set(randomState)
 		return randomState
 	}
 
 	/**
-	 * Returns a token endpoint URL with all the correct parameters, given the
-	 * grant_type. This can then be used in a metro.get.
+	 * Returns a token endpoint request with all the correct parameters, given the
+	 * grant_type. This can then be used in a metro.post.
 	 */
-	function getAccessTokenURL(grant_type=null) {
-		assert.assert(oauth2, {
+	function getAccessTokenRequest(grant_type=null) {
+		assert(oauth2, {
 			client_id: /.+/,
 			redirect_uri: /.+/
 		})
-		if (!oauth2.endpoints.token) {
+		if (!oauth2.token_endpoint) {
 			throw metro.metroError('oauth2mw: Missing options.endpoints.token url')
 		}
-		let url = metro.url(oauth2.endpoints.token, {hash: ''})
+		let url = metro.url(oauth2.token_endpoint, {hash: ''}) // OAuth2.1 RFC 3.2
 		let params = {
 			grant_type: grant_type || oauth2.grant_type,
 			client_id:  oauth2.client_id
 		}
-		params.client_secret = oauth2.client_secret
+		if (oauth2.code_verifier) { //PKCE
+			params.code_verifier = oauth2.code_verifier
+		} else {
+			params.client_secret = oauth2.client_secret
+		}
 		if (oauth2.scope) {
 			params.scope = oauth2.scope
 		}
 		switch(oauth2.grant_type) {
 			case 'authorization_code':
 				params.redirect_uri = oauth2.redirect_uri
-				params.code = oauth2.tokens.get('authorization_code')
+				params.code = options.tokens.get('authorization_code')
 			break
 			case 'client_credentials':
 				// nothing to add
@@ -347,18 +308,16 @@ export default function mwOAuth2(options) {
 				throw new Error('Unknown grant_type: '.oauth2.grant_type)
 			break
 		}
-		return metro.url(url, {
-			searchParams: params
-		})
+		return metro.request(url, { method: 'POST' }, metro.formdata(params))
 	}
 
 	/**
 	 * Returns true if the access token in a request is expired. False otherwise.
 	 */
 	function isExpired(req) {
-		if (req.oauth2 && req.oauth2.tokens && req.oauth2.tokens.has('access_token')) {
+		if (req.oauth2 && req.options.tokens && req.options.tokens.has('access_token')) {
 			let now = new Date();
-			let token = req.oauth2.tokens.get('access_token')
+			let token = req.options.tokens.get('access_token')
 			return now.getTime() > token.expires.getTime();
 		}
 		return false;
@@ -378,5 +337,23 @@ export default function mwOAuth2(options) {
 			return date;
 		}
 		throw new TypeError('Unknown expires type '+duration);
+	}
+
+	/**
+	 * Returns a PKCE code_challenge derived from a code_verifier
+	 */
+	async function generateCodeChallenge(code_verifier) {
+		return await globalThis.crypto.subtle.digest('SHA-256', base64url_encode(code_verifier))
+	}
+
+	/**
+	 * Base64url encoding, which handles UTF-8 input strings correctly.
+	 */
+	function base64url_encode(buffer) {
+		const byteString = Array.from(new Uint8Array(buffer), b => String.fromCharCode(b)).join('')
+	    return btoa(byteString)
+	        .replace(/\+/g, '-')
+	        .replace(/\//g, '_')
+	        .replace(/=+$/, '');
 	}
 }
