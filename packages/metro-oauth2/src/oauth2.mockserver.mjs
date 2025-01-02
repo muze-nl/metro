@@ -28,8 +28,6 @@ let pkce = {}
 
 export default function oauth2mockserver(options={}) {
 
-	// TODO: add PCKE support, so assert either client_secret or code_verifier / code_challenge
-	// store code_challenge and code_challenge_method for each authorization_code
 	// TODO: add DPoP support
 	const defaultOptions = {
 		'PKCE': false,
@@ -37,7 +35,7 @@ export default function oauth2mockserver(options={}) {
 	}
 	options = Object.assign({}, defaultOptions, options)
 
-	return (req, next) => {
+	return async (req, next) => {
 		let url = metro.url(req.url)
 		switch(url.pathname) {
 			case '/authorize/':
@@ -63,6 +61,11 @@ export default function oauth2mockserver(options={}) {
 				})
 			break
 			case '/token/':
+				if (req.body instanceof FormData) {
+					let body = {}
+					req.body.forEach((value,key) => body[key] = value)
+					req = req.with({body})
+				}
 				if (error = assert.fails(req, {
 					method: 'POST',
 					body: {
