@@ -23,7 +23,7 @@ const badRequest = (error) => {
 	}
 }
 
-let error, expect, token
+let error
 let pkce = {}
 
 export default function oauth2mockserver(options={}) {
@@ -51,7 +51,7 @@ export default function oauth2mockserver(options={}) {
 						return metro.response(badRequest('missing code_challenge_method'))
 					}
 					pkce.code_challenge = url.searchParams.get('code_challenge')
-					pcke.code_challenge_method = url.searchParams.get('code_challenge_method')
+					pkce.code_challenge_method = url.searchParams.get('code_challenge_method')
 				}
 				return metro.response(baseResponse, {
 					body: JSON.stringify({

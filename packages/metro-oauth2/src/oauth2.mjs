@@ -1,7 +1,5 @@
 import * as metro from '@muze-nl/metro'
-import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/assert'
-import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
-import thrower from '@muze-nl/metro/src/mw/thrower.mjs'
+import { assert, Required, validURL } from '@muze-nl/assert'
 import {tokenStore} from './tokenstore.mjs'
 
 /**
@@ -13,9 +11,8 @@ import {tokenStore} from './tokenstore.mjs'
  * This library follows the OAuth2.1 RFC - https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-11)
  * Referenced as Oauth2.1 RFC from here on
  */
-
-export default function mwOAuth2(options) {
-
+export default function mwOAuth2(options)
+{
 	const defaultOptions = {
 		client: metro.client(),
 		force_authorization: false,
@@ -25,7 +22,7 @@ export default function mwOAuth2(options) {
 			token_endpoint: '/token',
 			redirect_uri: globalThis.document?.location.href,
 			grant_type: 'authorization_code',
-			code_verifier: pkce.generateCodeVerifier(64)
+			code_verifier: security.generateCodeVerifier(64)
 		},
 		callbacks: {
 			authorize: url => document.location = url
@@ -74,17 +71,21 @@ export default function mwOAuth2(options) {
 		if (options.force_authorization) {
 			return oauth2authorized(req, next)
 		}
-		let res = await next(req)
-		if (res.ok) {
-			return res
-		}
-		switch(res.status) { 
-			case 400: // Oauth2.1 RFC 3.2.4
-			case 401: // in case of incorrect authentication method
-				//FIXME: check payload of response as well? yes - may be able to recover
-				//FIXME: using thrower this needs a try/catch somewhere
-				return oauth2authorized(req, next)
-			break
+		let res
+		try {
+			res = await next(req)
+			if (res.ok) {
+				return res
+			}
+		} catch(err) {
+			switch(res.status) { 
+				case 400: // Oauth2.1 RFC 3.2.4
+				case 401: // in case of incorrect authentication method
+					//FIXME: check payload of response as well? yes - may be able to recover
+					return oauth2authorized(req, next)
+				break
+			}
+			throw err
 		}
 		return res
 	}
@@ -92,11 +93,12 @@ export default function mwOAuth2(options) {
 	/**
 	 * Implements the OAuth2 authorization flow for a request
 	 */
-	async function oauth2authorized(req, next) {
+	async function oauth2authorized(req, next)
+	{
 		getTokensFromLocation()
 		if (!options.tokens.has('access_token')) {
 			try {
-				let token = await fetchAccessToken(req)
+				let token = await fetchAccessToken()
 				if (!token) {
 					return metro.response('false')
 				}
@@ -106,7 +108,7 @@ export default function mwOAuth2(options) {
 			}
 			return oauth2authorized(req, next)
 		} else if (isExpired(req)) {
-			let token = await fetchRefreshToken(req)
+			let token = await fetchRefreshToken()
 			if (!token) {
 				return metro.response('false')
 			}
@@ -127,7 +129,8 @@ export default function mwOAuth2(options) {
 	 * Then removes the authorization_code from the browser URL
 	 * OAuth2 RFC 4.1.2
 	 */
-	function getTokensFromLocation() {
+	function getTokensFromLocation()
+	{
 		if (typeof window !== 'undefined' && window?.location) {
 			let url = metro.url(window.location)
 			let code, state, params
@@ -160,7 +163,8 @@ export default function mwOAuth2(options) {
 	 * it will first try to get that, using the options.callbacks.authorize function.
 	 * If a refresh_token is also returned, it will store that in the options.tokens storage.
 	 */
-	async function fetchAccessToken(req) {
+	async function fetchAccessToken()
+	{
 		if (oauth2.grant_type === 'authorization_code' && !options.tokens.has('authorization_code')) {
 			let authReqURL = getAuthorizationCodeURL()
 			if (!options.callbacks.authorize || typeof options.callbacks.authorize !== 'function') {
@@ -201,7 +205,7 @@ export default function mwOAuth2(options) {
 	 * If a new refresh_token is also returned, it will update the stored refresh_token
 	 * OAuth2.1 RFC 4.3
 	 */
-	async function fetchRefreshToken(req, next)
+	async function fetchRefreshToken()
 	{
 		let refreshTokenReq = getAccessTokenRequest('refresh_token')
 		let response = await options.client.post(refreshTokenReq)
@@ -227,7 +231,8 @@ export default function mwOAuth2(options) {
 	/**
 	 * Returns the URL to use to get a authorization_code
 	 */
-	function getAuthorizationCodeURL() {
+	function getAuthorizationCodeURL()
+	{
 		if (!oauth2.authorize_endpoint) {
 			throw metro.metroError('oauth2mw: Missing options.endpoints.authorize url')
 		}
@@ -242,11 +247,12 @@ export default function mwOAuth2(options) {
 			client_id:     oauth2.client_id,
 			client_secret: oauth2.client_secret,
 			redirect_uri:  oauth2.redirect_uri,
-			state:         oauth2.state || createState(40) // OAuth2.1 RFC says optional, but its a good idea to always add/check it
+			state:         oauth2.state || security.createState(40) // OAuth2.1 RFC says optional, but its a good idea to always add/check it
 		}
+		options.state.set(search.state)
 		if (oauth2.code_verifier) { //PKCE
 			delete search.client_secret
-			search.code_challenge = pkce.generateCodeChallenge(oauth2.code_verifier)
+			search.code_challenge = security.generateCodeChallenge(oauth2.code_verifier)
 			search.code_challenge_method = 'S256'
 		}
 		if (oauth2.scope) {
@@ -255,26 +261,13 @@ export default function mwOAuth2(options) {
 		return metro.url(url, { search })
 	}
 
-	/**
-	 * Creates and stores a random state to use in the authorization code URL
-	 */
-	function createState(length) {
-		const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-		let randomState = ''
-		let counter = 0
-	    while (counter < length) {
-	        randomState += validChars.charAt(Math.floor(Math.random() * validChars.length))
-	        counter++
-	    }
-		options.state.set(randomState)
-		return randomState
-	}
 
 	/**
 	 * Returns a token endpoint request with all the correct parameters, given the
 	 * grant_type. This can then be used in a metro.post.
 	 */
-	function getAccessTokenRequest(grant_type=null) {
+	function getAccessTokenRequest(grant_type=null)
+	{
 		assert(oauth2, {
 			client_id: /.+/,
 			redirect_uri: /.+/
@@ -316,7 +309,8 @@ export default function mwOAuth2(options) {
 	/**
 	 * Returns true if the access token in a request is expired. False otherwise.
 	 */
-	function isExpired(req) {
+	function isExpired(req)
+	{
 		if (req.oauth2 && req.options.tokens && req.options.tokens.has('access_token')) {
 			let now = new Date();
 			let token = req.options.tokens.get('access_token')
@@ -329,7 +323,8 @@ export default function mwOAuth2(options) {
 	 * Returns a new Date based on a duration, which can either be a date
 	 * or a number of seconds from now.
 	 */
-	function getExpires(duration) {
+	function getExpires(duration)
+	{
 		if (duration instanceof Date) {
 			return new Date(duration.getTime()); // return a copy
 		}
@@ -344,9 +339,13 @@ export default function mwOAuth2(options) {
 
 }
 
-export const pkce = {	
-	generateCodeVerifier: function(size=64) {
-		const code_verifier = new Uint8Array(64)
+export const security = {	
+	/**
+	 * returns a PKCE code_verifier, as a hex encoded string
+	 */
+	generateCodeVerifier: function(size=64)
+	{
+		const code_verifier = new Uint8Array(size)
 		globalThis.crypto.getRandomValues(code_verifier)
 		return code_verifier.toString('hex')
 	},
@@ -354,8 +353,9 @@ export const pkce = {
 	/**
 	 * Returns a PKCE code_challenge derived from a code_verifier
 	 */
-	generateCodeChallenge: async function(code_verifier) {
-		const b64encoded = pkce.base64url_encode(code_verifier)
+	generateCodeChallenge: async function(code_verifier)
+	{
+		const b64encoded = security.base64url_encode(code_verifier)
 		const encoder = new TextEncoder()
 		const data = encoder.encode(b64encoded)
 		return await globalThis.crypto.subtle.digest('SHA-256', data)
@@ -364,11 +364,27 @@ export const pkce = {
 	/**
 	 * Base64url encoding, which handles UTF-8 input strings correctly.
 	 */
-	base64url_encode: function(buffer) {
+	base64url_encode: function(buffer)
+	{
 		const byteString = Array.from(new Uint8Array(buffer), b => String.fromCharCode(b)).join('')
 	    return btoa(byteString)
 	        .replace(/\+/g, '-')
 	        .replace(/\//g, '_')
 	        .replace(/=+$/, '');
-	}	
+	},
+
+	/**
+	 * Creates and stores a random state to use in the authorization code URL
+	 */
+	createState: function(length)
+	{
+		const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+		let randomState = ''
+		let counter = 0
+	    while (counter < length) {
+	        randomState += validChars.charAt(Math.floor(Math.random() * validChars.length))
+	        counter++
+	    }
+		return randomState
+	}
 }
