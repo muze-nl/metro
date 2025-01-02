@@ -48,11 +48,11 @@ tap.test('authorize', async t => {
 	}))
 	let url = metro.url('/protected/')
 //	metro.trace.add('group', metro.trace.group())
-	metro.trace.add('group', {
-		request: req => console.log(req.url)
-	})
+	// metro.trace.add('group', {
+	// 	request: req => console.log(req.url)
+	// })
 	let res = await oauth2client.get(url)
-		t.ok(res.ok)
+	t.ok(res.ok)
 	let json = await res.json()
 	t.equal(json.result,'Success')
 	t.end()
