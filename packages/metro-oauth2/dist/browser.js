@@ -1,2 +1,1257 @@
-let e;var t=require("@muze-nl/metro"),o=require("@muze-nl/assert"),r=require("@muze-nl/metro/src/mw/json.mjs");function n(e){Object.defineProperty(e,"__esModule",{value:!0,configurable:!0})}function s(e,t,o,r){Object.defineProperty(e,t,{get:o,set:r,enumerable:!0,configurable:!0})}var a={};function i(e){let n,s,a="default";if(e.site&&(a=e.site),"undefined"!=typeof localStorage)n={get:()=>localStorage.getItem("metro/state:"+a),set:e=>localStorage.setItem("metro/state:"+a,e),has:()=>null!==localStorage.getItem("metro/state:"+a)},s={get:e=>localStorage.getItem(a+":"+e),set:(e,t)=>localStorage.setItem(a+":"+e,t),has:e=>null!==localStorage.getItem(a+":"+e)};else{let e=new Map;n={get:()=>e.get("metro/state:"+a),set:t=>e.set("metro/state:"+a,t),has:()=>e.has("metro/state:"+a)},s=new Map}let i={tokens:s,state:n,endpoints:{authorize:"/authorize",token:"/token"},callbacks:{authorize:e=>document.location=e},client:t.client().with((r&&r.__esModule?r.default:r)()),client_id:"",client_secret:"",redirect_uri:"",grant_type:"authorization_code",force_authorization:!1};for(let o in e){switch(o){case"access_token":case"authorization_code":case"refresh_token":i.tokens.set(o,e[o]);break;case"client":case"client_id":case"client_secret":case"grant_type":case"force_authorization":case"redirect_uri":i[o]=e[o];break;case"state":case"tokens":if("function"==typeof e[o].set&&"function"==typeof e[o].get&&"function"==typeof e[o].has)i[o]=e[o];else if("tokens"==o&&"object"==typeof e.tokens)for(let t in e.tokens)i.tokens.set(t,e.tokens[t]);else if("state"==o&&"object"==typeof e.state)e.state.random||(e.state.random=d(40)),i.state.set(JSON.stringify(e.state));else throw t.metroError("metro/mw/oauth2: incorrect value for "+o);break;case"endpoints":for(let o in e.endpoints)if("authorize"!=o&&"token"!=o)throw t.metroError('Unknown endpoint, choose one of "authorize" or "token"',o);Object.assign(i.endpoints,e.endpoints);break;case"callbacks":for(let o in e.callbacks)if("authorize"!=o)throw t.metroError('Unknown callback, choose one of "authorize"',o);Object.assign(i.callbacks,e.callbacks);break;case"site":break;default:throw t.metroError("Unknown oauth2mw option ",o)}i.redirect_uri||(i.redirect_uri="undefined"!=typeof window?window.location?.href:""),i.redirect_uri&&(i.redirect_uri=t.url(i.redirect_uri).with("?metroRedirect=true"))}return async function(e,t){if(i.force_authorization)return c(e,t);let o=await t(e);if(o.ok)return o;switch(o.status){case 400:case 401:return c(e,t)}return o};async function c(e,o){if(function(){if("undefined"!=typeof window&&window?.location){let e,o,r,n=t.url(window.location);if(n.searchParams.has("code")?(r=n.searchParams,n=n.with({search:""}),history.pushState({},"",n.href)):n.hash&&(r=new URLSearchParams("?"+n.hash.substr(1)),n=n.with({hash:""}),history.pushState({},"",n.href)),r){e=r.get("code"),o=r.get("state");let t=i.state.get("metro/state");if(!o||o!==t)return;e&&i.tokens.set("authorization_code",e)}}}(),i.tokens.has("access_token")){if(function(e){if(e.oauth2&&e.oauth2.tokens&&e.oauth2.tokens.has("access_token")){let t=new Date,o=e.oauth2.tokens.get("access_token");return t.getTime()>o.expires.getTime()}return!1}(e))return await u(e)?c(e,o):t.response("false");{let r=i.tokens.get("access_token");return o(e=t.request(e,{headers:{Authorization:r.type+" "+r.value}}))}}return await l(e)?c(e,o):t.response("false")}async function l(e){if("authorization_code"===i.grant_type&&!i.tokens.has("authorization_code")){let e=function(){if(!i.endpoints.authorize)throw t.metroError("oauth2mw: Missing options.endpoints.authorize url");let e=t.url(i.endpoints.authorize,{hash:""});o.assert(i,{client_id:/.+/,redirect_uri:/.+/,scope:/.*/});let r={response_type:"code",client_id:i.client_id,redirect_uri:i.redirect_uri,state:i.state||d(40)};return r.client_secret=i.client_secret,i.scope&&(r.scope=i.scope),t.url(e,{search:r})}();if(!i.callbacks.authorize||"function"!=typeof i.callbacks.authorize)throw t.metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.oauth2.callbacks.authorize");let r=await i.callbacks.authorize(e);if(!r)return t.response(!1);i.tokens.set("authorization_code",r)}let r=h(),n=await i.client.get(r);if(!n.ok)throw t.metroError(n.status+":"+n.statusText,await n.text());let s=await n.json();if(i.tokens.set("access_token",{value:s.access_token,expires:_(s.expires_in),type:s.token_type,scope:s.scope}),s.refresh_token){let e={value:s.refresh_token};i.tokens.set("refresh_token",e)}return s}async function u(e,o){let r=h("refresh_token"),n=await i.client.get(r);if(!n.ok)throw t.metroError(n.status+":"+n.statusText,await n.text());let s=await n.json();if(i.tokens.set("access_token",{value:s.access_token,expires:_(s.expires_in),type:s.token_type,scope:s.scope}),s.refresh_token){let e={value:s.refresh_token};i.tokens.set("refresh_token",e)}return s}function d(e){let t="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",o="",r=0;for(;r<e;)o+=t.charAt(Math.floor(Math.random()*t.length)),r++;return i.state.set(o),o}function h(e=null){if(o.assert(i,{client_id:/.+/,redirect_uri:/.+/}),!i.endpoints.token)throw t.metroError("oauth2mw: Missing options.endpoints.token url");let r=t.url(i.endpoints.token,{hash:""}),n={grant_type:e||i.grant_type,client_id:i.client_id};switch(n.client_secret=i.client_secret,i.scope&&(n.scope=i.scope),i.grant_type){case"authorization_code":n.redirect_uri=i.redirect_uri,n.code=i.tokens.get("authorization_code");break;case"client_credentials":break;case"refresh_token":n.refresh_token=i.refresh_token;break;default:throw Error("Unknown grant_type: ".oauth2.grant_type)}return t.url(r,{searchParams:n})}function _(e){if(e instanceof Date)return new Date(e.getTime());if("number"==typeof e){let t=new Date;return t.setSeconds(t.getSeconds()+e),t}throw TypeError("Unknown expires type "+e)}}n(a),s(a,"default",()=>i);var c={};n(c),s(c,"default",()=>h);const l={status:200,statusText:"OK",headers:{"Content-Type":"application/json"}},u=e=>({status:400,statusText:"Bad Request",headers:{"Content-Type":"application/json"},body:JSON.stringify({error:"invalid_request",error_description:e})});let d={};function h(r={}){return r=Object.assign({},{PKCE:!1,DPoP:!1},r),(r,n)=>{let s=t.url(r.url);switch(s.pathname){case"/authorize/":if(e=o.fails(s.searchParams,{response_type:"code",client_id:"mockClientId",state:o.Optional(/.*/)}))return t.response(u(e));if(s.searchParams.has("code_challenge")){if(!s.searchParams.has("code_challenge_method"))return t.response(u("missing code_challenge_method"));d.code_challenge=s.searchParams.get("code_challenge"),pcke.code_challenge_method=s.searchParams.get("code_challenge_method")}return t.response(l,{body:JSON.stringify({code:"mockAuthorizeToken",state:s.searchParams.get("state")})});case"/token/":if(e=o.fails(s.searchParams,{grant_type:o.oneOf("refresh_token","authorization_code")}))return t.response(u(e));switch(s.searchParams.grant_type){case"refresh_token":if(e=o.fails(s.searchParams,o.oneOf({refresh_token:"mockRefreshToken",client_id:"mockClientId",client_secret:"mockClientSecret"},{refresh_token:"mockRefreshToken",client_id:"mockClientId",code_verifier:/.+/})))return t.response(u(e));break;case"access_token":if(e=o.fails(s.searchParams,o.oneOf({client_id:"mockClientId",client_secret:"mockClientSecret"},{client_id:"mockClientId",code_challenge:/.*/,code_challenge_method:"S256"})))return t.response(u(e))}return t.response(l,{body:JSON.stringify({access_token:"mockAccessToken",token_type:"mockExample",expires_in:3600,refresh_token:"mockRefreshToken",example_parameter:"mockExampleValue"})});case"/protected/":let a=r.headers.get("Authorization"),[i,c]=a?a.split(" "):[];if(!c||"mockAccessToken"!==c)return t.response({status:401,statusText:"Forbidden",body:"401 Forbidden"});return t.response(l,{body:JSON.stringify({result:"Success"})});case"/public/":return t.response(l,{body:JSON.stringify({result:"Success"})});default:return t.response({status:404,statusText:"not found",body:"404 Not Found "+s})}}}var _={};function p(e){let o={code_verifier:"",endpoints:{authorize:"/authorize",token:"/token"}};return e?.endpoints?.authorize&&(o.endpoints.authorize=e.endpoints.authorize),e?.endpoints?.token&&(o.endpoints.token=e.endpoints.token),e.code_verifier?o.code_verifier=e.code_verifier:o.code_verifier=crypto.randomBytes(64).toString("hex"),async function(n,s){return n.url=t.url(n.url),n.url.pathname==o.endpoints.authorize?(n.url.searchParams.set("code_challenge",r(e.code_verifier)),n.url.searchParams.set("code_challend_method","S256"),n.url.searchParams.delete("client_secret")):n.url.pathname==o.endpoints.token&&(n.url.searchParams.set("code_verifier",o.code_verifier),n.url.searchParams.delete("client_secret")),await s(n)};async function r(e){return await globalThis.crypto.subtle.digest("SHA-256",btoa(Array.from(new Uint8Array(e),e=>String.fromCharCode(e)).join("")).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""))}}n(_),s(_,"default",()=>p);var f={};n(f),s(f,"default",()=>w);const k=["HS256","HS384","HS512","RS256","RS384","RS512","ES256","ES384","ES512"],m=["client_secret_post","client_secret_base","client_secret_jwt","private_key_jwt"],g={issuer:(0,o.Required)(validURL),authorization_endpoint:(0,o.Required)(validURL),token_endpoint:(0,o.Required)(validURL),jwks_uri:(0,o.Optional)(validURL),registration_endpoint:(0,o.Optional)(validURL),scopes_supported:(0,o.Recommended)([]),response_types_supported:(0,o.Required)((0,o.anyOf)("code","token")),response_modes_supported:(0,o.Optional)([]),grant_types_supported:(0,o.Optional)([]),token_endpoint_auth_methods_supported:(0,o.Optional)([]),token_endpoint_auth_signing_alg_values_supported:(0,o.Optional)([]),service_documentation:(0,o.Optional)(validURL),ui_locales_supported:(0,o.Optional)([]),op_policy_uri:(0,o.Optional)(validURL),op_tos_uri:(0,o.Optional)(validURL),revocation_endpoint:(0,o.Optional)(validURL),revocation_endpoint_auth_methods_supported:(0,o.Optional)(m),revocation_endpoint_auth_signing_alg_values_supported:(0,o.Optional)(k),introspection_endpoint:(0,o.Optional)(validURL),introspection_endpoint_auth_methods_supported:(0,o.Optional)(m),introspection_endpoint_auth_signing_alg_values_supported:(0,o.Optional)(k),code_challendge_methods_supported:(0,o.Optional)([])};function w(e={}){e=Object.assign({},{client:t.client()},e),(0,o.assert)(e,{issuer:(0,o.Required)(validURL)}),y(e.issuer),e.client.with(e.issuer)}async function y(e){let r=options.client.get(t.url(e,".wellknown/oauth_authorization_server"));if(r.ok){(0,o.assert)(r.headers.get("Content-Type"),/application\/json.*/);let e=await r.json();return(0,o.assert)(e,g),e}throw t.metroError("metro.oidcmw: Error while fetching "+e+".wellknown/oauth_authorization_server",r)}globalThis.oauth2=a,globalThis.oauth2.mockserver=c,globalThis.oauth2.pkce=_,globalThis.oauth2.discovery=f;
+(() => {
+  var __defProp = Object.defineProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+
+  // src/oauth2.mjs
+  var oauth2_exports = {};
+  __export(oauth2_exports, {
+    default: () => mwOAuth2,
+    security: () => security
+  });
+
+  // node_modules/@muze-nl/metro/src/metro.mjs
+  var metroURL = "https://metro.muze.nl/details/";
+  var symbols = {
+    isProxy: Symbol("isProxy"),
+    source: Symbol("source")
+  };
+  var Client = class _Client {
+    #options = {
+      url: typeof window != "undefined" ? window.location : "https://localhost"
+    };
+    #verbs = ["get", "post", "put", "delete", "patch", "head", "options", "query"];
+    static tracers = {};
+    /**
+     * @typedef {Object} ClientOptions
+     * @property {Array} middlewares - list of middleware functions
+     * @property {string|URL} url - default url of the client
+     * @property {[string]} verbs - a list of verb methods to expose, e.g. ['get','post']
+     * 
+     * Constructs a new metro client. Can have any number of params.
+     * @params {ClientOptions|URL|Function|Client}
+     * @returns {Client} - A metro client object with given or default verb methods
+     */
+    constructor(...options) {
+      for (let option of options) {
+        if (typeof option == "string" || option instanceof String) {
+          this.#options.url = "" + option;
+        } else if (option instanceof _Client) {
+          Object.assign(this.#options, option.#options);
+        } else if (option instanceof Function) {
+          this.#addMiddlewares([option]);
+        } else if (option && typeof option == "object") {
+          for (let param in option) {
+            if (param == "middlewares") {
+              this.#addMiddlewares(option[param]);
+            } else if (typeof option[param] == "function") {
+              this.#options[param] = option[param](this.#options[param], this.#options);
+            } else {
+              this.#options[param] = option[param];
+            }
+          }
+        }
+      }
+      if (this.#options.verbs) {
+        this.#verbs = this.#options.verbs;
+        delete this.#options.verbs;
+      }
+      for (const verb of this.#verbs) {
+        this[verb] = async function(...options2) {
+          return this.fetch(request(
+            this.#options,
+            ...options2,
+            { method: verb.toUpperCase() }
+          ));
+        };
+      }
+      Object.freeze(this);
+    }
+    #addMiddlewares(middlewares) {
+      if (typeof middlewares == "function") {
+        middlewares = [middlewares];
+      }
+      let index = middlewares.findIndex((m) => typeof m != "function");
+      if (index >= 0) {
+        throw metroError("metro.client: middlewares must be a function or an array of functions " + metroURL + "client/invalid-middlewares-value/", middlewares[index]);
+      }
+      if (!Array.isArray(this.#options.middlewares)) {
+        this.#options.middlewares = [];
+      }
+      this.#options.middlewares = this.#options.middlewares.concat(middlewares);
+    }
+    /**
+     * Mimics the standard browser fetch method, but uses any middleware installed through
+     * the constructor.
+     * @param {Request|string|Object} - Required. The URL or Request object, accepts all types that are accepted by metro.request
+     * @param {Object} - Optional. Any object that is accepted by metro.request
+     * @return {Promise<Response|*>} - The metro.response to this request, or any other result as changed by any included middleware.
+     */
+    fetch(req, options) {
+      req = request(req, options);
+      if (!req.url) {
+        throw metroError("metro.client." + req.method.toLowerCase() + ": Missing url parameter " + metroURL + "client/missing-url-param/", req);
+      }
+      if (!options) {
+        options = {};
+      }
+      if (!(typeof options === "object") || Array.isArray(options) || options instanceof String) {
+        throw metroError("metro.client.fetch: Options is not an object");
+      }
+      const metrofetch = async function browserFetch(req2) {
+        if (req2[symbols.isProxy]) {
+          req2 = req2[symbols.source];
+        }
+        const res = await fetch(req2);
+        return response(res);
+      };
+      let middlewares = [metrofetch].concat(this.#options?.middlewares?.slice() || []);
+      options = Object.assign({}, this.#options, options);
+      let next;
+      for (let middleware of middlewares) {
+        next = /* @__PURE__ */ function(next2, middleware2) {
+          return async function(req2) {
+            let res;
+            let tracers = Object.values(_Client.tracers);
+            for (let tracer of tracers) {
+              if (tracer.request) {
+                tracer.request.call(tracer, req2, middleware2);
+              }
+            }
+            res = await middleware2(req2, next2);
+            for (let tracer of tracers) {
+              if (tracer.response) {
+                tracer.response.call(tracer, res, middleware2);
+              }
+            }
+            return res;
+          };
+        }(next, middleware);
+      }
+      return next(req);
+    }
+    with(...options) {
+      return new _Client(this, ...options);
+    }
+  };
+  function client(...options) {
+    return new Client(...options);
+  }
+  function bodyProxy(body, r) {
+    let source = r.body;
+    if (!source) {
+      if (body === null) {
+        source = new ReadableStream();
+      } else if (body instanceof ReadableStream) {
+        source = body;
+      } else if (body instanceof Blob) {
+        source = body.stream();
+      } else {
+        source = new ReadableStream({
+          start(controller) {
+            let chunk;
+            switch (typeof body) {
+              case "object":
+                if (typeof body.toString == "function") {
+                  chunk = body.toString();
+                } else if (body instanceof FormData) {
+                  chunk = new URLSearchParams(body).toString();
+                } else if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
+                  chunk = body;
+                } else {
+                  throw metroError("Cannot convert body to ReadableStream", body);
+                }
+                break;
+              case "string":
+              case "number":
+              case "boolean":
+                chunk = body;
+                break;
+              default:
+                throw metroError("Cannot convert body to ReadableStream", body);
+                break;
+            }
+            controller.enqueue(chunk);
+            controller.close();
+          }
+        });
+      }
+    }
+    return new Proxy(source, {
+      get(target, prop, receiver) {
+        switch (prop) {
+          case symbols.isProxy:
+            return true;
+            break;
+          case symbols.source:
+            return body;
+            break;
+          case "toString":
+            return function() {
+              return "" + body;
+            };
+            break;
+        }
+        if (typeof body == "object") {
+          if (prop in body) {
+            if (typeof body[prop] == "function") {
+              return function(...args) {
+                return body[prop].apply(body, args);
+              };
+            }
+            return body[prop];
+          }
+        }
+        if (prop in target && prop != "toString") {
+          if (typeof target[prop] == "function") {
+            return function(...args) {
+              return target[prop].apply(target, args);
+            };
+          }
+          return target[prop];
+        }
+      },
+      has(target, prop) {
+        return prop in body;
+      },
+      ownKeys(target) {
+        if (typeof body == "object") {
+          return Reflect.ownKeys(body);
+        } else {
+          return Reflect.ownKeys(target);
+        }
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        return Object.getOwnPropertyDescriptor(body, prop);
+      }
+    });
+  }
+  function getRequestParams(req, current) {
+    let params = current || {};
+    if (!params.url && current.url) {
+      params.url = current.url;
+    }
+    for (let prop of [
+      "method",
+      "headers",
+      "body",
+      "mode",
+      "credentials",
+      "cache",
+      "redirect",
+      "referrer",
+      "referrerPolicy",
+      "integrity",
+      "keepalive",
+      "signal",
+      "priority",
+      "url"
+    ]) {
+      if (typeof req[prop] == "function") {
+        req[prop](params[prop], params);
+      } else if (typeof req[prop] != "undefined") {
+        if (prop == "url") {
+          params.url = url(params.url, req.url);
+        } else if (prop == "headers") {
+          params.headers = new Headers(current.headers);
+          if (!(req.headers instanceof Headers)) {
+            req.headers = new Headers(req.headers);
+          }
+          for (let [key, value] of req.headers.entries()) {
+            params.headers.set(key, value);
+          }
+        } else {
+          params[prop] = req[prop];
+        }
+      }
+    }
+    return params;
+  }
+  function request(...options) {
+    let requestParams = {
+      url: typeof window != "undefined" ? window.location : "https://localhost/",
+      duplex: "half"
+      // required when setting body to ReadableStream, just set it here by default already
+    };
+    for (let option of options) {
+      if (typeof option == "string" || option instanceof URL || option instanceof URLSearchParams) {
+        requestParams.url = url(requestParams.url, option);
+      } else if (option && (option instanceof FormData || option instanceof ReadableStream || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView)) {
+        requestParams.body = option;
+      } else if (option && typeof option == "object") {
+        Object.assign(requestParams, getRequestParams(option, requestParams));
+      }
+    }
+    let body = requestParams.body;
+    if (body) {
+      if (typeof body == "object" && !(body instanceof String) && !(body instanceof ReadableStream) && !(body instanceof Blob) && !(body instanceof ArrayBuffer) && !(body instanceof DataView) && !(body instanceof FormData) && !(body instanceof URLSearchParams) && (typeof TypedArray == "undefined" || !(body instanceof TypedArray))) {
+        requestParams.body = JSON.stringify(body);
+      }
+    }
+    let r = new Request(requestParams.url, requestParams);
+    Object.freeze(r);
+    return new Proxy(r, {
+      get(target, prop, receiver) {
+        switch (prop) {
+          case symbols.source:
+            return target;
+            break;
+          case symbols.isProxy:
+            return true;
+            break;
+          case "with":
+            return function(...options2) {
+              if (body) {
+                options2.unshift({ body });
+              }
+              return request(target, ...options2);
+            };
+            break;
+          case "toString":
+          case "toJSON":
+            return function() {
+              return target[prop].apply(target);
+            };
+            break;
+          case "blob":
+          case "text":
+          case "json":
+            return function() {
+              return target[prop].apply(target);
+            };
+            break;
+          case "body":
+            if (!body) {
+              body = target.body;
+            }
+            if (body) {
+              if (body[symbols.isProxy]) {
+                return body;
+              }
+              return bodyProxy(body, target);
+            }
+            break;
+        }
+        return target[prop];
+      }
+    });
+  }
+  function getResponseParams(res, current) {
+    let params = current || {};
+    if (!params.url && current.url) {
+      params.url = current.url;
+    }
+    for (let prop of ["status", "statusText", "headers", "body", "url", "type", "redirected"]) {
+      if (typeof res[prop] == "function") {
+        res[prop](params[prop], params);
+      } else if (typeof res[prop] != "undefined") {
+        if (prop == "url") {
+          params.url = new URL(res.url, params.url || "https://localhost/");
+        } else {
+          params[prop] = res[prop];
+        }
+      }
+    }
+    return params;
+  }
+  function response(...options) {
+    let responseParams = {};
+    for (let option of options) {
+      if (typeof option == "string") {
+        responseParams.body = option;
+      } else if (option instanceof Response) {
+        Object.assign(responseParams, getResponseParams(option, responseParams));
+      } else if (option && typeof option == "object") {
+        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof TypedArray != "undefined" && option instanceof TypedArray) {
+          responseParams.body = option;
+        } else {
+          Object.assign(responseParams, getResponseParams(option, responseParams));
+        }
+      }
+    }
+    let r = new Response(responseParams.body, responseParams);
+    Object.freeze(r);
+    return new Proxy(r, {
+      get(target, prop, receiver) {
+        switch (prop) {
+          case symbols.isProxy:
+            return true;
+            break;
+          case symbols.source:
+            return target;
+            break;
+          case "with":
+            return function(...options2) {
+              return response(target, ...options2);
+            };
+            break;
+          case "body":
+            if (responseParams.body) {
+              if (responseParams.body[symbols.isProxy]) {
+                return responseParams.body;
+              }
+              return bodyProxy(responseParams.body, target);
+            } else {
+              return bodyProxy("", target);
+            }
+            break;
+          case "ok":
+            return target.status >= 200 && target.status < 400;
+            break;
+          case "headers":
+            return target.headers;
+            break;
+          default:
+            if (prop in responseParams && prop != "toString") {
+              return responseParams[prop];
+            }
+            if (prop in target && prop != "toString") {
+              if (typeof target[prop] == "function") {
+                return function(...args) {
+                  return target[prop].apply(target, args);
+                };
+              }
+              return target[prop];
+            }
+            break;
+        }
+        return void 0;
+      }
+    });
+  }
+  function appendSearchParams(url2, params) {
+    if (typeof params == "function") {
+      params(url2.searchParams, url2);
+    } else {
+      params = new URLSearchParams(params);
+      params.forEach((value, key) => {
+        url2.searchParams.append(key, value);
+      });
+    }
+  }
+  function url(...options) {
+    let validParams = [
+      "hash",
+      "host",
+      "hostname",
+      "href",
+      "password",
+      "pathname",
+      "port",
+      "protocol",
+      "username",
+      "search",
+      "searchParams"
+    ];
+    let u = new URL("https://localhost/");
+    for (let option of options) {
+      if (typeof option == "string" || option instanceof String) {
+        u = new URL(option, u);
+      } else if (option instanceof URL || typeof Location != "undefined" && option instanceof Location) {
+        u = new URL(option);
+      } else if (option instanceof URLSearchParams) {
+        appendSearchParams(u, option);
+      } else if (option && typeof option == "object") {
+        for (let param in option) {
+          if (param == "search") {
+            if (typeof option.search == "function") {
+              option.search(u.search, u);
+            } else {
+              u.search = new URLSearchParams(option.search);
+            }
+          } else if (param == "searchParams") {
+            appendSearchParams(u, option.searchParams);
+          } else {
+            if (!validParams.includes(param)) {
+              throw metroError("metro.url: unknown url parameter " + metroURL + "url/unknown-param-name/", param);
+            }
+            if (typeof option[param] == "function") {
+              option[param](u[param], u);
+            } else if (typeof option[param] == "string" || option[param] instanceof String || typeof option[param] == "number" || option[param] instanceof Number || typeof option[param] == "boolean" || option[param] instanceof Boolean) {
+              u[param] = "" + option[param];
+            } else if (typeof option[param] == "object" && option[param].toString) {
+              u[param] = option[param].toString();
+            } else {
+              throw metroError("metro.url: unsupported value for " + param + " " + metroURL + "url/unsupported-param-value/", options[param]);
+            }
+          }
+        }
+      } else {
+        throw metroError("metro.url: unsupported option value " + metroURL + "url/unsupported-option-value/", option);
+      }
+    }
+    Object.freeze(u);
+    return new Proxy(u, {
+      get(target, prop, receiver) {
+        switch (prop) {
+          case symbols.isProxy:
+            return true;
+            break;
+          case symbols.source:
+            return target;
+            break;
+          case "with":
+            return function(...options2) {
+              return url(target, ...options2);
+            };
+            break;
+          case "toString":
+          case "toJSON":
+            return function() {
+              return target[prop]();
+            };
+            break;
+        }
+        return target[prop];
+      }
+    });
+  }
+  function formdata(...options) {
+    var params = new FormData();
+    for (let option of options) {
+      if (option instanceof FormData) {
+        for (let entry of option.entries()) {
+          params.append(entry[0], entry[1]);
+        }
+      } else if (option && typeof option == "object") {
+        for (let entry of Object.entries(option)) {
+          if (Array.isArray(entry[1])) {
+            for (let value of entry[1]) {
+              params.append(entry[0], value);
+            }
+          } else {
+            params.append(entry[0], entry[1]);
+          }
+        }
+      } else {
+        throw new metroError("metro.formdata: unknown option type, only FormData or Object supported", option);
+      }
+    }
+    Object.freeze(params);
+    return new Proxy(params, {
+      get: (target, prop, receiver) => {
+        switch (prop) {
+          case symbols.isProxy:
+            return true;
+            break;
+          case symbols.source:
+            return target;
+            break;
+          case "with":
+            return function(...options2) {
+              return formdata(target, ...options2);
+            };
+            break;
+        }
+        return target[prop];
+      }
+    });
+  }
+  var metroConsole = {
+    error: (message, ...details) => {
+      console.error("\u24C2\uFE0F  ", message, ...details);
+    },
+    info: (message, ...details) => {
+      console.info("\u24C2\uFE0F  ", message, ...details);
+    },
+    group: (name) => {
+      console.group("\u24C2\uFE0F  " + name);
+    },
+    groupEnd: (name) => {
+      console.groupEnd("\u24C2\uFE0F  " + name);
+    }
+  };
+  function metroError(message, ...details) {
+    metroConsole.error(message, ...details);
+    return new Error(message, ...details);
+  }
+
+  // node_modules/@muze-nl/assert/src/assert.mjs
+  globalThis.assertEnabled = false;
+  var assert = (source, test) => {
+    if (globalThis.assertEnabled) {
+      let problems = fails(source, test);
+      if (problems) {
+        throw new assertError("Assertions failed", problems, source);
+      }
+    }
+  };
+  var Optional = (pattern) => (data) => data == null || typeof data == "undefined" ? false : fails(data, pattern);
+  var Required = (pattern) => (data) => fails(data, pattern);
+  var Recommended = (pattern) => (data) => data == null || typeof data == "undefined" ? (() => {
+    console.warning("data does not contain recommended value", data, pattern);
+    return false;
+  })() : fails(data, pattern);
+  var oneOf = (...patterns) => (data) => {
+    for (let pattern of patterns) {
+      if (!fails(data, pattern)) {
+        return false;
+      }
+    }
+    return error("data does not match oneOf patterns", data, patterns);
+  };
+  var anyOf = (...patterns) => (data) => {
+    if (!Array.isArray(data)) {
+      return error("data is not an array", data, "anyOf");
+    }
+    for (let value of data) {
+      if (oneOf(...patterns)(value)) {
+        return error("data does not match anyOf patterns", value, patterns);
+      }
+    }
+    return false;
+  };
+  function validURL(data) {
+    try {
+      if (data instanceof URL) {
+        data = data.href;
+      }
+      let url2 = new URL(data);
+      if (url2.href != data) {
+        return error("data is not a valid url", data, "validURL");
+      }
+    } catch (e) {
+      return error("data is not a valid url", data, "validURL");
+    }
+    return false;
+  }
+  function fails(data, pattern, root) {
+    if (!root) {
+      root = data;
+    }
+    let problems = [];
+    if (pattern === Boolean) {
+      if (typeof data != "boolean") {
+        problems.push(error("data is not a boolean", data, pattern));
+      }
+    } else if (pattern === Number) {
+      if (typeof data != "number") {
+        problems.push(error("data is not a number", data, pattern));
+      }
+    } else if (pattern instanceof RegExp) {
+      if (Array.isArray(data)) {
+        let index = data.findIndex((element) => fails(element, pattern, root));
+        if (index > -1) {
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
+        }
+      } else if (!pattern.test(data)) {
+        problems.push(error("data does not match pattern", data, pattern));
+      }
+    } else if (pattern instanceof Function) {
+      if (pattern(data, root)) {
+        problems.push(error("data does not match function", data, pattern));
+      }
+    } else if (Array.isArray(pattern)) {
+      if (!Array.isArray(data)) {
+        problems.push(error("data is not an array", data, []));
+      }
+      for (p of pattern) {
+        let problem = fails(data, p, root);
+        if (Array.isArray(problem)) {
+          problems.concat(problem);
+        } else if (problem) {
+          problems.push(problem);
+        }
+      }
+    } else if (pattern && typeof pattern == "object") {
+      if (Array.isArray(data)) {
+        let index = data.findIndex((element) => fails(element, pattern, root));
+        if (index > -1) {
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
+        }
+      } else if (!data || typeof data != "object") {
+        problems.push(error("data is not an object, pattern is", data, pattern));
+      } else {
+        if (data instanceof URLSearchParams) {
+          data = Object.fromEntries(data);
+        }
+        let p2 = problems[problems.length - 1];
+        for (const [wKey, wVal] of Object.entries(pattern)) {
+          let result = fails(data[wKey], wVal, root);
+          if (result) {
+            if (!p2 || typeof p2 == "string") {
+              p2 = {};
+              problems.push(error(p2, data[wKey], wVal));
+            }
+            p2[wKey] = result.problems;
+          }
+        }
+      }
+    } else {
+      if (pattern != data) {
+        problems.push(error("data and pattern are not equal", data, pattern));
+      }
+    }
+    if (problems.length) {
+      return problems;
+    }
+    return false;
+  }
+  var assertError = class extends Error {
+    constructor(message, problems, ...details) {
+      super(message);
+      this.problems = problems;
+      this.details = details;
+    }
+  };
+  function error(message, found, expected) {
+    return {
+      message,
+      found,
+      expected
+    };
+  }
+
+  // src/tokenstore.mjs
+  function tokenStore(site) {
+    let localState, localTokens;
+    if (typeof localStorage !== "undefined") {
+      localState = {
+        get: () => localStorage.getItem("metro/state:" + site),
+        set: (value) => localStorage.setItem("metro/state:" + site, value),
+        has: () => localStorage.getItem("metro/state:" + site) !== null
+      };
+      localTokens = {
+        get: (name) => localStorage.getItem(site + ":" + name),
+        set: (name, value) => localStorage.setItem(site + ":" + name, value),
+        has: (name) => localStorage.getItem(site + ":" + name) !== null
+      };
+    } else {
+      let stateMap = /* @__PURE__ */ new Map();
+      localState = {
+        get: () => stateMap.get("metro/state:" + site),
+        set: (value) => stateMap.set("metro/state:" + site, value),
+        has: () => stateMap.has("metro/state:" + site)
+      };
+      localTokens = /* @__PURE__ */ new Map();
+    }
+    return {
+      state: localState,
+      tokens: localTokens
+    };
+  }
+
+  // src/oauth2.mjs
+  function mwOAuth2(options) {
+    const defaultOptions = {
+      client: client(),
+      force_authorization: false,
+      site: "default",
+      oauth2_configuration: {
+        authorization_endpoint: "/authorize",
+        token_endpoint: "/token",
+        redirect_uri: globalThis.document?.location.href,
+        grant_type: "authorization_code",
+        code_verifier: security.generateCodeVerifier(64)
+      },
+      callbacks: {
+        authorize: (url2) => document.location = url2
+      }
+    };
+    assert(options, {});
+    const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
+    options = Object.assign({}, defaultOptions, options);
+    options.oauth2_configuration = oauth2;
+    const store = tokenStore(options.site);
+    if (!options.tokens) {
+      options.tokens = store.tokens;
+    }
+    if (!options.state) {
+      options.state = store.state;
+    }
+    assert(options, {
+      oauth2_configuration: {
+        client_id: Required(),
+        grant_type: "authorization_code",
+        authorization_endpoint: Required(),
+        token_endpoint: Required(),
+        redirect_uri: Required(validURL)
+      }
+    });
+    for (let option in oauth2) {
+      switch (option) {
+        case "access_token":
+        case "authorization_code":
+        case "refresh_token":
+          options.tokens.set(option, oauth2[option]);
+          break;
+      }
+    }
+    return async function(req, next) {
+      if (options.force_authorization) {
+        return oauth2authorized(req, next);
+      }
+      let res;
+      try {
+        res = await next(req);
+        if (res.ok) {
+          return res;
+        }
+      } catch (err) {
+        switch (res.status) {
+          case 400:
+          case 401:
+            return oauth2authorized(req, next);
+            break;
+        }
+        throw err;
+      }
+      return res;
+    };
+    async function oauth2authorized(req, next) {
+      getTokensFromLocation();
+      if (!options.tokens.has("access_token")) {
+        try {
+          let token = await fetchAccessToken();
+          if (!token) {
+            return response("false");
+          }
+        } catch (e) {
+          console.log("caught", e);
+          throw e;
+        }
+        return oauth2authorized(req, next);
+      } else if (isExpired(req)) {
+        let token = await fetchRefreshToken();
+        if (!token) {
+          return response("false");
+        }
+        return oauth2authorized(req, next);
+      } else {
+        let accessToken = options.tokens.get("access_token");
+        req = request(req, {
+          headers: {
+            Authorization: accessToken.type + " " + accessToken.value
+          }
+        });
+        return next(req);
+      }
+    }
+    function getTokensFromLocation() {
+      if (typeof window !== "undefined" && window?.location) {
+        let url2 = url(window.location);
+        let code, state, params;
+        if (url2.searchParams.has("code")) {
+          params = url2.searchParams;
+          url2 = url2.with({ search: "" });
+          history.pushState({}, "", url2.href);
+        } else if (url2.hash) {
+          let query = url2.hash.substr(1);
+          params = new URLSearchParams("?" + query);
+          url2 = url2.with({ hash: "" });
+          history.pushState({}, "", url2.href);
+        }
+        if (params) {
+          code = params.get("code");
+          state = params.get("state");
+          let storedState = options.state.get("metro/state");
+          if (!state || state !== storedState) {
+            return;
+          }
+          if (code) {
+            options.tokens.set("authorization_code", code);
+          }
+        }
+      }
+    }
+    async function fetchAccessToken() {
+      if (oauth2.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
+        let authReqURL = getAuthorizationCodeURL();
+        if (!options.callbacks.authorize || typeof options.callbacks.authorize !== "function") {
+          throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize");
+        }
+        let token = await options.callbacks.authorize(authReqURL);
+        if (token) {
+          options.tokens.set("authorization_code", token);
+        } else {
+          return response(false);
+        }
+      }
+      let tokenReq = getAccessTokenRequest();
+      let response2 = await options.client.post(tokenReq);
+      if (!response2.ok) {
+        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
+      }
+      let data = await response2.json();
+      options.tokens.set("access_token", {
+        value: data.access_token,
+        expires: getExpires(data.expires_in),
+        type: data.token_type,
+        scope: data.scope
+      });
+      if (data.refresh_token) {
+        let token = {
+          value: data.refresh_token
+        };
+        options.tokens.set("refresh_token", token);
+      }
+      return data;
+    }
+    async function fetchRefreshToken() {
+      let refreshTokenReq = getAccessTokenRequest("refresh_token");
+      let response2 = await options.client.post(refreshTokenReq);
+      if (!response2.ok) {
+        throw metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
+      }
+      let data = await response2.json();
+      options.tokens.set("access_token", {
+        value: data.access_token,
+        expires: getExpires(data.expires_in),
+        type: data.token_type,
+        scope: data.scope
+      });
+      if (data.refresh_token) {
+        let token = {
+          value: data.refresh_token
+        };
+        options.tokens.set("refresh_token", token);
+      }
+      return data;
+    }
+    function getAuthorizationCodeURL() {
+      if (!oauth2.authorize_endpoint) {
+        throw metroError("oauth2mw: Missing options.endpoints.authorize url");
+      }
+      let url2 = url(oauth2.authorize_endpoint, { hash: "" });
+      assert(oauth2, {
+        client_id: /.+/,
+        redirect_uri: /.+/,
+        scope: /.*/
+      });
+      let search = {
+        response_type: "code",
+        // implicit flow uses 'token' here, but is not considered safe, so not supported
+        client_id: oauth2.client_id,
+        client_secret: oauth2.client_secret,
+        redirect_uri: oauth2.redirect_uri,
+        state: oauth2.state || security.createState(40)
+        // OAuth2.1 RFC says optional, but its a good idea to always add/check it
+      };
+      options.state.set(search.state);
+      if (oauth2.code_verifier) {
+        delete search.client_secret;
+        search.code_challenge = security.generateCodeChallenge(oauth2.code_verifier);
+        search.code_challenge_method = "S256";
+      }
+      if (oauth2.scope) {
+        search.scope = oauth2.scope;
+      }
+      return url(url2, { search });
+    }
+    function getAccessTokenRequest(grant_type = null) {
+      assert(oauth2, {
+        client_id: /.+/,
+        redirect_uri: /.+/
+      });
+      if (!oauth2.token_endpoint) {
+        throw metroError("oauth2mw: Missing options.endpoints.token url");
+      }
+      let url2 = url(oauth2.token_endpoint, { hash: "" });
+      let params = {
+        grant_type: grant_type || oauth2.grant_type,
+        client_id: oauth2.client_id
+      };
+      if (oauth2.code_verifier) {
+        params.code_verifier = oauth2.code_verifier;
+      } else {
+        params.client_secret = oauth2.client_secret;
+      }
+      if (oauth2.scope) {
+        params.scope = oauth2.scope;
+      }
+      switch (oauth2.grant_type) {
+        case "authorization_code":
+          params.redirect_uri = oauth2.redirect_uri;
+          params.code = options.tokens.get("authorization_code");
+          break;
+        case "client_credentials":
+          break;
+        case "refresh_token":
+          params.refresh_token = oauth2.refresh_token;
+          break;
+        default:
+          throw new Error("Unknown grant_type: ".oauth2.grant_type);
+          break;
+      }
+      return request(url2, { method: "POST" }, formdata(params));
+    }
+    function isExpired(req) {
+      if (req.oauth2 && req.options.tokens && req.options.tokens.has("access_token")) {
+        let now = /* @__PURE__ */ new Date();
+        let token = req.options.tokens.get("access_token");
+        return now.getTime() > token.expires.getTime();
+      }
+      return false;
+    }
+    function getExpires(duration) {
+      if (duration instanceof Date) {
+        return new Date(duration.getTime());
+      }
+      if (typeof duration === "number") {
+        let date = /* @__PURE__ */ new Date();
+        date.setSeconds(date.getSeconds() + duration);
+        return date;
+      }
+      throw new TypeError("Unknown expires type " + duration);
+    }
+  }
+  var security = {
+    /**
+     * returns a PKCE code_verifier, as a hex encoded string
+     */
+    generateCodeVerifier: function(size = 64) {
+      const code_verifier = new Uint8Array(size);
+      globalThis.crypto.getRandomValues(code_verifier);
+      return code_verifier.toString("hex");
+    },
+    /**
+     * Returns a PKCE code_challenge derived from a code_verifier
+     */
+    generateCodeChallenge: async function(code_verifier) {
+      const b64encoded = security.base64url_encode(code_verifier);
+      const encoder = new TextEncoder();
+      const data = encoder.encode(b64encoded);
+      return await globalThis.crypto.subtle.digest("SHA-256", data);
+    },
+    /**
+     * Base64url encoding, which handles UTF-8 input strings correctly.
+     */
+    base64url_encode: function(buffer) {
+      const byteString = Array.from(new Uint8Array(buffer), (b) => String.fromCharCode(b)).join("");
+      return btoa(byteString).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    },
+    /**
+     * Creates and stores a random state to use in the authorization code URL
+     */
+    createState: function(length) {
+      const validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let randomState = "";
+      let counter = 0;
+      while (counter < length) {
+        randomState += validChars.charAt(Math.floor(Math.random() * validChars.length));
+        counter++;
+      }
+      return randomState;
+    }
+  };
+
+  // src/oauth2.mockserver.mjs
+  var oauth2_mockserver_exports = {};
+  __export(oauth2_mockserver_exports, {
+    default: () => oauth2mockserver
+  });
+  var baseResponse = {
+    status: 200,
+    statusText: "OK",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
+  var badRequest = (error3) => {
+    return {
+      status: 400,
+      statusText: "Bad Request",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        error: "invalid_request",
+        error_description: error3
+      })
+    };
+  };
+  var error2;
+  var pkce = {};
+  function oauth2mockserver(options = {}) {
+    const defaultOptions = {
+      "PKCE": false,
+      "DPoP": false
+    };
+    options = Object.assign({}, defaultOptions, options);
+    return async (req, next) => {
+      let url2 = url(req.url);
+      switch (url2.pathname) {
+        case "/authorize/":
+          if (error2 = fails(url2.searchParams, {
+            response_type: "code",
+            client_id: "mockClientId",
+            state: Optional(/.*/)
+          })) {
+            return response(badRequest(error2));
+          }
+          if (url2.searchParams.has("code_challenge")) {
+            if (!url2.searchParams.has("code_challenge_method")) {
+              return response(badRequest("missing code_challenge_method"));
+            }
+            pkce.code_challenge = url2.searchParams.get("code_challenge");
+            pkce.code_challenge_method = url2.searchParams.get("code_challenge_method");
+          }
+          return response(baseResponse, {
+            body: JSON.stringify({
+              code: "mockAuthorizeToken",
+              state: url2.searchParams.get("state")
+            })
+          });
+          break;
+        case "/token/":
+          if (req.body instanceof FormData) {
+            let body = {};
+            req.body.forEach((value, key) => body[key] = value);
+            req = req.with({ body });
+          }
+          if (error2 = fails(req, {
+            method: "POST",
+            body: {
+              grant_type: oneOf("refresh_token", "authorization_code")
+            }
+          })) {
+            return response(badRequest(error2));
+          }
+          switch (req.body.grant_type) {
+            case "refresh_token":
+              if (error2 = fails(req.body, oneOf({
+                refresh_token: "mockRefreshToken",
+                client_id: "mockClientId",
+                client_secret: "mockClientSecret"
+              }, {
+                refresh_token: "mockRefreshToken",
+                client_id: "mockClientId",
+                code_verifier: /.+/
+              }))) {
+                return response(badRequest(error2));
+              }
+              break;
+            case "access_token":
+              if (error2 = fails(req.body, oneOf({
+                client_id: "mockClientId",
+                client_secret: "mockClientSecret"
+              }, {
+                client_id: "mockClientId",
+                code_challenge: /.*/,
+                //FIXME: check that this matches code_verifier
+                code_challenge_method: "S256"
+              }))) {
+                return response(badRequest(error2));
+              }
+              break;
+          }
+          return response(baseResponse, {
+            body: JSON.stringify({
+              access_token: "mockAccessToken",
+              token_type: "mockExample",
+              expires_in: 3600,
+              refresh_token: "mockRefreshToken",
+              example_parameter: "mockExampleValue"
+            })
+          });
+          break;
+        case "/protected/":
+          let auth = req.headers.get("Authorization");
+          let [type, token] = auth ? auth.split(" ") : [];
+          if (!token || token !== "mockAccessToken") {
+            return response({
+              status: 401,
+              statusText: "Forbidden",
+              body: "401 Forbidden"
+            });
+          }
+          return response(baseResponse, {
+            body: JSON.stringify({
+              result: "Success"
+            })
+          });
+          break;
+        case "/public/":
+          return response(baseResponse, {
+            body: JSON.stringify({
+              result: "Success"
+            })
+          });
+          break;
+        default:
+          return response({
+            status: 404,
+            statusText: "not found",
+            body: "404 Not Found " + url2
+          });
+          break;
+      }
+    };
+  }
+
+  // src/oauth2.discovery.mjs
+  var oauth2_discovery_exports = {};
+  __export(oauth2_discovery_exports, {
+    default: () => makeClient
+  });
+  var validAlgorithms = [
+    "HS256",
+    "HS384",
+    "HS512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "ES256",
+    "ES384",
+    "ES512"
+  ];
+  var validAuthMethods = [
+    "client_secret_post",
+    "client_secret_base",
+    "client_secret_jwt",
+    "private_key_jwt"
+  ];
+  var oauth_authorization_server_metadata = {
+    issuer: Required(validURL),
+    authorization_endpoint: Required(validURL),
+    token_endpoint: Required(validURL),
+    jwks_uri: Optional(validURL),
+    registration_endpoint: Optional(validURL),
+    scopes_supported: Recommended([]),
+    response_types_supported: Required(anyOf("code", "token")),
+    response_modes_supported: Optional([]),
+    grant_types_supported: Optional([]),
+    token_endpoint_auth_methods_supported: Optional([]),
+    token_endpoint_auth_signing_alg_values_supported: Optional([]),
+    service_documentation: Optional(validURL),
+    ui_locales_supported: Optional([]),
+    op_policy_uri: Optional(validURL),
+    op_tos_uri: Optional(validURL),
+    revocation_endpoint: Optional(validURL),
+    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    introspection_endpoint: Optional(validURL),
+    introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    code_challendge_methods_supported: Optional([])
+  };
+  function makeClient(options = {}) {
+    const defaultOptions = {
+      client: client()
+    };
+    options = Object.assign({}, defaultOptions, options);
+    assert(options, {
+      issuer: Required(validURL)
+    });
+    const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer);
+    let client2 = options.client.with(options.issuer);
+  }
+  async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
+    let res = client2.get(url(issuer, ".wellknown/oauth_authorization_server"));
+    if (res.ok) {
+      assert(res.headers.get("Content-Type"), /application\/json.*/);
+      let configuration = await res.json();
+      assert(configuration, oauth_authorization_server_metadata);
+      return configuration;
+    }
+    throw metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
+  }
+
+  // src/browser.mjs
+  globalThis.oauth2 = oauth2_exports;
+  globalThis.oauth2.mockserver = oauth2_mockserver_exports;
+  globalThis.oauth2.discovery = oauth2_discovery_exports;
+})();
 //# sourceMappingURL=browser.js.map
