@@ -3,7 +3,6 @@ import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/asser
 import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
 import thrower from '@muze-nl/metro/src/mw/thrower.mjs'
 import {tokenStore} from './tokenstore.mjs'
-import crypto from 'node:crypto'
 
 /**
  * oauth2mw returns a middleware for @muze-nl/metro that
@@ -26,7 +25,7 @@ export default function mwOAuth2(options) {
 			token_endpoint: '/token',
 			redirect_uri: globalThis.document?.location.href,
 			grant_type: 'authorization_code',
-			code_verifier: crypto.randomBytes(64).toString('hex')
+			code_verifier: pkce.generateCodeVerifier(64)
 		},
 		callbacks: {
 			authorize: url => document.location = url
@@ -247,7 +246,7 @@ export default function mwOAuth2(options) {
 		}
 		if (oauth2.code_verifier) { //PKCE
 			delete search.client_secret
-			search.code_challenge = generateCodeChallenge(oauth2.code_verifier)
+			search.code_challenge = pkce.generateCodeChallenge(oauth2.code_verifier)
 			search.code_challenge_method = 'S256'
 		}
 		if (oauth2.scope) {
@@ -342,24 +341,34 @@ export default function mwOAuth2(options) {
 		throw new TypeError('Unknown expires type '+duration);
 	}
 
+
+}
+
+export const pkce = {	
+	generateCodeVerifier: function(size=64) {
+		const code_verifier = new Uint8Array(64)
+		globalThis.crypto.getRandomValues(code_verifier)
+		return code_verifier.toString('hex')
+	},
+
 	/**
 	 * Returns a PKCE code_challenge derived from a code_verifier
 	 */
-	async function generateCodeChallenge(code_verifier) {
-		const b64encoded = base64url_encode(code_verifier)
+	generateCodeChallenge: async function(code_verifier) {
+		const b64encoded = pkce.base64url_encode(code_verifier)
 		const encoder = new TextEncoder()
 		const data = encoder.encode(b64encoded)
 		return await globalThis.crypto.subtle.digest('SHA-256', data)
-	}
+	},
 
 	/**
 	 * Base64url encoding, which handles UTF-8 input strings correctly.
 	 */
-	function base64url_encode(buffer) {
+	base64url_encode: function(buffer) {
 		const byteString = Array.from(new Uint8Array(buffer), b => String.fromCharCode(b)).join('')
 	    return btoa(byteString)
 	        .replace(/\+/g, '-')
 	        .replace(/\//g, '_')
 	        .replace(/=+$/, '');
-	}
+	}	
 }
