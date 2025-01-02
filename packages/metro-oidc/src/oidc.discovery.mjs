@@ -1,8 +1,12 @@
+/**
+ * This module adheres to OpenID Connect Discovery 1.0 incorporating errata set 2 - december 15, 2023
+ * https://openid.net/specs/openid-connect-discovery-1_0.html
+ */
 import * as metro from '@muze-nl/metro'
 import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
 import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
 import { validJWA, MustInclude, validAuthMethods } from './oidc.util.mjs'
-import { assert, fails, Required, Recommended, Optional, oneOf, anyOf, validURL, instanceOf, not } from '@muze-nl/assert'
+import { assert, fails, Required, Recommended, Optional, oneOf, anyOf, allOf, validURL, instanceOf, not, error } from '@muze-nl/assert'
 
 /**
  * Given options.issuer will get the .well-known/openid-configuration information
@@ -14,23 +18,31 @@ import { assert, fails, Required, Recommended, Optional, oneOf, anyOf, validURL,
  * @throws assertError when either the options or the openid-configuration fail assertions (and assertion testing is enabled)
  */
 export default async function oidcDiscovery(options={}) {
+	assert(options, {
+		client: Optional(instanceOf(metro.client().constructor)),
+		issuer: Required(validURL)
+	})
+
 	const defaultOptions = {
 		client: metro.client().with(throwermw()).with(jsonmw()),
 		requireDynamicRegistration: false
 	}
+
 	options = Object.assign({},defaultOptions,options)
 
-	assert(options, {
-		client: Required(instanceOf(metro.client().constructor)),
-		issuer: Required(validURL)
-	})
+	const TestSucceeded = false
+	function MustUseHTTPS(url) {
+		return TestSucceeded // FIXME todo
+	}
 
 	// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+	// @TODO: this is a first approximation of the specced requirements, needs to implement
+	// all MUST/MUST NOT etc. notes in the specification.
 	const openid_provider_metadata = {
-		issuer: Required(options.issuer),
+		issuer: Required(allOf(options.issuer, MustUseHTTPS)),
 		authorization_endpoint: Required(validURL),
 		token_endpoint: Required(validURL),
-		userinfo_endpoint: Recommended(validURL),
+		userinfo_endpoint: Recommended(validURL), // todo: test for https protocol
 		jwks_uri: Required(validURL),
 		registration_endpoint: options.requireDynamicRegistration 
 			? Required(validURL) 
@@ -75,8 +87,10 @@ export default async function oidcDiscovery(options={}) {
 		// note: this allows path components in the options.issuer url
 		metro.url(options.issuer, '.well-known/openid-configuration')
 	)
-	assert(response.body, openid_provider_metadata)
+	const openid_config = response.body
+	assert(openid_config, openid_provider_metadata)
+
 	// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationValidation
-	assert(response.body.issuer, options.issuer)
-	return response.body
+	assert(openid_config.issuer, options.issuer)
+	return openid_config
 }

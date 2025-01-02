@@ -13,7 +13,7 @@ export const MustInclude = (...options) =>
 		if (Array.isArray(value) && options.filter(o => !value.includes(o)).length == 0) {
 			return false
 		} else {
-			return error('data must be an array which includes',data,options)
+			return error('data must be an array which includes',value,options)
 		}
 	}
 

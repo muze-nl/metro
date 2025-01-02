@@ -20,7 +20,8 @@
   "scripts": {
     "test": "tap test/*.mjs",
     "tap": "tap",
-    "build": "parcel build"
+    "build": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.js --minify --sourcemap",
+    "build-dev": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser-dev.js --sourcemap"
   },
   "repository": {
     "type": "git",
@@ -46,7 +47,8 @@
     "/README.md"
   ],
   "dependencies": {
-    "@muze-nl/assert": "^0.3.0",
-    "@muze-nl/metro": "^0.4.1"
+    "@muze-nl/assert": "file:/home/auke/git/muze-nl/assert/",
+    "@muze-nl/metro": "file:/home/auke/git/muze-nl/metro/",
+    "@muze-nl/metro-oauth2": "file:/home/auke/git/muze-nl/metro-oauth2/"
   }
 }

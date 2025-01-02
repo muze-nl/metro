@@ -1,3 +1,8 @@
+/**
+ * This module adheres to OpenID Connect Dynamic Client Registration 1.0 
+ * incorporating errata set 2 - december 15, 2023
+ * https://openid.net/specs/openid-connect-registration-1_0.html
+ */
 import * as metro from '@muze-nl/metro'
 import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
 import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
@@ -6,11 +11,6 @@ import { assert, Required, Optional, oneOf, anyOf, validURL, validEmail, not, in
 
 export default async function register(options)
 {
-	const defaultOptions = {
-		client: metro.client().with(throwermw()).with(jsonmw())
-	}
-
-	options = Object.assign({}, defaultOptions, options)
 
     // https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	const openid_client_metadata = {
@@ -47,10 +47,17 @@ export default async function register(options)
 	}
 
 	assert(options, {
-		client: instanceOf(metro.client().constructor),
+		client: Optional(instanceOf(metro.client().constructor)),
 		registration_endpoint: validURL, 
 		client_info: openid_client_metadata
 	})
+
+	const defaultOptions = {
+		client: metro.client().with(throwermw()).with(jsonmw())
+	}
+
+	options = Object.assign({}, defaultOptions, options)
+
 
 	let response = await options.client
 		.post(options.registration_endpoint, {
