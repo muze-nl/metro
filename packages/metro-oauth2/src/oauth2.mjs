@@ -39,8 +39,6 @@ export default function mwOAuth2(options) {
 	options = Object.assign({}, defaultOptions, options)
 	options.oauth2_configuration = oauth2
 
-	options.client = options.client.with(jsonmw()).with(thrower()) //FIXME: only add them if not yet added
-
 	const store = tokenStore(options.site)
 	if (!options.tokens) {
 		options.tokens = store.tokens
@@ -179,8 +177,10 @@ export default function mwOAuth2(options) {
 		}
 		let tokenReq = getAccessTokenRequest()
 		let response = await options.client.post(tokenReq) //OAuth2.1 RFC 3.2
-		let data = response.body
-		console.log('accesstoken', data)
+		if (!response.ok) {
+			throw metro.metroError('OAuth2mw: fetch access_token: '+response.status+': '+response.statusText, {cause: tokenReq} )
+		}
+		let data = await response.json()
 		// OAuth2.1 RFC 3.2.3
 		options.tokens.set('access_token', {
 			value: data.access_token,
@@ -206,7 +206,10 @@ export default function mwOAuth2(options) {
 	{
 		let refreshTokenReq = getAccessTokenRequest('refresh_token')
 		let response = await options.client.post(refreshTokenReq)
-		let data = response.body
+		if (!response.ok) {
+			throw metro.metroError('OAuth2mw: refresh access_token: '+response.status+': '+response.statusText, {cause: refreshTokenReq} )
+		}
+		let data = await response.json()
 		options.tokens.set('access_token', {
 			value:   data.access_token,
 			expires: getExpires(data.expires_in),
@@ -343,7 +346,10 @@ export default function mwOAuth2(options) {
 	 * Returns a PKCE code_challenge derived from a code_verifier
 	 */
 	async function generateCodeChallenge(code_verifier) {
-		return await globalThis.crypto.subtle.digest('SHA-256', base64url_encode(code_verifier))
+		const b64encoded = base64url_encode(code_verifier)
+		const encoder = new TextEncoder()
+		const data = encoder.encode(b64encoded)
+		return await globalThis.crypto.subtle.digest('SHA-256', data)
 	}
 
 	/**
