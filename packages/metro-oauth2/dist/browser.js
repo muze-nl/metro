@@ -1253,5 +1253,6 @@
   globalThis.oauth2 = oauth2_exports;
   globalThis.oauth2.mockserver = oauth2_mockserver_exports;
   globalThis.oauth2.discovery = oauth2_discovery_exports;
+  globalThis.oauth2.tokenstore = tokenStore;
 })();
 //# sourceMappingURL=browser.js.map
