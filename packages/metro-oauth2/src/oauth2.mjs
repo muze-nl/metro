@@ -45,10 +45,10 @@ export default function mwOAuth2(options)
 
 	assert(options, {
 		oauth2_configuration: {
-			client_id: Required(),
+			client_id: Required(/.+/),
 			grant_type: 'authorization_code',
-			authorization_endpoint: Required(),
-			token_endpoint: Required(),
+			authorization_endpoint: Required(validURL),
+			token_endpoint: Required(validURL),
 			redirect_uri: Required(validURL)
 		}
 	})
@@ -233,10 +233,10 @@ export default function mwOAuth2(options)
 	 */
 	function getAuthorizationCodeURL()
 	{
-		if (!oauth2.authorize_endpoint) {
-			throw metro.metroError('oauth2mw: Missing options.endpoints.authorize url')
+		if (!oauth2.authorization_endpoint) {
+			throw metro.metroError('oauth2mw: Missing options.oauth2_configuration.authorization_endpoint')
 		}
-		let url = metro.url(oauth2.authorize_endpoint, {hash: ''}) // OAuth2.1 RFC 3.1
+		let url = metro.url(oauth2.authorization_endpoint, {hash: ''}) // OAuth2.1 RFC 3.1
 		assert(oauth2, {
 			client_id: /.+/,
 			redirect_uri: /.+/,
