@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-oidc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "oidc client middleware for @muze-nl/metro",
   "type": "module",
   "source": [
@@ -47,8 +47,8 @@
     "/README.md"
   ],
   "dependencies": {
-    "@muze-nl/assert": "file:/home/auke/git/muze-nl/assert/",
-    "@muze-nl/metro": "file:/home/auke/git/muze-nl/metro/",
-    "@muze-nl/metro-oauth2": "file:/home/auke/git/muze-nl/metro-oauth2/"
+    "@muze-nl/assert": "^0.3.3",
+    "@muze-nl/metro": "^0.5.3",
+    "@muze-nl/metro-oauth2": "^0.3.1"
   }
 }
