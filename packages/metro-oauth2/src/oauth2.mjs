@@ -1,4 +1,4 @@
-import * as metro from '@muze-nl/metro'
+import metro from '@muze-nl/metro'
 import { assert, Required, validURL } from '@muze-nl/assert'
 import {tokenStore} from './tokenstore.mjs'
 
@@ -13,6 +13,7 @@ import {tokenStore} from './tokenstore.mjs'
  */
 export default function mwOAuth2(options)
 {
+
 	const defaultOptions = {
 		client: metro.client(),
 		force_authorization: false,
@@ -25,7 +26,12 @@ export default function mwOAuth2(options)
 			code_verifier: security.generateCodeVerifier(64)
 		},
 		callbacks: {
-			authorize: url => document.location = url
+			authorize: async url => {
+				if (window.location.href != url.href) {
+					window.location.replace(url.href)
+				}
+				return false
+			}
 		}
 	}
 
@@ -175,7 +181,7 @@ export default function mwOAuth2(options)
 			if (token) {
 				options.tokens.set('authorization_code', token)
 			} else {
-				return metro.response(false)
+				return false
 			}
 		}
 		let tokenReq = getAccessTokenRequest()
@@ -224,6 +230,8 @@ export default function mwOAuth2(options)
 				value: data.refresh_token
 			}
 			options.tokens.set('refresh_token', token)
+		} else {
+			return false
 		}
 		return data
 	}
@@ -303,7 +311,7 @@ export default function mwOAuth2(options)
 				throw new Error('Unknown grant_type: '.oauth2.grant_type)
 			break
 		}
-		return metro.request(url, { method: 'POST' }, metro.formdata(params))
+		return metro.request(url, {method: 'POST', body: new URLSearchParams(params) })
 	}
 
 	/**
@@ -387,4 +395,19 @@ export const security = {
 	    }
 		return randomState
 	}
+}
+
+export function isRedirected() {
+	let url = new URL(document.location.href)
+	if (!url.searchParams.has('code')) {
+		if (url.hash) {
+			let query = url.hash.substr(1)
+			params = new URLSearchParams('?'+query)
+			if (params.has('code')) {
+				return true
+			}
+		}
+		return false
+	}
+	return true
 }
