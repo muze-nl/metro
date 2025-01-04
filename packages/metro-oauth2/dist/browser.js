@@ -9,10 +9,21 @@
   var oauth2_exports = {};
   __export(oauth2_exports, {
     default: () => mwOAuth2,
+    isRedirected: () => isRedirected,
     security: () => security
   });
 
   // node_modules/@muze-nl/metro/src/metro.mjs
+  var metro_exports = {};
+  __export(metro_exports, {
+    client: () => client,
+    formdata: () => formdata,
+    metroError: () => metroError,
+    request: () => request,
+    response: () => response,
+    trace: () => trace,
+    url: () => url
+  });
   var metroURL = "https://metro.muze.nl/details/";
   if (!Symbol.metroProxy) {
     Symbol.metroProxy = Symbol("isProxy");
@@ -104,7 +115,12 @@
       }
       const metrofetch = async function browserFetch(req2) {
         if (req2[Symbol.metroProxy]) {
-          req2 = req2[Symbol.metroSource];
+          if (req2.body && req2.body[Symbol.metroSource]) {
+            let body = req2.body[Symbol.metroSource];
+            req2 = new Request(req2[Symbol.metroSource], { body });
+          } else {
+            req2 = req2[Symbol.metroSource];
+          }
         }
         const res = await fetch(req2);
         return response(res);
@@ -239,9 +255,9 @@
     });
   }
   function getRequestParams(req, current) {
-    let params = current || {};
-    if (!params.url && current.url) {
-      params.url = current.url;
+    let params2 = current || {};
+    if (!params2.url && current.url) {
+      params2.url = current.url;
     }
     for (let prop of [
       "method",
@@ -260,24 +276,24 @@
       "url"
     ]) {
       if (typeof req[prop] == "function") {
-        req[prop](params[prop], params);
+        req[prop](params2[prop], params2);
       } else if (typeof req[prop] != "undefined") {
         if (prop == "url") {
-          params.url = url(params.url, req.url);
+          params2.url = url(params2.url, req.url);
         } else if (prop == "headers") {
-          params.headers = new Headers(current.headers);
+          params2.headers = new Headers(current.headers);
           if (!(req.headers instanceof Headers)) {
             req.headers = new Headers(req.headers);
           }
           for (let [key, value] of req.headers.entries()) {
-            params.headers.set(key, value);
+            params2.headers.set(key, value);
           }
         } else {
-          params[prop] = req[prop];
+          params2[prop] = req[prop];
         }
       }
     }
-    return params;
+    return params2;
   }
   function request(...options) {
     let requestParams = {
@@ -305,7 +321,7 @@
     return new Proxy(r, {
       get(target, prop, receiver) {
         switch (prop) {
-          case Symbol.metroSsource:
+          case Symbol.metroSource:
             return target;
             break;
           case Symbol.metroProxy:
@@ -317,19 +333,6 @@
                 options2.unshift({ body });
               }
               return request(target, ...options2);
-            };
-            break;
-          case "toString":
-          case "toJSON":
-            return function() {
-              return target[prop].apply(target);
-            };
-            break;
-          case "blob":
-          case "text":
-          case "json":
-            return function() {
-              return target[prop].apply(target);
             };
             break;
           case "body":
@@ -352,22 +355,22 @@
     });
   }
   function getResponseParams(res, current) {
-    let params = current || {};
-    if (!params.url && current.url) {
-      params.url = current.url;
+    let params2 = current || {};
+    if (!params2.url && current.url) {
+      params2.url = current.url;
     }
     for (let prop of ["status", "statusText", "headers", "body", "url", "type", "redirected"]) {
       if (typeof res[prop] == "function") {
-        res[prop](params[prop], params);
+        res[prop](params2[prop], params2);
       } else if (typeof res[prop] != "undefined") {
         if (prop == "url") {
-          params.url = new URL(res.url, params.url || "https://localhost/");
+          params2.url = new URL(res.url, params2.url || "https://localhost/");
         } else {
-          params[prop] = res[prop];
+          params2[prop] = res[prop];
         }
       }
     }
-    return params;
+    return params2;
   }
   function response(...options) {
     let responseParams = {};
@@ -434,12 +437,12 @@
       }
     });
   }
-  function appendSearchParams(url2, params) {
-    if (typeof params == "function") {
-      params(url2.searchParams, url2);
+  function appendSearchParams(url2, params2) {
+    if (typeof params2 == "function") {
+      params2(url2.searchParams, url2);
     } else {
-      params = new URLSearchParams(params);
-      params.forEach((value, key) => {
+      params2 = new URLSearchParams(params2);
+      params2.forEach((value, key) => {
         url2.searchParams.append(key, value);
       });
     }
@@ -510,40 +513,37 @@
               return url(target, ...options2);
             };
             break;
-          case "toString":
-          case "toJSON":
-            return function() {
-              return target[prop]();
-            };
-            break;
+        }
+        if (target[prop] instanceof Function) {
+          return target[prop].bind(target);
         }
         return target[prop];
       }
     });
   }
   function formdata(...options) {
-    var params = new FormData();
+    var params2 = new FormData();
     for (let option of options) {
       if (option instanceof FormData) {
         for (let entry of option.entries()) {
-          params.append(entry[0], entry[1]);
+          params2.append(entry[0], entry[1]);
         }
       } else if (option && typeof option == "object") {
         for (let entry of Object.entries(option)) {
           if (Array.isArray(entry[1])) {
             for (let value of entry[1]) {
-              params.append(entry[0], value);
+              params2.append(entry[0], value);
             }
           } else {
-            params.append(entry[0], entry[1]);
+            params2.append(entry[0], entry[1]);
           }
         }
       } else {
         throw new metroError("metro.formdata: unknown option type, only FormData or Object supported", option);
       }
     }
-    Object.freeze(params);
-    return new Proxy(params, {
+    Object.freeze(params2);
+    return new Proxy(params2, {
       get: (target, prop, receiver) => {
         switch (prop) {
           case Symbol.metroProxy:
@@ -557,6 +557,9 @@
               return formdata(target, ...options2);
             };
             break;
+        }
+        if (target[prop] instanceof Function) {
+          return target[prop].bind(target);
         }
         return target[prop];
       }
@@ -580,6 +583,112 @@
     metroConsole.error(message, ...details);
     return new Error(message, ...details);
   }
+  var trace = {
+    /**
+     * Adds a named tracer function
+     * @param {string} name - the name of the tracer
+     * @param {Function} tracer - the tracer function to call
+     */
+    add(name, tracer) {
+      Client.tracers[name] = tracer;
+    },
+    /**
+     * Removes a named tracer function
+     * @param {string} name
+     */
+    delete(name) {
+      delete Client.tracers[name];
+    },
+    /**
+     * Removes all tracer functions
+     */
+    clear() {
+      Client.tracers = {};
+    },
+    /**
+     * Returns a set of request and response tracer functions that use the
+     * console.group feature to shows nested request/response pairs, with
+     * most commonly needed information for debugging
+     */
+    group() {
+      let group = 0;
+      return {
+        request: (req, middleware) => {
+          group++;
+          metroConsole.group(group);
+          metroConsole.info(req?.url, req, middleware);
+        },
+        response: (res, middleware) => {
+          metroConsole.info(res?.body ? res.body[Symbol.metroSource] : null, res, middleware);
+          metroConsole.groupEnd(group);
+          group--;
+        }
+      };
+    }
+  };
+
+  // node_modules/@muze-nl/metro/src/mw/json.mjs
+  function jsonmw(options) {
+    options = Object.assign({
+      reviver: null,
+      replacer: null,
+      space: ""
+    }, options);
+    return async (req, next) => {
+      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
+        req = req.with({
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          }
+        });
+        if (req.body && typeof req.body[Symbol.metroSource] == "object") {
+          req = req.with({
+            body: JSON.stringify(req.body[Symbol.metroSource], options.replacer, options.space)
+          });
+        }
+      } else {
+        req = req.with({
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+      }
+      let res = await next(req);
+      let body = await res.text();
+      let json = JSON.parse(body, options.reviver);
+      return res.with({
+        body: json
+      });
+    };
+  }
+
+  // node_modules/@muze-nl/metro/src/mw/thrower.mjs
+  function thrower(options) {
+    return async (req, next) => {
+      let res = await next(req);
+      if (!res.ok) {
+        if (options && typeof options[res.status] == "function") {
+          res = options[res.status].apply(res, req);
+        } else {
+          throw new Error(res.status + ": " + res.statusText, {
+            cause: res
+          });
+        }
+      }
+      return res;
+    };
+  }
+
+  // node_modules/@muze-nl/metro/src/everything.mjs
+  var metro = Object.assign({}, metro_exports, {
+    mw: {
+      jsonmw,
+      thrower
+    }
+  });
+  window.metro = metro;
+  var everything_default = metro;
 
   // node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
@@ -749,7 +858,7 @@
   // src/oauth2.mjs
   function mwOAuth2(options) {
     const defaultOptions = {
-      client: client(),
+      client: everything_default.client(),
       force_authorization: false,
       site: "default",
       oauth2_configuration: {
@@ -760,7 +869,12 @@
         code_verifier: security.generateCodeVerifier(64)
       },
       callbacks: {
-        authorize: (url2) => document.location = url2
+        authorize: async (url2) => {
+          if (window.location.href != url2.href) {
+            window.location.replace(url2.href);
+          }
+          return false;
+        }
       }
     };
     assert(options, {});
@@ -819,7 +933,7 @@
         try {
           let token = await fetchAccessToken();
           if (!token) {
-            return response("false");
+            return everything_default.response("false");
           }
         } catch (e) {
           console.log("caught", e);
@@ -829,12 +943,12 @@
       } else if (isExpired(req)) {
         let token = await fetchRefreshToken();
         if (!token) {
-          return response("false");
+          return everything_default.response("false");
         }
         return oauth2authorized(req, next);
       } else {
         let accessToken = options.tokens.get("access_token");
-        req = request(req, {
+        req = everything_default.request(req, {
           headers: {
             Authorization: accessToken.type + " " + accessToken.value
           }
@@ -844,21 +958,21 @@
     }
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {
-        let url2 = url(window.location);
-        let code, state, params;
+        let url2 = everything_default.url(window.location);
+        let code, state, params2;
         if (url2.searchParams.has("code")) {
-          params = url2.searchParams;
+          params2 = url2.searchParams;
           url2 = url2.with({ search: "" });
           history.pushState({}, "", url2.href);
         } else if (url2.hash) {
           let query = url2.hash.substr(1);
-          params = new URLSearchParams("?" + query);
+          params2 = new URLSearchParams("?" + query);
           url2 = url2.with({ hash: "" });
           history.pushState({}, "", url2.href);
         }
-        if (params) {
-          code = params.get("code");
-          state = params.get("state");
+        if (params2) {
+          code = params2.get("code");
+          state = params2.get("state");
           let storedState = options.state.get("metro/state");
           if (!state || state !== storedState) {
             return;
@@ -873,19 +987,19 @@
       if (oauth2.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
         let authReqURL = getAuthorizationCodeURL();
         if (!options.callbacks.authorize || typeof options.callbacks.authorize !== "function") {
-          throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize");
+          throw everything_default.metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize");
         }
         let token = await options.callbacks.authorize(authReqURL);
         if (token) {
           options.tokens.set("authorization_code", token);
         } else {
-          return response(false);
+          return false;
         }
       }
       let tokenReq = getAccessTokenRequest();
       let response2 = await options.client.post(tokenReq);
       if (!response2.ok) {
-        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
+        throw everything_default.metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -906,7 +1020,7 @@
       let refreshTokenReq = getAccessTokenRequest("refresh_token");
       let response2 = await options.client.post(refreshTokenReq);
       if (!response2.ok) {
-        throw metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
+        throw everything_default.metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -920,14 +1034,16 @@
           value: data.refresh_token
         };
         options.tokens.set("refresh_token", token);
+      } else {
+        return false;
       }
       return data;
     }
     function getAuthorizationCodeURL() {
       if (!oauth2.authorization_endpoint) {
-        throw metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
+        throw everything_default.metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = url(oauth2.authorization_endpoint, { hash: "" });
+      let url2 = everything_default.url(oauth2.authorization_endpoint, { hash: "" });
       assert(oauth2, {
         client_id: /.+/,
         redirect_uri: /.+/,
@@ -951,7 +1067,7 @@
       if (oauth2.scope) {
         search.scope = oauth2.scope;
       }
-      return url(url2, { search });
+      return everything_default.url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
       assert(oauth2, {
@@ -959,36 +1075,36 @@
         redirect_uri: /.+/
       });
       if (!oauth2.token_endpoint) {
-        throw metroError("oauth2mw: Missing options.endpoints.token url");
+        throw everything_default.metroError("oauth2mw: Missing options.endpoints.token url");
       }
-      let url2 = url(oauth2.token_endpoint, { hash: "" });
-      let params = {
+      let url2 = everything_default.url(oauth2.token_endpoint, { hash: "" });
+      let params2 = {
         grant_type: grant_type || oauth2.grant_type,
         client_id: oauth2.client_id
       };
       if (oauth2.code_verifier) {
-        params.code_verifier = oauth2.code_verifier;
+        params2.code_verifier = oauth2.code_verifier;
       } else {
-        params.client_secret = oauth2.client_secret;
+        params2.client_secret = oauth2.client_secret;
       }
       if (oauth2.scope) {
-        params.scope = oauth2.scope;
+        params2.scope = oauth2.scope;
       }
       switch (oauth2.grant_type) {
         case "authorization_code":
-          params.redirect_uri = oauth2.redirect_uri;
-          params.code = options.tokens.get("authorization_code");
+          params2.redirect_uri = oauth2.redirect_uri;
+          params2.code = options.tokens.get("authorization_code");
           break;
         case "client_credentials":
           break;
         case "refresh_token":
-          params.refresh_token = oauth2.refresh_token;
+          params2.refresh_token = oauth2.refresh_token;
           break;
         default:
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
           break;
       }
-      return request(url2, { method: "POST" }, formdata(params));
+      return everything_default.request(url2, { method: "POST", body: new URLSearchParams(params2) });
     }
     function isExpired(req) {
       if (req.oauth2 && req.options.tokens && req.options.tokens.has("access_token")) {
@@ -1049,6 +1165,20 @@
       return randomState;
     }
   };
+  function isRedirected() {
+    let url2 = new URL(document.location.href);
+    if (!url2.searchParams.has("code")) {
+      if (url2.hash) {
+        let query = url2.hash.substr(1);
+        params = new URLSearchParams("?" + query);
+        if (params.has("code")) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return true;
+  }
 
   // src/oauth2.mockserver.mjs
   var oauth2_mockserver_exports = {};
@@ -1084,7 +1214,7 @@
     };
     options = Object.assign({}, defaultOptions, options);
     return async (req, next) => {
-      let url2 = url(req.url);
+      let url2 = everything_default.url(req.url);
       switch (url2.pathname) {
         case "/authorize/":
           if (error2 = fails(url2.searchParams, {
@@ -1092,16 +1222,16 @@
             client_id: "mockClientId",
             state: Optional(/.*/)
           })) {
-            return response(badRequest(error2));
+            return everything_default.response(badRequest(error2));
           }
           if (url2.searchParams.has("code_challenge")) {
             if (!url2.searchParams.has("code_challenge_method")) {
-              return response(badRequest("missing code_challenge_method"));
+              return everything_default.response(badRequest("missing code_challenge_method"));
             }
             pkce.code_challenge = url2.searchParams.get("code_challenge");
             pkce.code_challenge_method = url2.searchParams.get("code_challenge_method");
           }
-          return response(baseResponse, {
+          return everything_default.response(baseResponse, {
             body: JSON.stringify({
               code: "mockAuthorizeToken",
               state: url2.searchParams.get("state")
@@ -1120,7 +1250,7 @@
               grant_type: oneOf("refresh_token", "authorization_code")
             }
           })) {
-            return response(badRequest(error2));
+            return everything_default.response(badRequest(error2));
           }
           switch (req.body.grant_type) {
             case "refresh_token":
@@ -1133,7 +1263,7 @@
                 client_id: "mockClientId",
                 code_verifier: /.+/
               }))) {
-                return response(badRequest(error2));
+                return everything_default.response(badRequest(error2));
               }
               break;
             case "access_token":
@@ -1146,11 +1276,11 @@
                 //FIXME: check that this matches code_verifier
                 code_challenge_method: "S256"
               }))) {
-                return response(badRequest(error2));
+                return everything_default.response(badRequest(error2));
               }
               break;
           }
-          return response(baseResponse, {
+          return everything_default.response(baseResponse, {
             body: JSON.stringify({
               access_token: "mockAccessToken",
               token_type: "mockExample",
@@ -1164,27 +1294,27 @@
           let auth = req.headers.get("Authorization");
           let [type, token] = auth ? auth.split(" ") : [];
           if (!token || token !== "mockAccessToken") {
-            return response({
+            return everything_default.response({
               status: 401,
               statusText: "Forbidden",
               body: "401 Forbidden"
             });
           }
-          return response(baseResponse, {
+          return everything_default.response(baseResponse, {
             body: JSON.stringify({
               result: "Success"
             })
           });
           break;
         case "/public/":
-          return response(baseResponse, {
+          return everything_default.response(baseResponse, {
             body: JSON.stringify({
               result: "Success"
             })
           });
           break;
         default:
-          return response({
+          return everything_default.response({
             status: 404,
             statusText: "not found",
             body: "404 Not Found " + url2
@@ -1242,7 +1372,7 @@
   };
   function makeClient(options = {}) {
     const defaultOptions = {
-      client: client()
+      client: everything_default.client()
     };
     options = Object.assign({}, defaultOptions, options);
     assert(options, {
@@ -1252,14 +1382,14 @@
     let client2 = options.client.with(options.issuer);
   }
   async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
-    let res = client2.get(url(issuer, ".wellknown/oauth_authorization_server"));
+    let res = client2.get(everything_default.url(issuer, ".wellknown/oauth_authorization_server"));
     if (res.ok) {
       assert(res.headers.get("Content-Type"), /application\/json.*/);
       let configuration = await res.json();
       assert(configuration, oauth_authorization_server_metadata);
       return configuration;
     }
-    throw metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
+    throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
   }
 
   // src/browser.mjs
