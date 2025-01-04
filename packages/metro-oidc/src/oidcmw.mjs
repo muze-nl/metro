@@ -1,10 +1,11 @@
-import * as metro from '@muze-nl/metro'
+import metro from '@muze-nl/metro'
 import oauth2mw from '@muze-nl/metro-oauth2'
 import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/assert'
 import discover from './oidc.discovery.mjs'
 import register from './oidc.register.mjs'
 
 export default function oidcmw(options={}) {
+
 	const defaultOptions = {
 		client: metro.client(),
 		force_authorization: false
@@ -63,7 +64,8 @@ export default function oidcmw(options={}) {
 					client_secret: options.client_info.client_secret,
 					grant_type: 'authorization_code',
 					authorization_endpoint: options.openid_configuration.authorization_endpoint,
-					token_endpoint: options.openid_configuration.token_endpoint
+					token_endpoint: options.openid_configuration.token_endpoint,
+					scope: options.openid_configuration.scope || 'openid'
 				}
 			}
 			//...
@@ -77,6 +79,5 @@ export default function oidcmw(options={}) {
 
 		return res
 	}
-
 
 }
