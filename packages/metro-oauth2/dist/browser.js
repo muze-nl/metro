@@ -14,10 +14,12 @@
 
   // node_modules/@muze-nl/metro/src/metro.mjs
   var metroURL = "https://metro.muze.nl/details/";
-  var symbols = {
-    isProxy: Symbol("isProxy"),
-    source: Symbol("source")
-  };
+  if (!Symbol.metroProxy) {
+    Symbol.metroProxy = Symbol("isProxy");
+  }
+  if (!Symbol.metroSource) {
+    Symbol.metroSource = Symbol("source");
+  }
   var Client = class _Client {
     #options = {
       url: typeof window != "undefined" ? window.location : "https://localhost"
@@ -101,8 +103,8 @@
         throw metroError("metro.client.fetch: Options is not an object");
       }
       const metrofetch = async function browserFetch(req2) {
-        if (req2[symbols.isProxy]) {
-          req2 = req2[symbols.source];
+        if (req2[Symbol.metroProxy]) {
+          req2 = req2[Symbol.metroSource];
         }
         const res = await fetch(req2);
         return response(res);
@@ -182,10 +184,10 @@
     return new Proxy(source, {
       get(target, prop, receiver) {
         switch (prop) {
-          case symbols.isProxy:
+          case Symbol.metroProxy:
             return true;
             break;
-          case symbols.source:
+          case Symbol.metroSource:
             return body;
             break;
           case "toString":
@@ -194,7 +196,7 @@
             };
             break;
         }
-        if (typeof body == "object") {
+        if (body && typeof body == "object") {
           if (prop in body) {
             if (typeof body[prop] == "function") {
               return function(...args) {
@@ -214,17 +216,25 @@
         }
       },
       has(target, prop) {
-        return prop in body;
+        if (body && typeof body == "object") {
+          return prop in body;
+        } else {
+          return prop in target;
+        }
       },
       ownKeys(target) {
-        if (typeof body == "object") {
+        if (body && typeof body == "object") {
           return Reflect.ownKeys(body);
         } else {
           return Reflect.ownKeys(target);
         }
       },
       getOwnPropertyDescriptor(target, prop) {
-        return Object.getOwnPropertyDescriptor(body, prop);
+        if (body && typeof body == "object") {
+          return Object.getOwnPropertyDescriptor(body, prop);
+        } else {
+          return Object.getOwnPropertyDescriptor(target, prop);
+        }
       }
     });
   }
@@ -295,10 +305,10 @@
     return new Proxy(r, {
       get(target, prop, receiver) {
         switch (prop) {
-          case symbols.source:
+          case Symbol.metroSsource:
             return target;
             break;
-          case symbols.isProxy:
+          case Symbol.metroProxy:
             return true;
             break;
           case "with":
@@ -327,12 +337,15 @@
               body = target.body;
             }
             if (body) {
-              if (body[symbols.isProxy]) {
+              if (body[Symbol.metroProxy]) {
                 return body;
               }
               return bodyProxy(body, target);
             }
             break;
+        }
+        if (target[prop] instanceof Function) {
+          return target[prop].bind(target);
         }
         return target[prop];
       }
@@ -376,10 +389,10 @@
     return new Proxy(r, {
       get(target, prop, receiver) {
         switch (prop) {
-          case symbols.isProxy:
+          case Symbol.metroProxy:
             return true;
             break;
-          case symbols.source:
+          case Symbol.metroSource:
             return target;
             break;
           case "with":
@@ -389,7 +402,7 @@
             break;
           case "body":
             if (responseParams.body) {
-              if (responseParams.body[symbols.isProxy]) {
+              if (responseParams.body[Symbol.metroProxy]) {
                 return responseParams.body;
               }
               return bodyProxy(responseParams.body, target);
@@ -486,10 +499,10 @@
     return new Proxy(u, {
       get(target, prop, receiver) {
         switch (prop) {
-          case symbols.isProxy:
+          case Symbol.metroProxy:
             return true;
             break;
-          case symbols.source:
+          case Symbol.metroSource:
             return target;
             break;
           case "with":
@@ -533,10 +546,10 @@
     return new Proxy(params, {
       get: (target, prop, receiver) => {
         switch (prop) {
-          case symbols.isProxy:
+          case Symbol.metroProxy:
             return true;
             break;
-          case symbols.source:
+          case Symbol.metroSource:
             return target;
             break;
           case "with":
@@ -763,10 +776,10 @@
     }
     assert(options, {
       oauth2_configuration: {
-        client_id: Required(),
+        client_id: Required(/.+/),
         grant_type: "authorization_code",
-        authorization_endpoint: Required(),
-        token_endpoint: Required(),
+        authorization_endpoint: Required(validURL),
+        token_endpoint: Required(validURL),
         redirect_uri: Required(validURL)
       }
     });
@@ -911,10 +924,10 @@
       return data;
     }
     function getAuthorizationCodeURL() {
-      if (!oauth2.authorize_endpoint) {
-        throw metroError("oauth2mw: Missing options.endpoints.authorize url");
+      if (!oauth2.authorization_endpoint) {
+        throw metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = url(oauth2.authorize_endpoint, { hash: "" });
+      let url2 = url(oauth2.authorization_endpoint, { hash: "" });
       assert(oauth2, {
         client_id: /.+/,
         redirect_uri: /.+/,
