@@ -2,7 +2,7 @@
  * This module adheres to OpenID Connect Discovery 1.0 incorporating errata set 2 - december 15, 2023
  * https://openid.net/specs/openid-connect-discovery-1_0.html
  */
-import * as metro from '@muze-nl/metro'
+import metro from '@muze-nl/metro'
 import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
 import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
 import { validJWA, MustInclude, validAuthMethods } from './oidc.util.mjs'
@@ -82,10 +82,12 @@ export default async function oidcDiscovery(options={}) {
 	}
 
 	// fetch openid configuration from wellknown and return the json
+	const configURL = metro.url(options.issuer, '.well-known/openid-configuration')
+
 	const response = await options.client.get(
 		// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
 		// note: this allows path components in the options.issuer url
-		metro.url(options.issuer, '.well-known/openid-configuration')
+		configURL
 	)
 	const openid_config = response.body
 	assert(openid_config, openid_provider_metadata)
