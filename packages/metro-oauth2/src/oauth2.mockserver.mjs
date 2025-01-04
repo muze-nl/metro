@@ -1,4 +1,4 @@
-import * as metro from '@muze-nl/metro'
+import metro from '@muze-nl/metro'
 import * as assert from '@muze-nl/assert'
 
 const baseResponse = {
