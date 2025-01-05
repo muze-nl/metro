@@ -1169,8 +1169,8 @@
         has: () => localStorage.getItem("metro/state:" + site) !== null
       };
       localTokens = {
-        get: (name) => localStorage.getItem(site + ":" + name),
-        set: (name, value) => localStorage.setItem(site + ":" + name, value),
+        get: (name) => JSON.parse(localStorage.getItem(site + ":" + name)),
+        set: (name, value) => localStorage.setItem(site + ":" + name, JSON.stringify(value)),
         has: (name) => localStorage.getItem(site + ":" + name) !== null
       };
     } else {
@@ -1499,6 +1499,20 @@
       return randomState;
     }
   };
+  function isRedirected() {
+    let url2 = new URL(document.location.href);
+    if (!url2.searchParams.has("code")) {
+      if (url2.hash) {
+        let query = url2.hash.substr(1);
+        params = new URLSearchParams("?" + query);
+        if (params.has("code")) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return true;
+  }
 
   // src/oidc.store.mjs
   function oidcStore(site) {
@@ -1600,12 +1614,16 @@
       return res;
     };
   }
+  function isRedirected2() {
+    return isRedirected();
+  }
 
   // src/browser.mjs
   var oidc = {
     discover: oidcDiscovery,
     register,
-    oidcmw
+    oidcmw,
+    isRedirected: isRedirected2
   };
   globalThis.oidc = oidc;
 })();
