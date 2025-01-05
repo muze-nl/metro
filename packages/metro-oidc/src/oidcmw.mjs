@@ -1,5 +1,5 @@
 import metro from '@muze-nl/metro'
-import oauth2mw from '@muze-nl/metro-oauth2'
+import oauth2mw, { isRedirected as oauth2isRedirected } from '@muze-nl/metro-oauth2'
 import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/assert'
 import discover from './oidc.discovery.mjs'
 import register from './oidc.register.mjs'
@@ -95,4 +95,8 @@ export default function oidcmw(options={}) {
 		return res
 	}
 
+}
+
+export function isRedirected() {
+	return oauth2isRedirected()
 }
