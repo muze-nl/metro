@@ -836,8 +836,8 @@
         has: () => localStorage.getItem("metro/state:" + site) !== null
       };
       localTokens = {
-        get: (name) => localStorage.getItem(site + ":" + name),
-        set: (name, value) => localStorage.setItem(site + ":" + name, value),
+        get: (name) => JSON.parse(localStorage.getItem(site + ":" + name)),
+        set: (name, value) => localStorage.setItem(site + ":" + name, JSON.stringify(value)),
         has: (name) => localStorage.getItem(site + ":" + name) !== null
       };
     } else {
