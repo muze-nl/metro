@@ -1,11 +1,12 @@
 import oidcDiscover from './oidc.discovery.mjs'
 import oidcRegister from './oidc.register.mjs'
-import oidcmw from './oidcmw.mjs'
+import oidcmw, {isRedirected} from './oidcmw.mjs'
 
 export const oidc = {
 	discover: oidcDiscover,
 	register: oidcRegister,
-	oidcmw
+	oidcmw,
+	isRedirected
 }
 
 globalThis.oidc = oidc
