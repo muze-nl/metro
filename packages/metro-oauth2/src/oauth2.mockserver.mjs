@@ -61,7 +61,7 @@ export default function oauth2mockserver(options={}) {
 				})
 			break
 			case '/token/':
-				if (req.body instanceof FormData) {
+				if (req.body[Symbol.metroSource] instanceof URLSearchParams) {
 					let body = {}
 					req.body.forEach((value,key) => body[key] = value)
 					req = req.with({body})
