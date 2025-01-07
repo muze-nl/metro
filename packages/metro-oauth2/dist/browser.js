@@ -8,9 +8,14 @@
   // src/oauth2.mjs
   var oauth2_exports = {};
   __export(oauth2_exports, {
-    default: () => mwOAuth2,
-    isRedirected: () => isRedirected,
-    security: () => security
+    base64url_encode: () => base64url_encode,
+    createState: () => createState,
+    default: () => oauth2mw,
+    generateCodeChallenge: () => generateCodeChallenge,
+    generateCodeVerifier: () => generateCodeVerifier,
+    getExpires: () => getExpires,
+    isExpired: () => isExpired,
+    isRedirected: () => isRedirected
   });
 
   // node_modules/@muze-nl/metro/src/metro.mjs
@@ -687,7 +692,7 @@
       thrower
     }
   });
-  window.metro = metro;
+  globalThis.metro = metro;
   var everything_default = metro;
 
   // node_modules/@muze-nl/assert/src/assert.mjs
@@ -856,7 +861,7 @@
   }
 
   // src/oauth2.mjs
-  function mwOAuth2(options) {
+  function oauth2mw(options) {
     const defaultOptions = {
       client: everything_default.client(),
       force_authorization: false,
@@ -866,7 +871,7 @@
         token_endpoint: "/token",
         redirect_uri: globalThis.document?.location.href,
         grant_type: "authorization_code",
-        code_verifier: security.generateCodeVerifier(64)
+        code_verifier: generateCodeVerifier(64)
       },
       callbacks: {
         authorize: async (url2) => {
@@ -878,9 +883,9 @@
       }
     };
     assert(options, {});
-    const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
+    const oauth22 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
-    options.oauth2_configuration = oauth2;
+    options.oauth2_configuration = oauth22;
     const store = tokenStore(options.site);
     if (!options.tokens) {
       options.tokens = store.tokens;
@@ -897,12 +902,12 @@
         redirect_uri: Required(validURL)
       }
     });
-    for (let option in oauth2) {
+    for (let option in oauth22) {
       switch (option) {
         case "access_token":
         case "authorization_code":
         case "refresh_token":
-          options.tokens.set(option, oauth2[option]);
+          options.tokens.set(option, oauth22[option]);
           break;
       }
     }
@@ -925,29 +930,40 @@
         }
         throw err;
       }
+      if (!res.ok) {
+        switch (res.status) {
+          case 400:
+          case 401:
+            return oauth2authorized(req, next);
+            break;
+        }
+      }
       return res;
     };
     async function oauth2authorized(req, next) {
       getTokensFromLocation();
-      if (!options.tokens.has("access_token")) {
+      let accessToken = options.tokens.get("access_token");
+      if (!accessToken) {
         try {
           let token = await fetchAccessToken();
           if (!token) {
             return everything_default.response("false");
           }
         } catch (e) {
-          console.log("caught", e);
           throw e;
         }
         return oauth2authorized(req, next);
-      } else if (isExpired(req)) {
-        let token = await fetchRefreshToken();
-        if (!token) {
-          return everything_default.response("false");
+      } else if (isExpired(accessToken)) {
+        try {
+          let token = await fetchRefreshToken();
+          if (!token) {
+            return everything_default.response("false");
+          }
+        } catch (e) {
+          throw e;
         }
         return oauth2authorized(req, next);
       } else {
-        let accessToken = options.tokens.get("access_token");
         req = everything_default.request(req, {
           headers: {
             Authorization: accessToken.type + " " + accessToken.value
@@ -984,7 +1000,7 @@
       }
     }
     async function fetchAccessToken() {
-      if (oauth2.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
+      if (oauth22.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
         let authReqURL = getAuthorizationCodeURL();
         if (!options.callbacks.authorize || typeof options.callbacks.authorize !== "function") {
           throw everything_default.metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize");
@@ -999,6 +1015,7 @@
       let tokenReq = getAccessTokenRequest();
       let response2 = await options.client.post(tokenReq);
       if (!response2.ok) {
+        let msg = await response2.text();
         throw everything_default.metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
       }
       let data = await response2.json();
@@ -1040,11 +1057,11 @@
       return data;
     }
     function getAuthorizationCodeURL() {
-      if (!oauth2.authorization_endpoint) {
+      if (!oauth22.authorization_endpoint) {
         throw everything_default.metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = everything_default.url(oauth2.authorization_endpoint, { hash: "" });
-      assert(oauth2, {
+      let url2 = everything_default.url(oauth22.authorization_endpoint, { hash: "" });
+      assert(oauth22, {
         client_id: /.+/,
         redirect_uri: /.+/,
         scope: /.*/
@@ -1052,53 +1069,59 @@
       let search = {
         response_type: "code",
         // implicit flow uses 'token' here, but is not considered safe, so not supported
-        client_id: oauth2.client_id,
-        client_secret: oauth2.client_secret,
-        redirect_uri: oauth2.redirect_uri,
-        state: oauth2.state || security.createState(40)
+        client_id: oauth22.client_id,
+        redirect_uri: oauth22.redirect_uri,
+        state: oauth22.state || createState(40)
         // OAuth2.1 RFC says optional, but its a good idea to always add/check it
       };
       options.state.set(search.state);
-      if (oauth2.code_verifier) {
-        delete search.client_secret;
-        search.code_challenge = security.generateCodeChallenge(oauth2.code_verifier);
+      if (oauth22.client_secret) {
+        search.client_secret = oauth22.client_secret;
+      }
+      if (oauth22.code_verifier) {
+        search.code_challenge = generateCodeChallenge(oauth22.code_verifier);
         search.code_challenge_method = "S256";
       }
-      if (oauth2.scope) {
-        search.scope = oauth2.scope;
+      if (oauth22.scope) {
+        search.scope = oauth22.scope;
       }
       return everything_default.url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
-      assert(oauth2, {
+      assert(oauth22, {
         client_id: /.+/,
         redirect_uri: /.+/
       });
-      if (!oauth2.token_endpoint) {
+      if (!oauth22.token_endpoint) {
         throw everything_default.metroError("oauth2mw: Missing options.endpoints.token url");
       }
-      let url2 = everything_default.url(oauth2.token_endpoint, { hash: "" });
+      let url2 = everything_default.url(oauth22.token_endpoint, { hash: "" });
       let params2 = {
-        grant_type: grant_type || oauth2.grant_type,
-        client_id: oauth2.client_id
+        grant_type: grant_type || oauth22.grant_type,
+        client_id: oauth22.client_id
       };
-      if (oauth2.code_verifier) {
-        params2.code_verifier = oauth2.code_verifier;
-      } else {
-        params2.client_secret = oauth2.client_secret;
+      if (oauth22.code_verifier) {
+        params2.code_verifier = base64url_encode(oauth22.code_verifier);
       }
-      if (oauth2.scope) {
-        params2.scope = oauth2.scope;
+      if (oauth22.client_secret) {
+        params2.client_secret = oauth22.client_secret;
       }
-      switch (oauth2.grant_type) {
+      if (oauth22.scope) {
+        params2.scope = oauth22.scope;
+      }
+      switch (oauth22.grant_type) {
         case "authorization_code":
-          params2.redirect_uri = oauth2.redirect_uri;
+          params2.redirect_uri = oauth22.redirect_uri;
           params2.code = options.tokens.get("authorization_code");
+          if (options.dpop) {
+            const keyPair = options.tokens.get("keyPair");
+            params2.dpop_jkt = keyPair.publicKey;
+          }
           break;
         case "client_credentials":
           break;
         case "refresh_token":
-          params2.refresh_token = oauth2.refresh_token;
+          params2.refresh_token = oauth22.refresh_token;
           break;
         default:
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
@@ -1106,65 +1129,51 @@
       }
       return everything_default.request(url2, { method: "POST", body: new URLSearchParams(params2) });
     }
-    function isExpired(req) {
-      if (req.oauth2 && req.options.tokens && req.options.tokens.has("access_token")) {
-        let now = /* @__PURE__ */ new Date();
-        let token = req.options.tokens.get("access_token");
-        return now.getTime() > token.expires.getTime();
-      }
-      return false;
-    }
-    function getExpires(duration) {
-      if (duration instanceof Date) {
-        return new Date(duration.getTime());
-      }
-      if (typeof duration === "number") {
-        let date = /* @__PURE__ */ new Date();
-        date.setSeconds(date.getSeconds() + duration);
-        return date;
-      }
-      throw new TypeError("Unknown expires type " + duration);
-    }
   }
-  var security = {
-    /**
-     * returns a PKCE code_verifier, as a hex encoded string
-     */
-    generateCodeVerifier: function(size = 64) {
-      const code_verifier = new Uint8Array(size);
-      globalThis.crypto.getRandomValues(code_verifier);
-      return code_verifier.toString("hex");
-    },
-    /**
-     * Returns a PKCE code_challenge derived from a code_verifier
-     */
-    generateCodeChallenge: async function(code_verifier) {
-      const b64encoded = security.base64url_encode(code_verifier);
-      const encoder = new TextEncoder();
-      const data = encoder.encode(b64encoded);
-      return await globalThis.crypto.subtle.digest("SHA-256", data);
-    },
-    /**
-     * Base64url encoding, which handles UTF-8 input strings correctly.
-     */
-    base64url_encode: function(buffer) {
-      const byteString = Array.from(new Uint8Array(buffer), (b) => String.fromCharCode(b)).join("");
-      return btoa(byteString).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    },
-    /**
-     * Creates and stores a random state to use in the authorization code URL
-     */
-    createState: function(length) {
-      const validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      let randomState = "";
-      let counter = 0;
-      while (counter < length) {
-        randomState += validChars.charAt(Math.floor(Math.random() * validChars.length));
-        counter++;
-      }
-      return randomState;
+  function isExpired(token) {
+    if (!token) {
+      return true;
     }
-  };
+    let expires = new Date(token.expires);
+    let now = /* @__PURE__ */ new Date();
+    return now.getTime() > expires.getTime();
+  }
+  function getExpires(duration) {
+    if (duration instanceof Date) {
+      return new Date(duration.getTime());
+    }
+    if (typeof duration === "number") {
+      let date = /* @__PURE__ */ new Date();
+      date.setSeconds(date.getSeconds() + duration);
+      return date;
+    }
+    throw new TypeError("Unknown expires type " + duration);
+  }
+  function generateCodeVerifier(size = 64) {
+    const code_verifier = new Uint8Array(size);
+    globalThis.crypto.getRandomValues(code_verifier);
+    return code_verifier;
+  }
+  async function generateCodeChallenge(code_verifier) {
+    const b64encoded = base64url_encode(code_verifier);
+    const encoder2 = new TextEncoder();
+    const data = encoder2.encode(b64encoded);
+    return await globalThis.crypto.subtle.digest("SHA-256", data);
+  }
+  function base64url_encode(buffer) {
+    const byteString = Array.from(new Uint8Array(buffer), (b) => String.fromCharCode(b)).join("");
+    return btoa(byteString).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function createState(length) {
+    const validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let randomState = "";
+    let counter = 0;
+    while (counter < length) {
+      randomState += validChars.charAt(Math.floor(Math.random() * validChars.length));
+      counter++;
+    }
+    return randomState;
+  }
   function isRedirected() {
     let url2 = new URL(document.location.href);
     if (!url2.searchParams.has("code")) {
@@ -1239,7 +1248,7 @@
           });
           break;
         case "/token/":
-          if (req.body instanceof FormData) {
+          if (req.body[Symbol.metroSource] instanceof URLSearchParams) {
             let body = {};
             req.body.forEach((value, key) => body[key] = value);
             req = req.with({ body });
@@ -1392,10 +1401,295 @@
     throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
   }
 
+  // node_modules/dpop/build/index.js
+  var encoder = new TextEncoder();
+  var decoder = new TextDecoder();
+  function buf(input) {
+    if (typeof input === "string") {
+      return encoder.encode(input);
+    }
+    return decoder.decode(input);
+  }
+  function checkRsaKeyAlgorithm(algorithm) {
+    if (typeof algorithm.modulusLength !== "number" || algorithm.modulusLength < 2048) {
+      throw new OperationProcessingError(`${algorithm.name} modulusLength must be at least 2048 bits`);
+    }
+  }
+  function subtleAlgorithm(key) {
+    switch (key.algorithm.name) {
+      case "ECDSA":
+        return { name: key.algorithm.name, hash: "SHA-256" };
+      case "RSA-PSS":
+        checkRsaKeyAlgorithm(key.algorithm);
+        return {
+          name: key.algorithm.name,
+          saltLength: 256 >> 3
+        };
+      case "RSASSA-PKCS1-v1_5":
+        checkRsaKeyAlgorithm(key.algorithm);
+        return { name: key.algorithm.name };
+      case "Ed25519":
+        return { name: key.algorithm.name };
+    }
+    throw new UnsupportedOperationError();
+  }
+  async function jwt(header, claimsSet, key) {
+    if (key.usages.includes("sign") === false) {
+      throw new TypeError('private CryptoKey instances used for signing assertions must include "sign" in their "usages"');
+    }
+    const input = `${b64u(buf(JSON.stringify(header)))}.${b64u(buf(JSON.stringify(claimsSet)))}`;
+    const signature = b64u(await crypto.subtle.sign(subtleAlgorithm(key), key, buf(input)));
+    return `${input}.${signature}`;
+  }
+  var CHUNK_SIZE = 32768;
+  function encodeBase64Url(input) {
+    if (input instanceof ArrayBuffer) {
+      input = new Uint8Array(input);
+    }
+    const arr = [];
+    for (let i = 0; i < input.byteLength; i += CHUNK_SIZE) {
+      arr.push(String.fromCharCode.apply(null, input.subarray(i, i + CHUNK_SIZE)));
+    }
+    return btoa(arr.join("")).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  }
+  function b64u(input) {
+    return encodeBase64Url(input);
+  }
+  function randomBytes() {
+    return b64u(crypto.getRandomValues(new Uint8Array(32)));
+  }
+  var UnsupportedOperationError = class extends Error {
+    constructor(message) {
+      super(message ?? "operation not supported");
+      this.name = this.constructor.name;
+      Error.captureStackTrace?.(this, this.constructor);
+    }
+  };
+  var OperationProcessingError = class extends Error {
+    constructor(message) {
+      super(message);
+      this.name = this.constructor.name;
+      Error.captureStackTrace?.(this, this.constructor);
+    }
+  };
+  function psAlg(key) {
+    switch (key.algorithm.hash.name) {
+      case "SHA-256":
+        return "PS256";
+      default:
+        throw new UnsupportedOperationError("unsupported RsaHashedKeyAlgorithm hash name");
+    }
+  }
+  function rsAlg(key) {
+    switch (key.algorithm.hash.name) {
+      case "SHA-256":
+        return "RS256";
+      default:
+        throw new UnsupportedOperationError("unsupported RsaHashedKeyAlgorithm hash name");
+    }
+  }
+  function esAlg(key) {
+    switch (key.algorithm.namedCurve) {
+      case "P-256":
+        return "ES256";
+      default:
+        throw new UnsupportedOperationError("unsupported EcKeyAlgorithm namedCurve");
+    }
+  }
+  function determineJWSAlgorithm(key) {
+    switch (key.algorithm.name) {
+      case "RSA-PSS":
+        return psAlg(key);
+      case "RSASSA-PKCS1-v1_5":
+        return rsAlg(key);
+      case "ECDSA":
+        return esAlg(key);
+      case "Ed25519":
+        return "EdDSA";
+      default:
+        throw new UnsupportedOperationError("unsupported CryptoKey algorithm name");
+    }
+  }
+  function isCryptoKey(key) {
+    return key instanceof CryptoKey;
+  }
+  function isPrivateKey(key) {
+    return isCryptoKey(key) && key.type === "private";
+  }
+  function isPublicKey(key) {
+    return isCryptoKey(key) && key.type === "public";
+  }
+  function epochTime() {
+    return Math.floor(Date.now() / 1e3);
+  }
+  async function DPoP(keypair, htu, htm, nonce, accessToken, additional) {
+    const privateKey = keypair?.privateKey;
+    const publicKey = keypair?.publicKey;
+    if (!isPrivateKey(privateKey)) {
+      throw new TypeError('"keypair.privateKey" must be a private CryptoKey');
+    }
+    if (!isPublicKey(publicKey)) {
+      throw new TypeError('"keypair.publicKey" must be a public CryptoKey');
+    }
+    if (publicKey.extractable !== true) {
+      throw new TypeError('"keypair.publicKey.extractable" must be true');
+    }
+    if (typeof htu !== "string") {
+      throw new TypeError('"htu" must be a string');
+    }
+    if (typeof htm !== "string") {
+      throw new TypeError('"htm" must be a string');
+    }
+    if (nonce !== void 0 && typeof nonce !== "string") {
+      throw new TypeError('"nonce" must be a string or undefined');
+    }
+    if (accessToken !== void 0 && typeof accessToken !== "string") {
+      throw new TypeError('"accessToken" must be a string or undefined');
+    }
+    if (additional !== void 0 && (typeof additional !== "object" || additional === null || Array.isArray(additional))) {
+      throw new TypeError('"additional" must be an object');
+    }
+    return jwt({
+      alg: determineJWSAlgorithm(privateKey),
+      typ: "dpop+jwt",
+      jwk: await publicJwk(publicKey)
+    }, {
+      ...additional,
+      iat: epochTime(),
+      jti: randomBytes(),
+      htm,
+      nonce,
+      htu,
+      ath: accessToken ? b64u(await crypto.subtle.digest("SHA-256", buf(accessToken))) : void 0
+    }, privateKey);
+  }
+  async function publicJwk(key) {
+    const { kty, e, n, x, y, crv } = await crypto.subtle.exportKey("jwk", key);
+    return { kty, crv, e, n, x, y };
+  }
+  async function generateKeyPair(alg, options) {
+    let algorithm;
+    if (typeof alg !== "string" || alg.length === 0) {
+      throw new TypeError('"alg" must be a non-empty string');
+    }
+    switch (alg) {
+      case "PS256":
+        algorithm = {
+          name: "RSA-PSS",
+          hash: "SHA-256",
+          modulusLength: options?.modulusLength ?? 2048,
+          publicExponent: new Uint8Array([1, 0, 1])
+        };
+        break;
+      case "RS256":
+        algorithm = {
+          name: "RSASSA-PKCS1-v1_5",
+          hash: "SHA-256",
+          modulusLength: options?.modulusLength ?? 2048,
+          publicExponent: new Uint8Array([1, 0, 1])
+        };
+        break;
+      case "ES256":
+        algorithm = { name: "ECDSA", namedCurve: "P-256" };
+        break;
+      case "EdDSA":
+        algorithm = { name: "Ed25519" };
+        break;
+      default:
+        throw new UnsupportedOperationError();
+    }
+    return crypto.subtle.generateKey(algorithm, options?.extractable ?? false, ["sign", "verify"]);
+  }
+
+  // src/keysstore.mjs
+  function keysStore() {
+    return new Promise((resolve, reject) => {
+      const request2 = globalThis.indexedDB.open("metro", 1);
+      request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
+      request2.onerror = (event) => {
+        reject(event);
+      };
+      request2.onsuccess = (event) => {
+        const db = event.target.result;
+        resolve({
+          set: function(value, key) {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readwrite");
+              const objectStore = tx.objectStore("keyPairs");
+              tx.oncomplete = () => {
+                resolve2();
+              };
+              tx.onerror = reject2;
+              objectStore.put(value, key);
+            });
+          },
+          get: function(key) {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readwrite");
+              const objectStore = tx.objectStore("keyPairs");
+              const request3 = objectStore.get(key);
+              request3.onsuccess = () => {
+                resolve2(request3.result);
+              };
+              request3.onerror = reject2;
+              tx.onerror = reject2;
+            });
+          }
+        });
+      };
+    });
+  }
+
+  // src/oauth2.dpop.mjs
+  function dpopmw(options) {
+    assert(options, {
+      authorization_endpoint: Required(validURL),
+      token_endpoint: Required(validURL),
+      dpop_signing_alg_values_supported: Required([])
+    });
+    return async (req, next) => {
+      console.log("dpop", req.url);
+      const keys = await keysStore();
+      const url2 = everything_default.url(req.url);
+      let keyInfo = await keys.get(url2.host);
+      if (!keyInfo) {
+        let keyPair = await generateKeyPair("ES256");
+        keyInfo = { domain: url2.host, keyPair };
+        await keys.set(keyInfo);
+      }
+      if (url2.href.startsWith(options.authorization_endpoint) || url2.href.startsWith(options.token_endpoint)) {
+        const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method);
+        req = req.with({
+          headers: {
+            "DPoP": dpopHeader
+          }
+        });
+      } else if (req.headers.has("Authorization")) {
+        const nonce = localStorage.getItem(url2.host + ":nonce") || void 0;
+        const accessToken = req.headers.get("Authorization").split(" ")[1];
+        const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
+        req = req.with({
+          headers: {
+            "Authorization": "DPoP " + accessToken,
+            "DPoP": dpopHeader
+          }
+        });
+      }
+      let response2 = await next(req);
+      if (response2.headers.get("DPoP-Nonce")) {
+        localStorage.setItem(url2.host + ":nonce", response2.headers.get("DPoP-Nonce"));
+      }
+      return response2;
+    };
+  }
+
   // src/browser.mjs
-  globalThis.oauth2 = oauth2_exports;
-  globalThis.oauth2.mockserver = oauth2_mockserver_exports;
-  globalThis.oauth2.discovery = oauth2_discovery_exports;
-  globalThis.oauth2.tokenstore = tokenStore;
+  var oauth2 = Object.assign(oauth2mw, oauth2_exports, {
+    mockserver: oauth2_mockserver_exports,
+    discovery: oauth2_discovery_exports,
+    tokenstore: tokenStore,
+    dpopmw
+  });
+  var browser_default = oauth2;
 })();
 //# sourceMappingURL=browser.js.map
