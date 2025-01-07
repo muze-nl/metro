@@ -92,6 +92,7 @@ export default function oidcmw(options={}) {
 			dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
 		}
 
+		//TODO: add middleware to grab the id_token when present
 		const dPopClient = options.client
 			.with(options.issuer)
 			.with(oauth2.DPoPmw(dpopOptions))
