@@ -1,12 +1,12 @@
 {
   "name": "@muze-nl/metro-oidc",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "oidc client middleware for @muze-nl/metro",
   "type": "module",
   "source": [
     "src/browser.mjs"
   ],
-  "main": "src/metro.oidc.mjs",
+  "main": "src/browser.mjs",
   "targets": {
     "default": {
       "distDir": "./dist",
@@ -20,8 +20,8 @@
   "scripts": {
     "test": "tap test/*.mjs",
     "tap": "tap",
-    "build": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.js --minify --sourcemap",
-    "build-dev": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser-dev.js --sourcemap"
+    "build": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --minify --sourcemap",
+    "build-dev": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap"
   },
   "repository": {
     "type": "git",
@@ -48,7 +48,7 @@
   ],
   "dependencies": {
     "@muze-nl/assert": "^0.3.3",
-    "@muze-nl/metro": "^0.5.3",
-    "@muze-nl/metro-oauth2": "^0.3.2"
+    "@muze-nl/metro": "^0.5.4",
+    "@muze-nl/metro-oauth2": "^0.3.3"
   }
 }
