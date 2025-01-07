@@ -5,32 +5,32 @@ import oauth2mockserver from '../src/oauth2.mockserver.mjs'
 
 let client = metro.client().with(oauth2mockserver())
 
-// tap.test('start', async t => {
-// 	let res = await client.get('/public/')
-// 	t.ok(res.ok)
-// 	t.end()
-// })
+tap.test('start', async t => {
+	let res = await client.get('/public/')
+	t.ok(res.ok)
+	t.end()
+})
 
-// tap.test('oauth2start', async t => {
-// 	const oauth2client = client.with(oauth2mw({
-// 		oauth2_configuration: {
-// 			access_token: {
-// 				type: 'Bearer',
-// 				value: 'mockAccessToken'
-// 			},
-// 		},
-// 		callbacks: {
-// 			authorize: async (url) => 'mockAuthorizeToken'
-// 		},
-// 		force_authorization: true
-// 	}))
+tap.test('oauth2start', async t => {
+	const oauth2client = client.with(oauth2mw({
+		oauth2_configuration: {
+			access_token: {
+				type: 'Bearer',
+				value: 'mockAccessToken'
+			},
+		},
+		callbacks: {
+			authorize: async (url) => 'mockAuthorizeToken'
+		},
+		force_authorization: true
+	}))
 
-// 	let res = await oauth2client.get('/protected/')
-// 	t.ok(res.ok)
-// 	let json = await res.json()
-// 	t.equal(json.result,'Success')
-// 	t.end()
-// })
+	let res = await oauth2client.get('/protected/')
+	t.ok(res.ok)
+	let json = await res.json()
+	t.equal(json.result,'Success')
+	t.end()
+})
 
 tap.test('authorize', async t => {
 	const oauth2client = client.with(oauth2mw({
