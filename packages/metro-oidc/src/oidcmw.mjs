@@ -1,5 +1,5 @@
 import metro from '@muze-nl/metro'
-import oauth2mw, { isRedirected as oauth2isRedirected } from '@muze-nl/metro-oauth2'
+import oauth2 from '@muze-nl/metro-oauth2'
 import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/assert'
 import discover from './oidc.discovery.mjs'
 import register from './oidc.register.mjs'
@@ -75,7 +75,7 @@ export default function oidcmw(options={}) {
 				oauth2_configuration: {
 					client_id: options.client_info.client_id,
 					client_secret: options.client_info.client_secret,
-					code_verifier: false, //disable pkce
+					code_verifier: false, //FIXME: detect pkce support
 					grant_type: 'authorization_code',
 					authorization_endpoint: options.openid_configuration.authorization_endpoint,
 					token_endpoint: options.openid_configuration.token_endpoint,
@@ -85,9 +85,21 @@ export default function oidcmw(options={}) {
 			}
 			//...
 		)
-		const oauth2client = options.client.with(options.issuer)
-		// optional: add oauth2dpop mw
-		.with(oauth2mw(oauth2Options))
+
+		const dpopOptions = {
+			authorization_endpoint: options.openid_configuration.authorization_endpoint,
+			token_endpoint: options.openid_configuration.token_endpoint,
+			dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
+		}
+
+		const dPopClient = options.client
+			.with(options.issuer)
+			.with(oauth2.DPoPmw(dpopOptions))
+
+		oauth2Options.client = dPopClient
+
+		const oauth2client = dPopClient
+			.with(oauth2(oauth2Options))
 
 		res = await oauth2client.fetch(req)
 		// ...
