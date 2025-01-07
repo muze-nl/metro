@@ -10,10 +10,11 @@ import {tokenStore} from './tokenstore.mjs'
  * Since implicit flow is deemed insecure, it is not supported
  * This library follows the OAuth2.1 RFC - https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-11)
  * Referenced as Oauth2.1 RFC from here on
+ * by default it will use PKCE and generate a random code_verifier,
+ * to skip this, set options.oauth2_configuration.code_verifier to false
  */
-export default function mwOAuth2(options)
+export default function oauth2mw(options)
 {
-
 	const defaultOptions = {
 		client: metro.client(),
 		force_authorization: false,
@@ -23,7 +24,7 @@ export default function mwOAuth2(options)
 			token_endpoint: '/token',
 			redirect_uri: globalThis.document?.location.href,
 			grant_type: 'authorization_code',
-			code_verifier: security.generateCodeVerifier(64)
+			code_verifier: generateCodeVerifier(64)
 		},
 		callbacks: {
 			authorize: async url => {
@@ -93,6 +94,15 @@ export default function mwOAuth2(options)
 			}
 			throw err
 		}
+		if (!res.ok) {
+			switch(res.status) { 
+				case 400: // Oauth2.1 RFC 3.2.4
+				case 401: // in case of incorrect authentication method
+					//FIXME: check payload of response as well? yes - may be able to recover
+					return oauth2authorized(req, next)
+				break
+			}
+		}
 		return res
 	}
 
@@ -102,25 +112,30 @@ export default function mwOAuth2(options)
 	async function oauth2authorized(req, next)
 	{
 		getTokensFromLocation()
-		if (!options.tokens.has('access_token')) {
+		let accessToken = options.tokens.get('access_token')
+		if (!accessToken) {
 			try {
 				let token = await fetchAccessToken()
 				if (!token) {
 					return metro.response('false')
 				}
 			} catch(e){
-				console.log('caught',e)
+				//FIXME: handle some errors here
 				throw(e)
 			}
 			return oauth2authorized(req, next)
-		} else if (isExpired(req)) {
-			let token = await fetchRefreshToken()
-			if (!token) {
-				return metro.response('false')
+		} else if (isExpired(accessToken)) {
+			try {
+				let token = await fetchRefreshToken()
+				if (!token) {
+					return metro.response('false')
+				}
+			} catch(e) {
+				//FIXME: handle some errors here
+				throw(e)
 			}
 			return oauth2authorized(req, next)
 		} else {
-			let accessToken = options.tokens.get('access_token')
 			req = metro.request(req, {
 				headers: {
 					Authorization: accessToken.type+' '+accessToken.value
@@ -187,6 +202,7 @@ export default function mwOAuth2(options)
 		let tokenReq = getAccessTokenRequest()
 		let response = await options.client.post(tokenReq) //OAuth2.1 RFC 3.2
 		if (!response.ok) {
+			let msg = await response.text()
 			throw metro.metroError('OAuth2mw: fetch access_token: '+response.status+': '+response.statusText, {cause: tokenReq} )
 		}
 		let data = await response.json()
@@ -253,14 +269,15 @@ export default function mwOAuth2(options)
 		let search = {
 			response_type: 'code', // implicit flow uses 'token' here, but is not considered safe, so not supported
 			client_id:     oauth2.client_id,
-			client_secret: oauth2.client_secret,
 			redirect_uri:  oauth2.redirect_uri,
-			state:         oauth2.state || security.createState(40) // OAuth2.1 RFC says optional, but its a good idea to always add/check it
+			state:         oauth2.state || createState(40) // OAuth2.1 RFC says optional, but its a good idea to always add/check it
 		}
 		options.state.set(search.state)
+		if (oauth2.client_secret) {
+			search.client_secret = oauth2.client_secret
+		}
 		if (oauth2.code_verifier) { //PKCE
-			delete search.client_secret
-			search.code_challenge = security.generateCodeChallenge(oauth2.code_verifier)
+			search.code_challenge = generateCodeChallenge(oauth2.code_verifier)
 			search.code_challenge_method = 'S256'
 		}
 		if (oauth2.scope) {
@@ -289,8 +306,9 @@ export default function mwOAuth2(options)
 			client_id:  oauth2.client_id
 		}
 		if (oauth2.code_verifier) { //PKCE
-			params.code_verifier = oauth2.code_verifier
-		} else {
+			params.code_verifier = base64url_encode(oauth2.code_verifier)
+		}
+		if (oauth2.client_secret) {
 			params.client_secret = oauth2.client_secret
 		}
 		if (oauth2.scope) {
@@ -300,6 +318,10 @@ export default function mwOAuth2(options)
 			case 'authorization_code':
 				params.redirect_uri = oauth2.redirect_uri
 				params.code = options.tokens.get('authorization_code')
+				if (options.dpop) {
+					const keyPair = options.tokens.get('keyPair')
+					params.dpop_jkt = keyPair.publicKey
+				}
 			break
 			case 'client_credentials':
 				// nothing to add
@@ -314,89 +336,95 @@ export default function mwOAuth2(options)
 		return metro.request(url, {method: 'POST', body: new URLSearchParams(params) })
 	}
 
-	/**
-	 * Returns true if the access token in a request is expired. False otherwise.
-	 */
-	function isExpired(req)
-	{
-		if (req.oauth2 && req.options.tokens && req.options.tokens.has('access_token')) {
-			let now = new Date();
-			let token = req.options.tokens.get('access_token')
-			return now.getTime() > token.expires.getTime();
-		}
-		return false;
-	}
-
-	/**
-	 * Returns a new Date based on a duration, which can either be a date
-	 * or a number of seconds from now.
-	 */
-	function getExpires(duration)
-	{
-		if (duration instanceof Date) {
-			return new Date(duration.getTime()); // return a copy
-		}
-		if (typeof duration === 'number') {
-			let date = new Date();
-			date.setSeconds(date.getSeconds() + duration);
-			return date;
-		}
-		throw new TypeError('Unknown expires type '+duration);
-	}
-
-
 }
 
-export const security = {	
-	/**
-	 * returns a PKCE code_verifier, as a hex encoded string
-	 */
-	generateCodeVerifier: function(size=64)
-	{
-		const code_verifier = new Uint8Array(size)
-		globalThis.crypto.getRandomValues(code_verifier)
-		return code_verifier.toString('hex')
-	},
-
-	/**
-	 * Returns a PKCE code_challenge derived from a code_verifier
-	 */
-	generateCodeChallenge: async function(code_verifier)
-	{
-		const b64encoded = security.base64url_encode(code_verifier)
-		const encoder = new TextEncoder()
-		const data = encoder.encode(b64encoded)
-		return await globalThis.crypto.subtle.digest('SHA-256', data)
-	},
-
-	/**
-	 * Base64url encoding, which handles UTF-8 input strings correctly.
-	 */
-	base64url_encode: function(buffer)
-	{
-		const byteString = Array.from(new Uint8Array(buffer), b => String.fromCharCode(b)).join('')
-	    return btoa(byteString)
-	        .replace(/\+/g, '-')
-	        .replace(/\//g, '_')
-	        .replace(/=+$/, '');
-	},
-
-	/**
-	 * Creates and stores a random state to use in the authorization code URL
-	 */
-	createState: function(length)
-	{
-		const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-		let randomState = ''
-		let counter = 0
-	    while (counter < length) {
-	        randomState += validChars.charAt(Math.floor(Math.random() * validChars.length))
-	        counter++
-	    }
-		return randomState
+/**
+ * Returns true if the access token is expired. False otherwise.
+ */
+export function isExpired(token)
+{
+	if (!token) {
+		return true
 	}
+	let expires = new Date(token.expires)
+	let now = new Date();
+	return now.getTime() > expires.getTime();
 }
 
+/**
+ * Returns a new Date based on a duration, which can either be a date
+ * or a number of seconds from now.
+ */
+export function getExpires(duration)
+{
+	if (duration instanceof Date) {
+		return new Date(duration.getTime()); // return a copy
+	}
+	if (typeof duration === 'number') {
+		let date = new Date();
+		date.setSeconds(date.getSeconds() + duration);
+		return date;
+	}
+	throw new TypeError('Unknown expires type '+duration);
+}
+
+
+/**
+ * returns a PKCE code_verifier, as a uint8array
+ * pass it to base64url_encode() to get a string
+ */
+export function	generateCodeVerifier(size=64)
+{
+	const code_verifier = new Uint8Array(size)
+	globalThis.crypto.getRandomValues(code_verifier)
+	return code_verifier
+}
+
+/**
+ * Returns a PKCE code_challenge derived from a code_verifier
+ * Note that this is an async function, so you can't just call
+ * it in the defaultOptions part of oauth2mw, or it will become async as well
+ * and that is not supported using metro.client().with() (yet)
+ */
+export async function generateCodeChallenge(code_verifier)
+{
+	const b64encoded = base64url_encode(code_verifier)
+	const encoder = new TextEncoder()
+	const data = encoder.encode(b64encoded)
+	return await globalThis.crypto.subtle.digest('SHA-256', data)
+}
+
+/**
+ * Base64url encoding, which handles UTF-8 input strings correctly.
+ */
+export function base64url_encode(buffer)
+{
+	const byteString = Array.from(new Uint8Array(buffer), b => String.fromCharCode(b)).join('')
+    return btoa(byteString)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+}
+
+/**
+ * Creates a random state to use in the authorization code URL
+ */
+export function createState(length)
+{
+	const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+	let randomState = ''
+	let counter = 0
+    while (counter < length) {
+        randomState += validChars.charAt(Math.floor(Math.random() * validChars.length))
+        counter++
+    }
+	return randomState
+}
+
+/**
+ * Returns true if a parameter 'code' is in the document.location searchParams or
+ * in the hash, if parsed as searchParams
+ */
 export function isRedirected() {
 	let url = new URL(document.location.href)
 	if (!url.searchParams.has('code')) {
