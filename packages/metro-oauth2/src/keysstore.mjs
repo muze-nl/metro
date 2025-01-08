@@ -33,6 +33,18 @@ export default function keysStore() {
 						request.onerror = reject
 						tx.onerror = reject
 					})
+				},
+				clear: function() {
+					return new Promise((resolve,reject) => {
+						const tx = db.transaction('keyPairs', 'readwrite')
+						const objectStore = tx.objectStore('keyPairs')
+						const request = objectStore.clear()
+						request.onsuccess = () => {
+							resolve()
+						}
+						request.onerror = reject
+						tx.onerror = reject						
+					})
 				}
 			})
 		}
