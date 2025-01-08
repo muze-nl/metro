@@ -92,9 +92,26 @@ export default function oidcmw(options={}) {
 			dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
 		}
 
-		//TODO: add middleware to grab the id_token when present
+		const storeIdToken = async (req, next) => {
+			const res = await next(req)
+			const contentType = res.headers.get('content-type')
+			if (contentType?.startsWith('application/json')) {
+				const res2 = res.clone() // otherwise res.body can't be read again
+				try {
+					let data = await res2.json()
+					if (data && data.id_token) {
+						options.store.set('id_token', data.id_token)
+					}
+				} catch(e) {
+					// ignore errors
+				}
+			}
+			return res
+		}
+
 		const dPopClient = options.client
 			.with(options.issuer)
+			.with(storeIdToken)
 			.with(oauth2.dpopmw(dpopOptions))
 
 		oauth2Options.client = dPopClient
@@ -112,4 +129,8 @@ export default function oidcmw(options={}) {
 
 export function isRedirected() {
 	return oauth2.isRedirected()
+}
+
+export function idToken(options) {
+	return options.store.get('id_token')
 }
