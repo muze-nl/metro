@@ -6,6 +6,6 @@ export const oidc = Object.assign(oidcmw, {
 	discover: oidcDiscover,
 	register: oidcRegister,
 	isRedirected
-}
+})
 
 globalThis.oidc = oidc
