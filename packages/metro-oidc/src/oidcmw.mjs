@@ -95,7 +95,7 @@ export default function oidcmw(options={}) {
 		//TODO: add middleware to grab the id_token when present
 		const dPopClient = options.client
 			.with(options.issuer)
-			.with(oauth2.DPoPmw(dpopOptions))
+			.with(oauth2.dpopmw(dpopOptions))
 
 		oauth2Options.client = dPopClient
 
@@ -111,5 +111,5 @@ export default function oidcmw(options={}) {
 }
 
 export function isRedirected() {
-	return oauth2isRedirected()
+	return oauth2.isRedirected()
 }
