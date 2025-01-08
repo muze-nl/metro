@@ -6,6 +6,7 @@ import keysStore from './keysstore.mjs'
 export default function dpopmw(options) {
 
 	assert(options, {
+		site: Required(validURL),
 		authorization_endpoint: Required(validURL),
 		token_endpoint: Required(validURL),
 //		dpop_signing_alg_values_supported: Required([]) // this property is unfortunately rarely supported
@@ -13,17 +14,17 @@ export default function dpopmw(options) {
 
 	return async (req, next) => {
 		const keys = await keysStore()
-		const url = metro.url(req.url)
-		let keyInfo = await keys.get(url.host)
+		let keyInfo = await keys.get(options.site)
 		if (!keyInfo) {
  			// FIXME fetch from dpop_signing_alg_values_supported
  			// which is unfortunately not available usually
  			let keyPair = await generateKeyPair('ES256') // note: don't make them extractable! That potentially allows hackers to steal the privateKey
-			keyInfo = { domain: url.host, keyPair }
+			keyInfo = { domain: options.site, keyPair }
 			await keys.set(keyInfo)
 		}
-		if (url.href.startsWith(options.authorization_endpoint)
-			||url.href.startsWith(options.token_endpoint)) {
+		const url = metro.url(req.url)
+		if (req.url.startsWith(options.authorization_endpoint)
+			||req.url.startsWith(options.token_endpoint)) {
 			const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method)
 			req = req.with({
 				headers: {
