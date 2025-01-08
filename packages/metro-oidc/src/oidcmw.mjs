@@ -67,6 +67,7 @@ export default function oidcmw(options={}) {
 
 		// now initialize an oauth2 client stack, using options.client as default
 		// with forceAuthentication: true
+		const scope = options.scope || 'openid'
 		const oauth2Options = Object.assign(
 			{
 				site: options.issuer,
@@ -75,11 +76,12 @@ export default function oidcmw(options={}) {
 				oauth2_configuration: {
 					client_id: options.client_info.client_id,
 					client_secret: options.client_info.client_secret,
-					code_verifier: false, //FIXME: detect pkce support
 					grant_type: 'authorization_code',
+					response_type: 'code',
+					response_mode: 'query',
 					authorization_endpoint: options.openid_configuration.authorization_endpoint,
 					token_endpoint: options.openid_configuration.token_endpoint,
-					scope: options.openid_configuration.scope || 'openid',
+					scope, //FIXME: should only use scopes supported by server
 					redirect_uri: options.client_info.redirect_uris[0] //FIXME: find the best match?
 				}
 			}
@@ -87,6 +89,7 @@ export default function oidcmw(options={}) {
 		)
 
 		const dpopOptions = {
+			site: options.issuer,
 			authorization_endpoint: options.openid_configuration.authorization_endpoint,
 			token_endpoint: options.openid_configuration.token_endpoint,
 			dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
