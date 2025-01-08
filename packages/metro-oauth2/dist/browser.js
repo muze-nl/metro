@@ -1001,7 +1001,7 @@
     }
     async function fetchAccessToken() {
       if (oauth22.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
-        let authReqURL = getAuthorizationCodeURL();
+        let authReqURL = await getAuthorizationCodeURL();
         if (!options.callbacks.authorize || typeof options.callbacks.authorize !== "function") {
           throw everything_default.metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize");
         }
@@ -1056,7 +1056,7 @@
       }
       return data;
     }
-    function getAuthorizationCodeURL() {
+    async function getAuthorizationCodeURL() {
       if (!oauth22.authorization_endpoint) {
         throw everything_default.metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
@@ -1074,16 +1074,25 @@
         state: oauth22.state || createState(40)
         // OAuth2.1 RFC says optional, but its a good idea to always add/check it
       };
+      if (oauth22.response_type) {
+        search.response_type = oauth22.response_type;
+      }
+      if (oauth22.response_mode) {
+        search.response_mode = oauth22.response_mode;
+      }
       options.state.set(search.state);
       if (oauth22.client_secret) {
         search.client_secret = oauth22.client_secret;
       }
       if (oauth22.code_verifier) {
-        search.code_challenge = generateCodeChallenge(oauth22.code_verifier);
+        search.code_challenge = base64url_encode(await generateCodeChallenge(oauth22.code_verifier));
         search.code_challenge_method = "S256";
       }
       if (oauth22.scope) {
         search.scope = oauth22.scope;
+      }
+      if (oauth22.prompt) {
+        search.prompt = oauth22.prompt;
       }
       return everything_default.url(url2, { search });
     }
@@ -1614,7 +1623,7 @@
         resolve({
           set: function(value, key) {
             return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwriteflush", { durability: "strict" });
+              const tx = db.transaction("keyPairs", "readwrite", { durability: "strict" });
               const objectStore = tx.objectStore("keyPairs");
               tx.oncomplete = () => {
                 resolve2();
@@ -1669,6 +1678,8 @@
         const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
         req = req.with({
           headers: {
+            "Authorization": "DPoP " + accessToken,
+            //solidcommunity server sends accesstoken with type Bearer
             "DPoP": dpopHeader
           }
         });
