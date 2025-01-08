@@ -13,7 +13,7 @@ export default function keysStore() {
 			resolve({
 				set: function(value, key) {
 					return new Promise((resolve, reject) => {
-						const tx = db.transaction('keyPairs', 'readwrite')
+						const tx = db.transaction('keyPairs', 'readwriteflush', {durability: 'strict'})
 						const objectStore = tx.objectStore('keyPairs')
 						tx.oncomplete = () => {
 							resolve()
@@ -24,7 +24,7 @@ export default function keysStore() {
 				},
 				get: function(key) {
 					return new Promise((resolve, reject) => {
-						const tx = db.transaction('keyPairs', 'readwrite')
+						const tx = db.transaction('keyPairs', 'readonly')
 						const objectStore = tx.objectStore('keyPairs')
 						const request = objectStore.get(key)
 						request.onsuccess = () => {
