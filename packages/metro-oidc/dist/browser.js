@@ -267,21 +267,28 @@
       "priority",
       "url"
     ]) {
-      if (typeof req[prop] == "function") {
-        req[prop](params2[prop], params2);
-      } else if (typeof req[prop] != "undefined") {
+      let value = req[prop];
+      if (typeof value == "undefined" || value == null) {
+        continue;
+      }
+      if (value?.[Symbol.metroProxy]) {
+        value = value[Symbol.metroSource];
+      }
+      if (typeof value == "function") {
+        value(params2[prop], params2);
+      } else {
         if (prop == "url") {
-          params2.url = url(params2.url, req.url);
+          params2.url = url(params2.url, value);
         } else if (prop == "headers") {
           params2.headers = new Headers(current.headers);
-          if (!(req.headers instanceof Headers)) {
-            req.headers = new Headers(req.headers);
+          if (!(value instanceof Headers)) {
+            value = new Headers(req.headers);
           }
-          for (let [key, value] of req.headers.entries()) {
-            params2.headers.set(key, value);
+          for (let [key, val] of value.entries()) {
+            params2.headers.set(key, val);
           }
         } else {
-          params2[prop] = req[prop];
+          params2[prop] = value;
         }
       }
     }
@@ -352,13 +359,20 @@
       params2.url = current.url;
     }
     for (let prop of ["status", "statusText", "headers", "body", "url", "type", "redirected"]) {
-      if (typeof res[prop] == "function") {
-        res[prop](params2[prop], params2);
-      } else if (typeof res[prop] != "undefined") {
+      let value = res[prop];
+      if (typeof value == "undefined" || value == null) {
+        continue;
+      }
+      if (value?.[Symbol.metroProxy]) {
+        value = value[Symbol.metroSource];
+      }
+      if (typeof value == "function") {
+        value(params2[prop], params2);
+      } else {
         if (prop == "url") {
-          params2.url = new URL(res.url, params2.url || "https://localhost/");
+          params2.url = new URL(value, params2.url || "https://localhost/");
         } else {
-          params2[prop] = res[prop];
+          params2[prop] = value;
         }
       }
     }
@@ -1981,7 +1995,7 @@
         resolve({
           set: function(value, key) {
             return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwrite");
+              const tx = db.transaction("keyPairs", "readwriteflush", { durability: "strict" });
               const objectStore = tx.objectStore("keyPairs");
               tx.oncomplete = () => {
                 resolve2();
@@ -1992,7 +2006,7 @@
           },
           get: function(key) {
             return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwrite");
+              const tx = db.transaction("keyPairs", "readonly");
               const objectStore = tx.objectStore("keyPairs");
               const request3 = objectStore.get(key);
               request3.onsuccess = () => {
@@ -2011,11 +2025,10 @@
   function dpopmw(options) {
     assert2(options, {
       authorization_endpoint: Required2(validURL2),
-      token_endpoint: Required2(validURL2),
-      dpop_signing_alg_values_supported: Required2([])
+      token_endpoint: Required2(validURL2)
+      //		dpop_signing_alg_values_supported: Required([]) // this property is unfortunately rarely supported
     });
     return async (req, next) => {
-      console.log("dpop", req.url);
       const keys = await keysStore();
       const url2 = everything_default.url(req.url);
       let keyInfo = await keys.get(url2.host);
@@ -2037,7 +2050,6 @@
         const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
         req = req.with({
           headers: {
-            "Authorization": "DPoP " + accessToken,
             "DPoP": dpopHeader
           }
         });
@@ -2159,7 +2171,22 @@
         token_endpoint: options.openid_configuration.token_endpoint,
         dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
       };
-      const dPopClient = options.client.with(options.issuer).with(browser_default.DPoPmw(dpopOptions));
+      const storeIdToken = async (req2, next2) => {
+        const res2 = await next2(req2);
+        const contentType = res2.headers.get("content-type");
+        if (contentType?.startsWith("application/json")) {
+          const res22 = res2.clone();
+          try {
+            let data = await res22.json();
+            if (data && data.id_token) {
+              options.store.set("id_token", data.id_token);
+            }
+          } catch (e) {
+          }
+        }
+        return res2;
+      };
+      const dPopClient = options.client.with(options.issuer).with(storeIdToken).with(browser_default.dpopmw(dpopOptions));
       oauth2Options.client = dPopClient;
       const oauth2client = dPopClient.with(browser_default(oauth2Options));
       res = await oauth2client.fetch(req);
@@ -2167,16 +2194,19 @@
     };
   }
   function isRedirected2() {
-    return oauth2isRedirected();
+    return browser_default.isRedirected();
+  }
+  function idToken(options) {
+    return options.store.get("id_token");
   }
 
   // src/browser.mjs
-  var oidc = {
+  var oidc = Object.assign(oidcmw, {
     discover: oidcDiscovery,
     register,
-    oidcmw,
-    isRedirected: isRedirected2
-  };
+    isRedirected: isRedirected2,
+    idToken
+  });
   globalThis.oidc = oidc;
 })();
 //# sourceMappingURL=browser.js.map
