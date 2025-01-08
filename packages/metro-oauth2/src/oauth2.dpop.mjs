@@ -36,6 +36,7 @@ export default function dpopmw(options) {
 			const dpopHeader  = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken)
 			req = req.with({
 				headers: {
+					'Authorization': 'DPoP '+accessToken, //solidcommunity server sends accesstoken with type Bearer
 					'DPoP': dpopHeader
 				}
 			})
