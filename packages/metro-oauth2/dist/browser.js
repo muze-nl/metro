@@ -1410,6 +1410,57 @@
     throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
   }
 
+  // src/keysstore.mjs
+  function keysStore() {
+    return new Promise((resolve, reject) => {
+      const request2 = globalThis.indexedDB.open("metro", 1);
+      request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
+      request2.onerror = (event) => {
+        reject(event);
+      };
+      request2.onsuccess = (event) => {
+        const db = event.target.result;
+        resolve({
+          set: function(value, key) {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readwrite", { durability: "strict" });
+              const objectStore = tx.objectStore("keyPairs");
+              tx.oncomplete = () => {
+                resolve2();
+              };
+              tx.onerror = reject2;
+              objectStore.put(value, key);
+            });
+          },
+          get: function(key) {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readonly");
+              const objectStore = tx.objectStore("keyPairs");
+              const request3 = objectStore.get(key);
+              request3.onsuccess = () => {
+                resolve2(request3.result);
+              };
+              request3.onerror = reject2;
+              tx.onerror = reject2;
+            });
+          },
+          clear: function() {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readwrite");
+              const objectStore = tx.objectStore("keyPairs");
+              const request3 = objectStore.clear();
+              request3.onsuccess = () => {
+                resolve2();
+              };
+              request3.onerror = reject2;
+              tx.onerror = reject2;
+            });
+          }
+        });
+      };
+    });
+  }
+
   // node_modules/dpop/build/index.js
   var encoder = new TextEncoder();
   var decoder = new TextDecoder();
@@ -1610,62 +1661,24 @@
     return crypto.subtle.generateKey(algorithm, options?.extractable ?? false, ["sign", "verify"]);
   }
 
-  // src/keysstore.mjs
-  function keysStore() {
-    return new Promise((resolve, reject) => {
-      const request2 = globalThis.indexedDB.open("metro", 1);
-      request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
-      request2.onerror = (event) => {
-        reject(event);
-      };
-      request2.onsuccess = (event) => {
-        const db = event.target.result;
-        resolve({
-          set: function(value, key) {
-            return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwrite", { durability: "strict" });
-              const objectStore = tx.objectStore("keyPairs");
-              tx.oncomplete = () => {
-                resolve2();
-              };
-              tx.onerror = reject2;
-              objectStore.put(value, key);
-            });
-          },
-          get: function(key) {
-            return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readonly");
-              const objectStore = tx.objectStore("keyPairs");
-              const request3 = objectStore.get(key);
-              request3.onsuccess = () => {
-                resolve2(request3.result);
-              };
-              request3.onerror = reject2;
-              tx.onerror = reject2;
-            });
-          }
-        });
-      };
-    });
-  }
-
   // src/oauth2.dpop.mjs
   function dpopmw(options) {
     assert(options, {
+      site: Required(validURL),
       authorization_endpoint: Required(validURL),
       token_endpoint: Required(validURL)
       //		dpop_signing_alg_values_supported: Required([]) // this property is unfortunately rarely supported
     });
     return async (req, next) => {
       const keys = await keysStore();
-      const url2 = everything_default.url(req.url);
-      let keyInfo = await keys.get(url2.host);
+      let keyInfo = await keys.get(options.site);
       if (!keyInfo) {
         let keyPair = await generateKeyPair("ES256");
-        keyInfo = { domain: url2.host, keyPair };
+        keyInfo = { domain: options.site, keyPair };
         await keys.set(keyInfo);
       }
-      if (url2.href.startsWith(options.authorization_endpoint) || url2.href.startsWith(options.token_endpoint)) {
+      const url2 = everything_default.url(req.url);
+      if (req.url.startsWith(options.authorization_endpoint) || req.url.startsWith(options.token_endpoint)) {
         const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method);
         req = req.with({
           headers: {
@@ -1697,8 +1710,10 @@
     mockserver: oauth2_mockserver_exports,
     discovery: oauth2_discovery_exports,
     tokenstore: tokenStore,
-    dpopmw
+    dpopmw,
+    keysstore: keysStore
   });
+  globalThis.oauth2 = oauth2;
   var browser_default = oauth2;
 })();
 //# sourceMappingURL=browser.js.map
