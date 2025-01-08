@@ -60,6 +60,7 @@ export default function oauth2mw(options)
 		}
 	})
 
+	// FIXME: for oidc, we need to send the id_token instead of access token...
 	for (let option in oauth2) {
 		switch(option) {
 			case 'access_token':
@@ -187,7 +188,7 @@ export default function oauth2mw(options)
 	async function fetchAccessToken()
 	{
 		if (oauth2.grant_type === 'authorization_code' && !options.tokens.has('authorization_code')) {
-			let authReqURL = getAuthorizationCodeURL()
+			let authReqURL = await getAuthorizationCodeURL()
 			if (!options.callbacks.authorize || typeof options.callbacks.authorize !== 'function') {
 				throw metro.metroError('oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize')
 			}
@@ -255,7 +256,7 @@ export default function oauth2mw(options)
 	/**
 	 * Returns the URL to use to get a authorization_code
 	 */
-	function getAuthorizationCodeURL()
+	async function getAuthorizationCodeURL()
 	{
 		if (!oauth2.authorization_endpoint) {
 			throw metro.metroError('oauth2mw: Missing options.oauth2_configuration.authorization_endpoint')
@@ -272,16 +273,25 @@ export default function oauth2mw(options)
 			redirect_uri:  oauth2.redirect_uri,
 			state:         oauth2.state || createState(40) // OAuth2.1 RFC says optional, but its a good idea to always add/check it
 		}
+		if (oauth2.response_type) {
+			search.response_type = oauth2.response_type
+		}
+		if (oauth2.response_mode) {
+			search.response_mode = oauth2.response_mode
+		}
 		options.state.set(search.state)
 		if (oauth2.client_secret) {
 			search.client_secret = oauth2.client_secret
 		}
 		if (oauth2.code_verifier) { //PKCE
-			search.code_challenge = generateCodeChallenge(oauth2.code_verifier)
+			search.code_challenge = base64url_encode(await generateCodeChallenge(oauth2.code_verifier))
 			search.code_challenge_method = 'S256'
 		}
 		if (oauth2.scope) {
 			search.scope = oauth2.scope
+		}
+		if (oauth2.prompt) {
+			search.prompt = oauth2.prompt
 		}
 		return metro.url(url, { search })
 	}
