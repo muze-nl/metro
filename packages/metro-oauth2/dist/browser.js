@@ -1614,7 +1614,7 @@
         resolve({
           set: function(value, key) {
             return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwrite");
+              const tx = db.transaction("keyPairs", "readwriteflush", { durability: "strict" });
               const objectStore = tx.objectStore("keyPairs");
               tx.oncomplete = () => {
                 resolve2();
@@ -1625,7 +1625,7 @@
           },
           get: function(key) {
             return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwrite");
+              const tx = db.transaction("keyPairs", "readonly");
               const objectStore = tx.objectStore("keyPairs");
               const request3 = objectStore.get(key);
               request3.onsuccess = () => {
@@ -1644,11 +1644,10 @@
   function dpopmw(options) {
     assert(options, {
       authorization_endpoint: Required(validURL),
-      token_endpoint: Required(validURL),
-      dpop_signing_alg_values_supported: Required([])
+      token_endpoint: Required(validURL)
+      //		dpop_signing_alg_values_supported: Required([]) // this property is unfortunately rarely supported
     });
     return async (req, next) => {
-      console.log("dpop", req.url);
       const keys = await keysStore();
       const url2 = everything_default.url(req.url);
       let keyInfo = await keys.get(url2.host);
@@ -1670,7 +1669,6 @@
         const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
         req = req.with({
           headers: {
-            "Authorization": "DPoP " + accessToken,
             "DPoP": dpopHeader
           }
         });
