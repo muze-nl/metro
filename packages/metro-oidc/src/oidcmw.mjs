@@ -99,6 +99,7 @@ export default function oidcmw(options={}) {
 			const res = await next(req)
 			const contentType = res.headers.get('content-type')
 			if (contentType?.startsWith('application/json')) {
+				//FIXME; check that this is actually the token endpoint
 				const res2 = res.clone() // otherwise res.body can't be read again
 				try {
 					let data = await res2.json()

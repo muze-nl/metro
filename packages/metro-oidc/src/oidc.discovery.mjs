@@ -89,7 +89,7 @@ export default async function oidcDiscovery(options={}) {
 		// note: this allows path components in the options.issuer url
 		configURL
 	)
-	const openid_config = response.body[Symbol.metroSource]
+	const openid_config = response.data
 	assert(openid_config, openid_provider_metadata)
 
 	// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationValidation

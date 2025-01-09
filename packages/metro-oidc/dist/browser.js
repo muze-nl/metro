@@ -107,12 +107,7 @@
       }
       const metrofetch = async function browserFetch(req2) {
         if (req2[Symbol.metroProxy]) {
-          if (req2.body && req2.body[Symbol.metroSource]) {
-            let body = req2.body[Symbol.metroSource];
-            req2 = new Request(req2[Symbol.metroSource], { body });
-          } else {
-            req2 = req2[Symbol.metroSource];
-          }
+          req2 = req2[Symbol.metroSource];
         }
         const res = await fetch(req2);
         return response(res);
@@ -149,103 +144,6 @@
   function client(...options) {
     return new Client(...options);
   }
-  function bodyProxy(body, r) {
-    let source = r.body;
-    if (!source) {
-      if (body === null) {
-        source = new ReadableStream();
-      } else if (body instanceof ReadableStream) {
-        source = body;
-      } else if (body instanceof Blob) {
-        source = body.stream();
-      } else {
-        source = new ReadableStream({
-          start(controller) {
-            let chunk;
-            switch (typeof body) {
-              case "object":
-                if (typeof body.toString == "function") {
-                  chunk = body.toString();
-                } else if (body instanceof FormData) {
-                  chunk = new URLSearchParams(body).toString();
-                } else if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
-                  chunk = body;
-                } else {
-                  throw metroError("Cannot convert body to ReadableStream", body);
-                }
-                break;
-              case "string":
-              case "number":
-              case "boolean":
-                chunk = body;
-                break;
-              default:
-                throw metroError("Cannot convert body to ReadableStream", body);
-                break;
-            }
-            controller.enqueue(chunk);
-            controller.close();
-          }
-        });
-      }
-    }
-    return new Proxy(source, {
-      get(target, prop, receiver) {
-        switch (prop) {
-          case Symbol.metroProxy:
-            return true;
-            break;
-          case Symbol.metroSource:
-            return body;
-            break;
-          case "toString":
-            return function() {
-              return "" + body;
-            };
-            break;
-        }
-        if (body && typeof body == "object") {
-          if (prop in body) {
-            if (typeof body[prop] == "function") {
-              return function(...args) {
-                return body[prop].apply(body, args);
-              };
-            }
-            return body[prop];
-          }
-        }
-        if (prop in target && prop != "toString") {
-          if (typeof target[prop] == "function") {
-            return function(...args) {
-              return target[prop].apply(target, args);
-            };
-          }
-          return target[prop];
-        }
-      },
-      has(target, prop) {
-        if (body && typeof body == "object") {
-          return prop in body;
-        } else {
-          return prop in target;
-        }
-      },
-      ownKeys(target) {
-        if (body && typeof body == "object") {
-          return Reflect.ownKeys(body);
-        } else {
-          return Reflect.ownKeys(target);
-        }
-      },
-      getOwnPropertyDescriptor(target, prop) {
-        if (body && typeof body == "object") {
-          return Object.getOwnPropertyDescriptor(body, prop);
-        } else {
-          return Object.getOwnPropertyDescriptor(target, prop);
-        }
-      }
-    });
-  }
   function getRequestParams(req, current) {
     let params2 = current || {};
     if (!params2.url && current.url) {
@@ -275,7 +173,7 @@
         value = value[Symbol.metroSource];
       }
       if (typeof value == "function") {
-        value(params2[prop], params2);
+        params2[prop] = value(params2[prop], params2);
       } else {
         if (prop == "url") {
           params2.url = url(params2.url, value);
@@ -291,6 +189,9 @@
           params2[prop] = value;
         }
       }
+    }
+    if (req instanceof Request && req.data) {
+      params2.body = req.data;
     }
     return params2;
   }
@@ -309,10 +210,10 @@
         Object.assign(requestParams, getRequestParams(option, requestParams));
       }
     }
-    let body = requestParams.body;
-    if (body) {
-      if (typeof body == "object" && !(body instanceof String) && !(body instanceof ReadableStream) && !(body instanceof Blob) && !(body instanceof ArrayBuffer) && !(body instanceof DataView) && !(body instanceof FormData) && !(body instanceof URLSearchParams) && (typeof TypedArray == "undefined" || !(body instanceof TypedArray))) {
-        requestParams.body = JSON.stringify(body);
+    let data = requestParams.body;
+    if (data) {
+      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof TypedArray == "undefined" || !(data instanceof TypedArray))) {
+        requestParams.body = JSON.stringify(data);
       }
     }
     let r = new Request(requestParams.url, requestParams);
@@ -328,25 +229,21 @@
             break;
           case "with":
             return function(...options2) {
-              if (body) {
-                options2.unshift({ body });
+              if (data) {
+                options2.unshift({ body: data });
               }
               return request(target, ...options2);
             };
             break;
           case "body":
-            if (!body) {
-              body = target.body;
-            }
-            if (body) {
-              if (body[Symbol.metroProxy]) {
-                return body;
-              }
-              return bodyProxy(body, target);
-            }
+            break;
+          case "data":
+            return data;
             break;
         }
         if (target[prop] instanceof Function) {
+          if (prop === "clone") {
+          }
           return target[prop].bind(target);
         }
         return target[prop];
@@ -367,7 +264,7 @@
         value = value[Symbol.metroSource];
       }
       if (typeof value == "function") {
-        value(params2[prop], params2);
+        params2[prop] = value(params2[prop], params2);
       } else {
         if (prop == "url") {
           params2.url = new URL(value, params2.url || "https://localhost/");
@@ -375,6 +272,9 @@
           params2[prop] = value;
         }
       }
+    }
+    if (res instanceof Response && res.data) {
+      params2.body = res.data;
     }
     return params2;
   }
@@ -393,6 +293,10 @@
         }
       }
     }
+    let data = void 0;
+    if (responseParams.body) {
+      data = responseParams.body;
+    }
     let r = new Response(responseParams.body, responseParams);
     Object.freeze(r);
     return new Proxy(r, {
@@ -409,37 +313,17 @@
               return response(target, ...options2);
             };
             break;
-          case "body":
-            if (responseParams.body) {
-              if (responseParams.body[Symbol.metroProxy]) {
-                return responseParams.body;
-              }
-              return bodyProxy(responseParams.body, target);
-            } else {
-              return bodyProxy("", target);
-            }
+          case "data":
+            return data;
             break;
           case "ok":
             return target.status >= 200 && target.status < 400;
             break;
-          case "headers":
-            return target.headers;
-            break;
-          default:
-            if (prop in responseParams && prop != "toString") {
-              return responseParams[prop];
-            }
-            if (prop in target && prop != "toString") {
-              if (typeof target[prop] == "function") {
-                return function(...args) {
-                  return target[prop].apply(target, args);
-                };
-              }
-              return target[prop];
-            }
-            break;
         }
-        return void 0;
+        if (typeof target[prop] == "function") {
+          return target[prop].bind(target);
+        }
+        return target[prop];
       }
     });
   }
@@ -648,9 +532,9 @@
             "Accept": "application/json"
           }
         });
-        if (req.body && typeof req.body[Symbol.metroSource] == "object") {
+        if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
           req = req.with({
-            body: JSON.stringify(req.body[Symbol.metroSource], options.replacer, options.space)
+            body: JSON.stringify(req.data, options.replacer, options.space)
           });
         }
       } else {
@@ -1000,7 +884,7 @@
       // note: this allows path components in the options.issuer url
       configURL
     );
-    const openid_config = response2.body[Symbol.metroSource];
+    const openid_config = response2.data;
     assert(openid_config, openid_provider_metadata);
     assert(openid_config.issuer, options.issuer);
     return openid_config;
@@ -1053,7 +937,7 @@
     let response2 = await options.client.post(options.registration_endpoint, {
       body: options.client_info
     });
-    let info = response2.body;
+    let info = response2.data;
     if (!info.client_id || !info.client_secret) {
       throw everything_default.metroError("metro.oidc: Error: dynamic registration of client failed, no client_id or client_secret returned", response2);
     }
@@ -1638,22 +1522,22 @@
           });
           break;
         case "/token/":
-          if (req.body[Symbol.metroSource] instanceof URLSearchParams) {
+          if (req.data instanceof URLSearchParams) {
             let body = {};
-            req.body.forEach((value, key) => body[key] = value);
+            req.data.forEach((value, key) => body[key] = value);
             req = req.with({ body });
           }
           if (error3 = fails2(req, {
             method: "POST",
-            body: {
+            data: {
               grant_type: oneOf2("refresh_token", "authorization_code")
             }
           })) {
             return everything_default.response(badRequest(error3));
           }
-          switch (req.body.grant_type) {
+          switch (req.data.grant_type) {
             case "refresh_token":
-              if (error3 = fails2(req.body, oneOf2({
+              if (error3 = fails2(req.data, oneOf2({
                 refresh_token: "mockRefreshToken",
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
@@ -1666,7 +1550,7 @@
               }
               break;
             case "access_token":
-              if (error3 = fails2(req.body, oneOf2({
+              if (error3 = fails2(req.data, oneOf2({
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
               }, {
