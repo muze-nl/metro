@@ -23,7 +23,7 @@ export default function dpopmw(options) {
 			await keys.set(keyInfo)
 		}
 		const url = metro.url(req.url)
-		if (req.url.startsWith(options.authorization_endpoint)
+		if (req.url.startsWith(options.authorization_endpoint) //FIXME: is this correct? or only add dpop to token endpoints?
 			||req.url.startsWith(options.token_endpoint)) {
 			const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method)
 			req = req.with({
@@ -31,7 +31,8 @@ export default function dpopmw(options) {
 					'DPoP': dpopHeader
 				}
 			})
-		} else if (req.headers.has('Authorization')) {
+		} else if (req.headers.has('Authorization')) { //FIXME: not all requests use the dpop bound access token, so check which key to use, or if to add dpop at all
+			// note: don't use options.site here, nonce can differ
 			const nonce       = localStorage.getItem(url.host+':nonce') || undefined // null is not acceptible for DpOp()
 			const accessToken = req.headers.get('Authorization').split(' ')[1]
 			const dpopHeader  = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken)
@@ -44,6 +45,7 @@ export default function dpopmw(options) {
 		}
 		let response = await next(req)
 		if (response.headers.get('DPoP-Nonce')) {
+			// note: don't use options.site here, nonce can differ
 			localStorage.setItem(url.host+':nonce', response.headers.get('DPoP-Nonce'))
 		}
 		return response

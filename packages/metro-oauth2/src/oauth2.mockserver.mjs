@@ -61,22 +61,22 @@ export default function oauth2mockserver(options={}) {
 				})
 			break
 			case '/token/':
-				if (req.body[Symbol.metroSource] instanceof URLSearchParams) {
+				if (req.data instanceof URLSearchParams) {
 					let body = {}
-					req.body.forEach((value,key) => body[key] = value)
+					req.data.forEach((value,key) => body[key] = value)
 					req = req.with({body})
 				}
 				if (error = assert.fails(req, {
 					method: 'POST',
-					body: {
+					data: {
 						grant_type: assert.oneOf('refresh_token','authorization_code')
 					}
 				})) {
 					return metro.response(badRequest(error))
 				}
-				switch(req.body.grant_type) {
+				switch(req.data.grant_type) {
 					case 'refresh_token':
-						if (error = assert.fails(req.body, assert.oneOf({
+						if (error = assert.fails(req.data, assert.oneOf({
 							refresh_token: 'mockRefreshToken',
 							client_id: 'mockClientId',
 							client_secret: 'mockClientSecret'
@@ -89,7 +89,7 @@ export default function oauth2mockserver(options={}) {
 						}
 					break
 					case 'access_token':
-						if (error = assert.fails(req.body, assert.oneOf({
+						if (error = assert.fails(req.data, assert.oneOf({
 							client_id: 'mockClientId',
 							client_secret: 'mockClientSecret'
 						}, {
