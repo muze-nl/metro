@@ -19,9 +19,7 @@ tap.test('oauth2start', async t => {
 				value: 'mockAccessToken'
 			},
 		},
-		callbacks: {
-			authorize: async (url) => 'mockAuthorizeToken'
-		},
+		authorize_callback: async (url) => 'mockAuthorizeToken',
 		force_authorization: true
 	}))
 
@@ -42,9 +40,7 @@ tap.test('authorize', async t => {
 			authorize_endpoint: '/authorize/',
 			token_endpoint: '/token/'
 		},
-		callbacks: {
-			authorize: async (url) => 'mockAuthorizeToken'
-		}
+		authorize_callback: async (url) => 'mockAuthorizeToken',
 	}))
 	let url = metro.url('/protected/')
 	//metro.trace.add('group', metro.trace.group())
