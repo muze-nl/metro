@@ -8,6 +8,7 @@
   // src/oauth2.mjs
   var oauth2_exports = {};
   __export(oauth2_exports, {
+    authorizePopup: () => authorizePopup,
     base64url_encode: () => base64url_encode,
     createState: () => createState,
     default: () => oauth2mw,
@@ -530,69 +531,6 @@
     }
   };
 
-  // node_modules/@muze-nl/metro/src/mw/json.mjs
-  function jsonmw(options) {
-    options = Object.assign({
-      reviver: null,
-      replacer: null,
-      space: ""
-    }, options);
-    return async (req, next) => {
-      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
-        req = req.with({
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          }
-        });
-        if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
-          req = req.with({
-            body: JSON.stringify(req.data, options.replacer, options.space)
-          });
-        }
-      } else {
-        req = req.with({
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-      }
-      let res = await next(req);
-      let body = await res.text();
-      let json = JSON.parse(body, options.reviver);
-      return res.with({
-        body: json
-      });
-    };
-  }
-
-  // node_modules/@muze-nl/metro/src/mw/thrower.mjs
-  function thrower(options) {
-    return async (req, next) => {
-      let res = await next(req);
-      if (!res.ok) {
-        if (options && typeof options[res.status] == "function") {
-          res = options[res.status].apply(res, req);
-        } else {
-          throw new Error(res.status + ": " + res.statusText, {
-            cause: res
-          });
-        }
-      }
-      return res;
-    };
-  }
-
-  // node_modules/@muze-nl/metro/src/everything.mjs
-  var metro = Object.assign({}, metro_exports, {
-    mw: {
-      jsonmw,
-      thrower
-    }
-  });
-  globalThis.metro = metro;
-  var everything_default = metro;
-
   // node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
   var assert = (source, test) => {
@@ -761,7 +699,7 @@
   // src/oauth2.mjs
   function oauth2mw(options) {
     const defaultOptions = {
-      client: everything_default.client(),
+      client: client(),
       force_authorization: false,
       site: "default",
       oauth2_configuration: {
@@ -771,13 +709,11 @@
         grant_type: "authorization_code",
         code_verifier: generateCodeVerifier(64)
       },
-      callbacks: {
-        authorize: async (url2) => {
-          if (window.location.href != url2.href) {
-            window.location.replace(url2.href);
-          }
-          return false;
+      authorize_callback: async (url2) => {
+        if (window.location.href != url2.href) {
+          window.location.replace(url2.href);
         }
+        return false;
       }
     };
     assert(options, {});
@@ -845,7 +781,7 @@
         try {
           let token = await fetchAccessToken();
           if (!token) {
-            return everything_default.response("false");
+            return response("false");
           }
         } catch (e) {
           throw e;
@@ -855,14 +791,14 @@
         try {
           let token = await fetchRefreshToken();
           if (!token) {
-            return everything_default.response("false");
+            return response("false");
           }
         } catch (e) {
           throw e;
         }
         return oauth2authorized(req, next);
       } else {
-        req = everything_default.request(req, {
+        req = request(req, {
           headers: {
             Authorization: accessToken.type + " " + accessToken.value
           }
@@ -872,7 +808,7 @@
     }
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {
-        let url2 = everything_default.url(window.location);
+        let url2 = url(window.location);
         let code, state, params2;
         if (url2.searchParams.has("code")) {
           params2 = url2.searchParams;
@@ -900,10 +836,10 @@
     async function fetchAccessToken() {
       if (oauth22.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
         let authReqURL = await getAuthorizationCodeURL();
-        if (!options.callbacks.authorize || typeof options.callbacks.authorize !== "function") {
-          throw everything_default.metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize");
+        if (!options.authorize_callback || typeof options.authorize_callback !== "function") {
+          throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.authorize_callback");
         }
-        let token = await options.callbacks.authorize(authReqURL);
+        let token = await options.authorize_callback(authReqURL);
         if (token) {
           options.tokens.set("authorization_code", token);
         } else {
@@ -914,7 +850,7 @@
       let response2 = await options.client.post(tokenReq);
       if (!response2.ok) {
         let msg = await response2.text();
-        throw everything_default.metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
+        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -935,7 +871,7 @@
       let refreshTokenReq = getAccessTokenRequest("refresh_token");
       let response2 = await options.client.post(refreshTokenReq);
       if (!response2.ok) {
-        throw everything_default.metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
+        throw metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -956,9 +892,9 @@
     }
     async function getAuthorizationCodeURL() {
       if (!oauth22.authorization_endpoint) {
-        throw everything_default.metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
+        throw metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = everything_default.url(oauth22.authorization_endpoint, { hash: "" });
+      let url2 = url(oauth22.authorization_endpoint, { hash: "" });
       assert(oauth22, {
         client_id: /.+/,
         redirect_uri: /.+/,
@@ -983,7 +919,7 @@
         search.client_secret = oauth22.client_secret;
       }
       if (oauth22.code_verifier) {
-        search.code_challenge = base64url_encode(await generateCodeChallenge(oauth22.code_verifier));
+        search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
         search.code_challenge_method = "S256";
       }
       if (oauth22.scope) {
@@ -992,7 +928,7 @@
       if (oauth22.prompt) {
         search.prompt = oauth22.prompt;
       }
-      return everything_default.url(url2, { search });
+      return url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
       assert(oauth22, {
@@ -1000,15 +936,15 @@
         redirect_uri: /.+/
       });
       if (!oauth22.token_endpoint) {
-        throw everything_default.metroError("oauth2mw: Missing options.endpoints.token url");
+        throw metroError("oauth2mw: Missing options.endpoints.token url");
       }
-      let url2 = everything_default.url(oauth22.token_endpoint, { hash: "" });
+      let url2 = url(oauth22.token_endpoint, { hash: "" });
       let params2 = {
         grant_type: grant_type || oauth22.grant_type,
         client_id: oauth22.client_id
       };
       if (oauth22.code_verifier) {
-        params2.code_verifier = base64url_encode(oauth22.code_verifier);
+        params2.code_verifier = oauth22.code_verifier;
       }
       if (oauth22.client_secret) {
         params2.client_secret = oauth22.client_secret;
@@ -1034,7 +970,7 @@
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
           break;
       }
-      return everything_default.request(url2, { method: "POST", body: new URLSearchParams(params2) });
+      return request(url2, { method: "POST", body: new URLSearchParams(params2) });
     }
   }
   function isExpired(token) {
@@ -1059,13 +995,13 @@
   function generateCodeVerifier(size = 64) {
     const code_verifier = new Uint8Array(size);
     globalThis.crypto.getRandomValues(code_verifier);
-    return code_verifier;
+    return base64url_encode(code_verifier);
   }
   async function generateCodeChallenge(code_verifier) {
-    const b64encoded = base64url_encode(code_verifier);
     const encoder2 = new TextEncoder();
-    const data = encoder2.encode(b64encoded);
-    return await globalThis.crypto.subtle.digest("SHA-256", data);
+    const data = encoder2.encode(code_verifier);
+    const challenge = await globalThis.crypto.subtle.digest("SHA-256", data);
+    return base64url_encode(challenge);
   }
   function base64url_encode(buffer) {
     const byteString = Array.from(new Uint8Array(buffer), (b) => String.fromCharCode(b)).join("");
@@ -1095,12 +1031,85 @@
     }
     return true;
   }
+  async function authorizePopup(authorizationCodeURL) {
+    return new Promise((resolve, reject) => {
+      addEventListener("oauth2authorized", (evt) => {
+        resolve(event.authorization_code);
+      }, { once: true });
+      window.open(authorizationCodeURL);
+    });
+  }
 
   // src/oauth2.mockserver.mjs
   var oauth2_mockserver_exports = {};
   __export(oauth2_mockserver_exports, {
     default: () => oauth2mockserver
   });
+
+  // node_modules/@muze-nl/metro/src/mw/json.mjs
+  function jsonmw(options) {
+    options = Object.assign({
+      reviver: null,
+      replacer: null,
+      space: ""
+    }, options);
+    return async (req, next) => {
+      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
+        req = req.with({
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          }
+        });
+        if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
+          req = req.with({
+            body: JSON.stringify(req.data, options.replacer, options.space)
+          });
+        }
+      } else {
+        req = req.with({
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+      }
+      let res = await next(req);
+      let body = await res.text();
+      let json = JSON.parse(body, options.reviver);
+      return res.with({
+        body: json
+      });
+    };
+  }
+
+  // node_modules/@muze-nl/metro/src/mw/thrower.mjs
+  function thrower(options) {
+    return async (req, next) => {
+      let res = await next(req);
+      if (!res.ok) {
+        if (options && typeof options[res.status] == "function") {
+          res = options[res.status].apply(res, req);
+        } else {
+          throw new Error(res.status + ": " + res.statusText, {
+            cause: res
+          });
+        }
+      }
+      return res;
+    };
+  }
+
+  // node_modules/@muze-nl/metro/src/everything.mjs
+  var metro = Object.assign({}, metro_exports, {
+    mw: {
+      jsonmw,
+      thrower
+    }
+  });
+  globalThis.metro = metro;
+  var everything_default = metro;
+
+  // src/oauth2.mockserver.mjs
   var baseResponse = {
     status: 200,
     statusText: "OK",
@@ -1313,11 +1322,11 @@
     return new Promise((resolve, reject) => {
       const request2 = globalThis.indexedDB.open("metro", 1);
       request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
-      request2.onerror = (event) => {
-        reject(event);
+      request2.onerror = (event2) => {
+        reject(event2);
       };
-      request2.onsuccess = (event) => {
-        const db = event.target.result;
+      request2.onsuccess = (event2) => {
+        const db = event2.target.result;
         resolve({
           set: function(value, key) {
             return new Promise((resolve2, reject2) => {
