@@ -1,4 +1,4 @@
-import metro from '@muze-nl/metro'
+import * as metro from '@muze-nl/metro/src/metro.mjs'
 import { assert, Required, validURL } from '@muze-nl/assert'
 import {tokenStore} from './tokenstore.mjs'
 
@@ -26,13 +26,11 @@ export default function oauth2mw(options)
 			grant_type: 'authorization_code',
 			code_verifier: generateCodeVerifier(64)
 		},
-		callbacks: {
-			authorize: async url => {
-				if (window.location.href != url.href) {
-					window.location.replace(url.href)
-				}
-				return false
+		authorize_callback: async url => {
+			if (window.location.href != url.href) {
+				window.location.replace(url.href)
 			}
+			return false
 		}
 	}
 
@@ -189,11 +187,10 @@ export default function oauth2mw(options)
 	{
 		if (oauth2.grant_type === 'authorization_code' && !options.tokens.has('authorization_code')) {
 			let authReqURL = await getAuthorizationCodeURL()
-			if (!options.callbacks.authorize || typeof options.callbacks.authorize !== 'function') {
-				throw metro.metroError('oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize')
+			if (!options.authorize_callback || typeof options.authorize_callback !== 'function') {
+				throw metro.metroError('oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.authorize_callback')
 			}
-			//FIXME: authorize can do a redirect, so allow for that
-			let token = await options.callbacks.authorize(authReqURL)
+			let token = await options.authorize_callback(authReqURL)
 			if (token) {
 				options.tokens.set('authorization_code', token)
 			} else {
@@ -284,7 +281,7 @@ export default function oauth2mw(options)
 			search.client_secret = oauth2.client_secret
 		}
 		if (oauth2.code_verifier) { //PKCE
-			search.code_challenge = base64url_encode(await generateCodeChallenge(oauth2.code_verifier))
+			search.code_challenge = await generateCodeChallenge(oauth2.code_verifier)
 			search.code_challenge_method = 'S256'
 		}
 		if (oauth2.scope) {
@@ -316,7 +313,7 @@ export default function oauth2mw(options)
 			client_id:  oauth2.client_id
 		}
 		if (oauth2.code_verifier) { //PKCE
-			params.code_verifier = base64url_encode(oauth2.code_verifier)
+			params.code_verifier = oauth2.code_verifier
 		}
 		if (oauth2.client_secret) {
 			params.client_secret = oauth2.client_secret
@@ -387,7 +384,7 @@ export function	generateCodeVerifier(size=64)
 {
 	const code_verifier = new Uint8Array(size)
 	globalThis.crypto.getRandomValues(code_verifier)
-	return code_verifier
+	return base64url_encode(code_verifier)
 }
 
 /**
@@ -398,10 +395,10 @@ export function	generateCodeVerifier(size=64)
  */
 export async function generateCodeChallenge(code_verifier)
 {
-	const b64encoded = base64url_encode(code_verifier)
 	const encoder = new TextEncoder()
-	const data = encoder.encode(b64encoded)
-	return await globalThis.crypto.subtle.digest('SHA-256', data)
+	const data = encoder.encode(code_verifier)
+	const challenge = await globalThis.crypto.subtle.digest('SHA-256', data)
+	return base64url_encode(challenge)
 }
 
 /**
@@ -448,4 +445,13 @@ export function isRedirected() {
 		return false
 	}
 	return true
+}
+
+export async function authorizePopup(authorizationCodeURL) {
+	return new Promise((resolve, reject) => {
+		addEventListener('oauth2authorized', (evt) => {
+			resolve(event.authorization_code)
+		}, {once:true})
+		window.open(authorizationCodeURL)
+	})
 }
