@@ -9,7 +9,7 @@ export default function dpopmw(options) {
 		site: Required(validURL),
 		authorization_endpoint: Required(validURL),
 		token_endpoint: Required(validURL),
-//		dpop_signing_alg_values_supported: Required([]) // this property is unfortunately rarely supported
+		dpop_signing_alg_values_supported: Optional([]) // this property is unfortunately rarely supported
 	})
 
 	return async (req, next) => {
@@ -23,14 +23,23 @@ export default function dpopmw(options) {
 			await keys.set(keyInfo)
 		}
 		const url = metro.url(req.url)
-		if (req.url.startsWith(options.authorization_endpoint) //FIXME: is this correct? or only add dpop to token endpoints?
-			||req.url.startsWith(options.token_endpoint)) {
+
+		if (req.url.startsWith(options.authorization_endpoint)) //FIXME: is this correct? or only add dpop to token endpoints?
+			let params = req.body
+			if (params instanceof URLSearchParams || params instanceof FormData) {
+				params.set('dpop_jkt', keyInfo.keyPair.publicKey)
+			} else {
+				params.dpop_jkt = keyInfo.keyPair.publicKey
+			}
+
+		} else if (req.url.startsWith(options.token_endpoint)) {
 			const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method)
 			req = req.with({
 				headers: {
 					'DPoP': dpopHeader
 				}
 			})
+
 		} else if (req.headers.has('Authorization')) { //FIXME: not all requests use the dpop bound access token, so check which key to use, or if to add dpop at all
 			// note: don't use options.site here, nonce can differ
 			const nonce       = localStorage.getItem(url.host+':nonce') || undefined // null is not acceptible for DpOp()
@@ -38,11 +47,12 @@ export default function dpopmw(options) {
 			const dpopHeader  = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken)
 			req = req.with({
 				headers: {
-					'Authorization': 'DPoP '+accessToken, //solidcommunity server sends accesstoken with type Bearer
+					'Authorization': 'DPoP '+accessToken,
 					'DPoP': dpopHeader
 				}
 			})
 		}
+
 		let response = await next(req)
 		if (response.headers.get('DPoP-Nonce')) {
 			// note: don't use options.site here, nonce can differ
