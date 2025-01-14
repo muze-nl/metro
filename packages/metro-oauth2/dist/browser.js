@@ -1614,14 +1614,17 @@
   }
 
   // src/browser.mjs
-  var oauth2 = Object.assign(oauth2mw, oauth2_exports, {
+  var oauth2 = Object.assign(oauth2_exports, {
+    oauth2mw,
     mockserver: oauth2_mockserver_exports,
-    discovery: oauth2_discovery_exports,
+    discover: oauth2_discovery_exports,
     tokenstore: tokenStore,
     dpopmw,
     keysstore: keysStore
   });
-  everything_default.oauth2 = oauth2;
+  if (!globalThis.metro.oauth2) {
+    globalThis.metro.oauth2 = oauth2;
+  }
   var browser_default = oauth2;
 })();
 //# sourceMappingURL=browser.js.map
