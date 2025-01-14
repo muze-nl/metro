@@ -583,13 +583,13 @@
   // src/oauth2.mjs
   var oauth2_exports = {};
   __export(oauth2_exports, {
-    authorizePopup: () => authorizePopup,
     base64url_encode: () => base64url_encode,
     createState: () => createState,
     default: () => oauth2mw,
     generateCodeChallenge: () => generateCodeChallenge,
     generateCodeVerifier: () => generateCodeVerifier,
     getExpires: () => getExpires,
+    isAuthorized: () => isAuthorized,
     isExpired: () => isExpired,
     isRedirected: () => isRedirected
   });
@@ -616,15 +616,15 @@
         return false;
       }
     }
-    return error("data does not match oneOf patterns", data, patterns);
+    return error2("data does not match oneOf patterns", data, patterns);
   };
   var anyOf = (...patterns) => (data) => {
     if (!Array.isArray(data)) {
-      return error("data is not an array", data, "anyOf");
+      return error2("data is not an array", data, "anyOf");
     }
     for (let value of data) {
       if (oneOf(...patterns)(value)) {
-        return error("data does not match anyOf patterns", value, patterns);
+        return error2("data does not match anyOf patterns", value, patterns);
       }
     }
     return false;
@@ -636,10 +636,10 @@
       }
       let url2 = new URL(data);
       if (url2.href != data) {
-        return error("data is not a valid url", data, "validURL");
+        return error2("data is not a valid url", data, "validURL");
       }
     } catch (e) {
-      return error("data is not a valid url", data, "validURL");
+      return error2("data is not a valid url", data, "validURL");
     }
     return false;
   }
@@ -650,28 +650,28 @@
     let problems = [];
     if (pattern === Boolean) {
       if (typeof data != "boolean") {
-        problems.push(error("data is not a boolean", data, pattern));
+        problems.push(error2("data is not a boolean", data, pattern));
       }
     } else if (pattern === Number) {
       if (typeof data != "number") {
-        problems.push(error("data is not a number", data, pattern));
+        problems.push(error2("data is not a number", data, pattern));
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
         let index = data.findIndex((element) => fails(element, pattern, root));
         if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
         }
       } else if (!pattern.test(data)) {
-        problems.push(error("data does not match pattern", data, pattern));
+        problems.push(error2("data does not match pattern", data, pattern));
       }
     } else if (pattern instanceof Function) {
       if (pattern(data, root)) {
-        problems.push(error("data does not match function", data, pattern));
+        problems.push(error2("data does not match function", data, pattern));
       }
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
-        problems.push(error("data is not an array", data, []));
+        problems.push(error2("data is not an array", data, []));
       }
       for (p of pattern) {
         let problem = fails(data, p, root);
@@ -685,10 +685,10 @@
       if (Array.isArray(data)) {
         let index = data.findIndex((element) => fails(element, pattern, root));
         if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
         }
       } else if (!data || typeof data != "object") {
-        problems.push(error("data is not an object, pattern is", data, pattern));
+        problems.push(error2("data is not an object, pattern is", data, pattern));
       } else {
         if (data instanceof URLSearchParams) {
           data = Object.fromEntries(data);
@@ -699,7 +699,7 @@
           if (result) {
             if (!p2 || typeof p2 == "string") {
               p2 = {};
-              problems.push(error(p2, data[wKey], wVal));
+              problems.push(error2(p2, data[wKey], wVal));
             }
             p2[wKey] = result.problems;
           }
@@ -707,7 +707,7 @@
       }
     } else {
       if (pattern != data) {
-        problems.push(error("data and pattern are not equal", data, pattern));
+        problems.push(error2("data and pattern are not equal", data, pattern));
       }
     }
     if (problems.length) {
@@ -722,7 +722,7 @@
       this.details = details;
     }
   };
-  function error(message, found, expected) {
+  function error2(message, found, expected) {
     return {
       message,
       found,
@@ -1090,13 +1090,19 @@
     }
     return true;
   }
-  async function authorizePopup(authorizationCodeURL) {
-    return new Promise((resolve, reject) => {
-      addEventListener("oauth2authorized", (evt) => {
-        resolve(event.authorization_code);
-      }, { once: true });
-      window.open(authorizationCodeURL);
-    });
+  function isAuthorized(tokens) {
+    if (typeof tokens == "string") {
+      tokens = tokenStore(tokens).tokens;
+    }
+    let accessToken = tokens.get("access_token");
+    if (accessToken && !isExpired(accessToken)) {
+      return true;
+    }
+    let refreshToken = tokens.get("refresh_token");
+    if (refreshToken) {
+      return true;
+    }
+    return false;
   }
 
   // src/oauth2.mockserver.mjs
@@ -1111,7 +1117,7 @@
       "Content-Type": "application/json"
     }
   };
-  var badRequest = (error3) => {
+  var badRequest = (error4) => {
     return {
       status: 400,
       statusText: "Bad Request",
@@ -1120,11 +1126,11 @@
       },
       body: JSON.stringify({
         error: "invalid_request",
-        error_description: error3
+        error_description: error4
       })
     };
   };
-  var error2;
+  var error3;
   var pkce = {};
   function oauth2mockserver(options = {}) {
     const defaultOptions = {
@@ -1136,12 +1142,12 @@
       let url2 = everything_default.url(req.url);
       switch (url2.pathname) {
         case "/authorize/":
-          if (error2 = fails(url2.searchParams, {
+          if (error3 = fails(url2.searchParams, {
             response_type: "code",
             client_id: "mockClientId",
             state: Optional(/.*/)
           })) {
-            return everything_default.response(badRequest(error2));
+            return everything_default.response(badRequest(error3));
           }
           if (url2.searchParams.has("code_challenge")) {
             if (!url2.searchParams.has("code_challenge_method")) {
@@ -1163,17 +1169,17 @@
             req.data.forEach((value, key) => body[key] = value);
             req = req.with({ body });
           }
-          if (error2 = fails(req, {
+          if (error3 = fails(req, {
             method: "POST",
             data: {
               grant_type: oneOf("refresh_token", "authorization_code")
             }
           })) {
-            return everything_default.response(badRequest(error2));
+            return everything_default.response(badRequest(error3));
           }
           switch (req.data.grant_type) {
             case "refresh_token":
-              if (error2 = fails(req.data, oneOf({
+              if (error3 = fails(req.data, oneOf({
                 refresh_token: "mockRefreshToken",
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
@@ -1182,11 +1188,11 @@
                 client_id: "mockClientId",
                 code_verifier: /.+/
               }))) {
-                return everything_default.response(badRequest(error2));
+                return everything_default.response(badRequest(error3));
               }
               break;
             case "access_token":
-              if (error2 = fails(req.data, oneOf({
+              if (error3 = fails(req.data, oneOf({
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
               }, {
@@ -1195,7 +1201,7 @@
                 //FIXME: check that this matches code_verifier
                 code_challenge_method: "S256"
               }))) {
-                return everything_default.response(badRequest(error2));
+                return everything_default.response(badRequest(error3));
               }
               break;
           }
@@ -1309,6 +1315,43 @@
       return configuration;
     }
     throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
+  }
+
+  // src/oauth2.popup.mjs
+  function handleRedirect() {
+    let params2 = new URLSearchParams(window.location.search);
+    if (!params2.has("code") && window.location.hash) {
+      let query = window.location.hash.substr(1);
+      params2 = new URLSearchParams("?" + query);
+    }
+    let parent = window.parent ? window.parent : window.opener;
+    if (params2.has("code")) {
+      parent.postMessage({
+        authorization_code: params2.get("code")
+      }, window.location.origin);
+    } else if (params2.has("error")) {
+      parent.postMessage({
+        error
+      }, window.location.origin);
+    } else {
+      parent.postMessage({
+        error: "Could not find an authorization_code"
+      }, window.location.origin);
+    }
+  }
+  function authorizePopup(authorizationCodeURL) {
+    return new Promise((resolve, reject) => {
+      addEventListener("message", (evt) => {
+        if (event.data.authorization_code) {
+          resolve(event.data.authorization_code);
+        } else if (event.data.error) {
+          reject(event.data.error);
+        } else {
+          reject("Unknown authorization error");
+        }
+      }, { once: true });
+      window.open(authorizationCodeURL);
+    });
   }
 
   // src/keysstore.mjs
@@ -1620,7 +1663,9 @@
     discover: oauth2_discovery_exports,
     tokenstore: tokenStore,
     dpopmw,
-    keysstore: keysStore
+    keysstore: keysStore,
+    authorizePopup,
+    popupHandleRedirect: handleRedirect
   });
   if (!globalThis.metro.oauth2) {
     globalThis.metro.oauth2 = oauth2;

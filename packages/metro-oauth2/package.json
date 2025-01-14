@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-oauth2",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "oauth2 middleware for @muze-nl/metro",
   "type": "module",
   "main": "src/browser.mjs",
