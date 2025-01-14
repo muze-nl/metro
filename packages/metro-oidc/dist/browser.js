@@ -599,13 +599,13 @@
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.mjs
   var oauth2_exports = {};
   __export(oauth2_exports, {
-    authorizePopup: () => authorizePopup,
     base64url_encode: () => base64url_encode,
     createState: () => createState,
     default: () => oauth2mw,
     generateCodeChallenge: () => generateCodeChallenge,
     generateCodeVerifier: () => generateCodeVerifier,
     getExpires: () => getExpires,
+    isAuthorized: () => isAuthorized,
     isExpired: () => isExpired,
     isRedirected: () => isRedirected
   });
@@ -632,15 +632,15 @@
         return false;
       }
     }
-    return error("data does not match oneOf patterns", data, patterns);
+    return error2("data does not match oneOf patterns", data, patterns);
   };
   var anyOf = (...patterns) => (data) => {
     if (!Array.isArray(data)) {
-      return error("data is not an array", data, "anyOf");
+      return error2("data is not an array", data, "anyOf");
     }
     for (let value of data) {
       if (oneOf(...patterns)(value)) {
-        return error("data does not match anyOf patterns", value, patterns);
+        return error2("data does not match anyOf patterns", value, patterns);
       }
     }
     return false;
@@ -652,10 +652,10 @@
       }
       let url2 = new URL(data);
       if (url2.href != data) {
-        return error("data is not a valid url", data, "validURL");
+        return error2("data is not a valid url", data, "validURL");
       }
     } catch (e) {
-      return error("data is not a valid url", data, "validURL");
+      return error2("data is not a valid url", data, "validURL");
     }
     return false;
   }
@@ -666,28 +666,28 @@
     let problems = [];
     if (pattern === Boolean) {
       if (typeof data != "boolean") {
-        problems.push(error("data is not a boolean", data, pattern));
+        problems.push(error2("data is not a boolean", data, pattern));
       }
     } else if (pattern === Number) {
       if (typeof data != "number") {
-        problems.push(error("data is not a number", data, pattern));
+        problems.push(error2("data is not a number", data, pattern));
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
         let index = data.findIndex((element) => fails(element, pattern, root));
         if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
         }
       } else if (!pattern.test(data)) {
-        problems.push(error("data does not match pattern", data, pattern));
+        problems.push(error2("data does not match pattern", data, pattern));
       }
     } else if (pattern instanceof Function) {
       if (pattern(data, root)) {
-        problems.push(error("data does not match function", data, pattern));
+        problems.push(error2("data does not match function", data, pattern));
       }
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
-        problems.push(error("data is not an array", data, []));
+        problems.push(error2("data is not an array", data, []));
       }
       for (p of pattern) {
         let problem = fails(data, p, root);
@@ -701,10 +701,10 @@
       if (Array.isArray(data)) {
         let index = data.findIndex((element) => fails(element, pattern, root));
         if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
         }
       } else if (!data || typeof data != "object") {
-        problems.push(error("data is not an object, pattern is", data, pattern));
+        problems.push(error2("data is not an object, pattern is", data, pattern));
       } else {
         if (data instanceof URLSearchParams) {
           data = Object.fromEntries(data);
@@ -715,7 +715,7 @@
           if (result) {
             if (!p2 || typeof p2 == "string") {
               p2 = {};
-              problems.push(error(p2, data[wKey], wVal));
+              problems.push(error2(p2, data[wKey], wVal));
             }
             p2[wKey] = result.problems;
           }
@@ -723,7 +723,7 @@
       }
     } else {
       if (pattern != data) {
-        problems.push(error("data and pattern are not equal", data, pattern));
+        problems.push(error2("data and pattern are not equal", data, pattern));
       }
     }
     if (problems.length) {
@@ -738,7 +738,7 @@
       this.details = details;
     }
   };
-  function error(message, found, expected) {
+  function error2(message, found, expected) {
     return {
       message,
       found,
@@ -1108,13 +1108,19 @@
     }
     return true;
   }
-  async function authorizePopup(authorizationCodeURL) {
-    return new Promise((resolve, reject) => {
-      addEventListener("oauth2authorized", (evt) => {
-        resolve(event.authorization_code);
-      }, { once: true });
-      window.open(authorizationCodeURL);
-    });
+  function isAuthorized(tokens) {
+    if (typeof tokens == "string") {
+      tokens = tokenStore(tokens).tokens;
+    }
+    let accessToken = tokens.get("access_token");
+    if (accessToken && !isExpired(accessToken)) {
+      return true;
+    }
+    let refreshToken = tokens.get("refresh_token");
+    if (refreshToken) {
+      return true;
+    }
+    return false;
   }
 
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.mockserver.mjs
@@ -1129,7 +1135,7 @@
       "Content-Type": "application/json"
     }
   };
-  var badRequest = (error4) => {
+  var badRequest = (error5) => {
     return {
       status: 400,
       statusText: "Bad Request",
@@ -1138,11 +1144,11 @@
       },
       body: JSON.stringify({
         error: "invalid_request",
-        error_description: error4
+        error_description: error5
       })
     };
   };
-  var error2;
+  var error3;
   var pkce = {};
   function oauth2mockserver(options = {}) {
     const defaultOptions = {
@@ -1154,12 +1160,12 @@
       let url2 = everything_default.url(req.url);
       switch (url2.pathname) {
         case "/authorize/":
-          if (error2 = fails(url2.searchParams, {
+          if (error3 = fails(url2.searchParams, {
             response_type: "code",
             client_id: "mockClientId",
             state: Optional(/.*/)
           })) {
-            return everything_default.response(badRequest(error2));
+            return everything_default.response(badRequest(error3));
           }
           if (url2.searchParams.has("code_challenge")) {
             if (!url2.searchParams.has("code_challenge_method")) {
@@ -1181,17 +1187,17 @@
             req.data.forEach((value, key) => body[key] = value);
             req = req.with({ body });
           }
-          if (error2 = fails(req, {
+          if (error3 = fails(req, {
             method: "POST",
             data: {
               grant_type: oneOf("refresh_token", "authorization_code")
             }
           })) {
-            return everything_default.response(badRequest(error2));
+            return everything_default.response(badRequest(error3));
           }
           switch (req.data.grant_type) {
             case "refresh_token":
-              if (error2 = fails(req.data, oneOf({
+              if (error3 = fails(req.data, oneOf({
                 refresh_token: "mockRefreshToken",
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
@@ -1200,11 +1206,11 @@
                 client_id: "mockClientId",
                 code_verifier: /.+/
               }))) {
-                return everything_default.response(badRequest(error2));
+                return everything_default.response(badRequest(error3));
               }
               break;
             case "access_token":
-              if (error2 = fails(req.data, oneOf({
+              if (error3 = fails(req.data, oneOf({
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
               }, {
@@ -1213,7 +1219,7 @@
                 //FIXME: check that this matches code_verifier
                 code_challenge_method: "S256"
               }))) {
-                return everything_default.response(badRequest(error2));
+                return everything_default.response(badRequest(error3));
               }
               break;
           }
@@ -1327,6 +1333,43 @@
       return configuration;
     }
     throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
+  }
+
+  // node_modules/@muze-nl/metro-oauth2/src/oauth2.popup.mjs
+  function handleRedirect() {
+    let params2 = new URLSearchParams(window.location.search);
+    if (!params2.has("code") && window.location.hash) {
+      let query = window.location.hash.substr(1);
+      params2 = new URLSearchParams("?" + query);
+    }
+    let parent = window.parent ? window.parent : window.opener;
+    if (params2.has("code")) {
+      parent.postMessage({
+        authorization_code: params2.get("code")
+      }, window.location.origin);
+    } else if (params2.has("error")) {
+      parent.postMessage({
+        error
+      }, window.location.origin);
+    } else {
+      parent.postMessage({
+        error: "Could not find an authorization_code"
+      }, window.location.origin);
+    }
+  }
+  function authorizePopup(authorizationCodeURL) {
+    return new Promise((resolve, reject) => {
+      addEventListener("message", (evt) => {
+        if (event.data.authorization_code) {
+          resolve(event.data.authorization_code);
+        } else if (event.data.error) {
+          reject(event.data.error);
+        } else {
+          reject("Unknown authorization error");
+        }
+      }, { once: true });
+      window.open(authorizationCodeURL);
+    });
   }
 
   // node_modules/@muze-nl/metro-oauth2/src/keysstore.mjs
@@ -1638,7 +1681,9 @@
     discover: oauth2_discovery_exports,
     tokenstore: tokenStore,
     dpopmw,
-    keysstore: keysStore
+    keysstore: keysStore,
+    authorizePopup,
+    popupHandleRedirect: handleRedirect
   });
   if (!globalThis.metro.oauth2) {
     globalThis.metro.oauth2 = oauth2;
@@ -1667,7 +1712,7 @@
   function Required2(pattern) {
     return function _Required(data, root, path) {
       if (data == null || typeof data == "undefined") {
-        return error3("data is required", data, pattern || "any value", path);
+        return error4("data is required", data, pattern || "any value", path);
       } else if (typeof pattern != "undefined") {
         return fails2(data, pattern, root, path);
       } else {
@@ -1692,17 +1737,17 @@
           return false;
         }
       }
-      return error3("data does not match oneOf patterns", data, patterns, path);
+      return error4("data does not match oneOf patterns", data, patterns, path);
     };
   }
   function anyOf2(...patterns) {
     return function _anyOf(data, root, path) {
       if (!Array.isArray(data)) {
-        return error3("data is not an array", data, "anyOf", path);
+        return error4("data is not an array", data, "anyOf", path);
       }
       for (let value of data) {
         if (oneOf2(...patterns)(value)) {
-          return error3("data does not match anyOf patterns", value, patterns, path);
+          return error4("data does not match anyOf patterns", value, patterns, path);
         }
       }
       return false;
@@ -1716,7 +1761,7 @@
       }
       problems = problems.filter(Boolean);
       if (problems.length) {
-        return error3("data does not match all given patterns", data, patterns, path, problems);
+        return error4("data does not match all given patterns", data, patterns, path, problems);
       }
     };
   }
@@ -1728,29 +1773,29 @@
       let url2 = new URL(data);
       if (url2.href != data) {
         if (!(url2.href + "/" == data || url2.href == data + "/")) {
-          return error3("data is not a valid url", data, "validURL", path);
+          return error4("data is not a valid url", data, "validURL", path);
         }
       }
     } catch (e) {
-      return error3("data is not a valid url", data, "validURL", path);
+      return error4("data is not a valid url", data, "validURL", path);
     }
   }
   function validEmail(data, root, path) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
-      return error3("data is not a valid email", data, "validEmail", path);
+      return error4("data is not a valid email", data, "validEmail", path);
     }
   }
   function instanceOf(constructor) {
     return function _instanceOf(data, root, path) {
       if (!(data instanceof constructor)) {
-        return error3("data is not an instanceof pattern", data, constructor, path);
+        return error4("data is not an instanceof pattern", data, constructor, path);
       }
     };
   }
   function not(pattern) {
     return function _not(data, root, path) {
       if (!fails2(data, pattern, root, path)) {
-        return error3("data matches pattern, when required not to", data, pattern, path);
+        return error4("data matches pattern, when required not to", data, pattern, path);
       }
     };
   }
@@ -1761,29 +1806,29 @@
     let problems = [];
     if (pattern === Boolean) {
       if (typeof data != "boolean" && !(data instanceof Boolean)) {
-        problems.push(error3("data is not a boolean", data, pattern, path));
+        problems.push(error4("data is not a boolean", data, pattern, path));
       }
     } else if (pattern === Number) {
       if (typeof data != "number" && !(data instanceof Number)) {
-        problems.push(error3("data is not a number", data, pattern, path));
+        problems.push(error4("data is not a number", data, pattern, path));
       }
     } else if (pattern === String) {
       if (typeof data != "string" && !(data instanceof String)) {
-        problems.push(error3("data is not a string", data, pattern, path));
+        problems.push(error4("data is not a string", data, pattern, path));
       }
       if (data == "") {
-        problems.push(error3("data is an empty string, which is not allowed", data, pattern, path));
+        problems.push(error4("data is an empty string, which is not allowed", data, pattern, path));
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
         let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error3("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error4("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
       } else if (typeof data == "undefined") {
-        problems.push(error3("data is undefined, should match pattern", data, pattern, path));
+        problems.push(error4("data is undefined, should match pattern", data, pattern, path));
       } else if (!pattern.test(data)) {
-        problems.push(error3("data does not match pattern", data, pattern, path));
+        problems.push(error4("data does not match pattern", data, pattern, path));
       }
     } else if (pattern instanceof Function) {
       let problem = pattern(data, root, path);
@@ -1796,7 +1841,7 @@
       }
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
-        problems.push(error3("data is not an array", data, [], path));
+        problems.push(error4("data is not an array", data, [], path));
       }
       for (let p2 of pattern) {
         for (let index of data.keys()) {
@@ -1812,10 +1857,10 @@
       if (Array.isArray(data)) {
         let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error3("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error4("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
       } else if (!data || typeof data != "object") {
-        problems.push(error3("data is not an object, pattern is", data, pattern, path));
+        problems.push(error4("data is not an object, pattern is", data, pattern, path));
       } else {
         if (data instanceof URLSearchParams) {
           data = Object.fromEntries(data);
@@ -1836,7 +1881,7 @@
       }
     } else {
       if (pattern != data) {
-        problems.push(error3("data and pattern are not equal", data, pattern, path));
+        problems.push(error4("data and pattern are not equal", data, pattern, path));
       }
     }
     if (problems.length) {
@@ -1844,7 +1889,7 @@
     }
     return false;
   }
-  function error3(message, found, expected, path, problems) {
+  function error4(message, found, expected, path, problems) {
     let result = {
       message,
       found,
@@ -1862,13 +1907,13 @@
     if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
       return false;
     }
-    return error3("root data must have all of", root, options);
+    return error4("root data must have all of", root, options);
   };
   var MustInclude = (...options) => (value) => {
     if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
       return false;
     } else {
-      return error3("data must be an array which includes", value, options);
+      return error4("data must be an array which includes", value, options);
     }
   };
   var validJWA = [
