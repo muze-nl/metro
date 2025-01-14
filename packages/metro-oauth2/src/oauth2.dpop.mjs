@@ -24,7 +24,7 @@ export default function dpopmw(options) {
 		}
 		const url = metro.url(req.url)
 
-		if (req.url.startsWith(options.authorization_endpoint)) //FIXME: is this correct? or only add dpop to token endpoints?
+		if (req.url.startsWith(options.authorization_endpoint)) {
 			let params = req.body
 			if (params instanceof URLSearchParams || params instanceof FormData) {
 				params.set('dpop_jkt', keyInfo.keyPair.publicKey)
