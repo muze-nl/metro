@@ -150,7 +150,3 @@ export function isRedirected() {
 export function idToken(options) {
 	return options.store.get('id_token')
 }
-
-export async function authorizePopup(authorizationCodeURL) {
-	return oauth2.authorizePopup(authorizationCodeURL)
-}	
