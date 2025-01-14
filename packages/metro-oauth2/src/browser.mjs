@@ -1,3 +1,4 @@
+import metro from '@muze-nl/metro'
 import * as oauth2module from './oauth2.mjs'
 import * as oauth2mockserver from './oauth2.mockserver.mjs'
 import * as oauth2discovery from './oauth2.discovery.mjs'
@@ -13,6 +14,6 @@ const oauth2 = Object.assign(oauth2module.default, oauth2module, {
 	keysstore: keysStore
 })
 
-globalThis.oauth2 = oauth2
+metro.oauth2 = oauth2
 
 export default oauth2
