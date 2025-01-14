@@ -32,3 +32,6 @@ metro.oidc uses OAuth2.1 by default, including PKCE and DPoP. The Keypair used i
 
 You can disable PCKE by setting `options.client_info.code_verifier` to false.
 You can disable DPoP by setting `options.use_dpop` to false.
+
+[project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
+[project-stage-page]: https://blog.pother.ca/project-stages/
