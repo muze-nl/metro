@@ -520,37 +520,51 @@
   // node_modules/@muze-nl/metro/src/mw/json.mjs
   function jsonmw(options) {
     options = Object.assign({
+      mimetype: "application/json",
       reviver: null,
       replacer: null,
       space: ""
     }, options);
     return async (req, next) => {
-      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
+      if (!isJSON(req.headers.get("Accept"))) {
         req = req.with({
           headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": options.mimetype
           }
         });
+      }
+      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
         if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
+          if (!isJSON(req.headers.get("content-type"))) {
+            req = req.with({
+              headers: {
+                "Content-Type": options.mimetype
+              }
+            });
+          }
           req = req.with({
             body: JSON.stringify(req.data, options.replacer, options.space)
           });
         }
-      } else {
-        req = req.with({
-          headers: {
-            "Accept": "application/json"
-          }
-        });
       }
       let res = await next(req);
-      let body = await res.text();
-      let json = JSON.parse(body, options.reviver);
-      return res.with({
-        body: json
-      });
+      if (isJSON(res.headers.get("content-type"))) {
+        let tempRes = res.clone();
+        let body = await tempRes.text();
+        try {
+          let json = JSON.parse(body, options.reviver);
+          return res.with({
+            body: json
+          });
+        } catch (e) {
+        }
+      }
+      return res;
     };
+  }
+  var jsonRE = /^application\/([a-zA-Z0-9\-_]+\+)?json\b/;
+  function isJSON(contentType) {
+    return jsonRE.exec(contentType);
   }
 
   // node_modules/@muze-nl/metro/src/mw/thrower.mjs
@@ -580,374 +594,10 @@
   globalThis.metro = metro;
   var everything_default = metro;
 
-  // node_modules/@muze-nl/assert/src/assert.mjs
-  globalThis.assertEnabled = false;
-  function assert(source, test) {
-    if (globalThis.assertEnabled) {
-      let problems = fails(source, test);
-      if (problems) {
-        console.error("\u{1F170}\uFE0F  Assertions failed because of:", problems, "in this source:", source);
-        throw new Error("Assertions failed", {
-          cause: { problems, source }
-        });
-      }
-    }
-  }
-  function Optional(pattern) {
-    return function _Optional(data, root, path) {
-      if (typeof data != "undefined" && data != null && typeof pattern != "undefined") {
-        return fails(data, pattern, root, path);
-      }
-    };
-  }
-  function Required(pattern) {
-    return function _Required(data, root, path) {
-      if (data == null || typeof data == "undefined") {
-        return error("data is required", data, pattern || "any value", path);
-      } else if (typeof pattern != "undefined") {
-        return fails(data, pattern, root, path);
-      } else {
-        return false;
-      }
-    };
-  }
-  function Recommended(pattern) {
-    return function _Recommended(data, root, path) {
-      if (data == null || typeof data == "undefined") {
-        console.warn("data does not contain recommended value", data, pattern, path);
-        return false;
-      } else {
-        return fails(data, pattern, root, path);
-      }
-    };
-  }
-  function oneOf(...patterns) {
-    return function _oneOf(data, root, path) {
-      for (let pattern of patterns) {
-        if (!fails(data, pattern, root, path)) {
-          return false;
-        }
-      }
-      return error("data does not match oneOf patterns", data, patterns, path);
-    };
-  }
-  function anyOf(...patterns) {
-    return function _anyOf(data, root, path) {
-      if (!Array.isArray(data)) {
-        return error("data is not an array", data, "anyOf", path);
-      }
-      for (let value of data) {
-        if (oneOf(...patterns)(value)) {
-          return error("data does not match anyOf patterns", value, patterns, path);
-        }
-      }
-      return false;
-    };
-  }
-  function allOf(...patterns) {
-    return function _allOf(data, root, path) {
-      let problems = [];
-      for (let pattern of patterns) {
-        problems = problems.concat(fails(data, pattern, root, path));
-      }
-      problems = problems.filter(Boolean);
-      if (problems.length) {
-        return error("data does not match all given patterns", data, patterns, path, problems);
-      }
-    };
-  }
-  function validURL(data, root, path) {
-    try {
-      if (data instanceof URL) {
-        data = data.href;
-      }
-      let url2 = new URL(data);
-      if (url2.href != data) {
-        if (!(url2.href + "/" == data || url2.href == data + "/")) {
-          return error("data is not a valid url", data, "validURL", path);
-        }
-      }
-    } catch (e) {
-      return error("data is not a valid url", data, "validURL", path);
-    }
-  }
-  function validEmail(data, root, path) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
-      return error("data is not a valid email", data, "validEmail", path);
-    }
-  }
-  function instanceOf(constructor) {
-    return function _instanceOf(data, root, path) {
-      if (!(data instanceof constructor)) {
-        return error("data is not an instanceof pattern", data, constructor, path);
-      }
-    };
-  }
-  function not(pattern) {
-    return function _not(data, root, path) {
-      if (!fails(data, pattern, root, path)) {
-        return error("data matches pattern, when required not to", data, pattern, path);
-      }
-    };
-  }
-  function fails(data, pattern, root, path = "") {
-    if (!root) {
-      root = data;
-    }
-    let problems = [];
-    if (pattern === Boolean) {
-      if (typeof data != "boolean" && !(data instanceof Boolean)) {
-        problems.push(error("data is not a boolean", data, pattern, path));
-      }
-    } else if (pattern === Number) {
-      if (typeof data != "number" && !(data instanceof Number)) {
-        problems.push(error("data is not a number", data, pattern, path));
-      }
-    } else if (pattern === String) {
-      if (typeof data != "string" && !(data instanceof String)) {
-        problems.push(error("data is not a string", data, pattern, path));
-      }
-      if (data == "") {
-        problems.push(error("data is an empty string, which is not allowed", data, pattern, path));
-      }
-    } else if (pattern instanceof RegExp) {
-      if (Array.isArray(data)) {
-        let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
-        if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
-        }
-      } else if (typeof data == "undefined") {
-        problems.push(error("data is undefined, should match pattern", data, pattern, path));
-      } else if (!pattern.test(data)) {
-        problems.push(error("data does not match pattern", data, pattern, path));
-      }
-    } else if (pattern instanceof Function) {
-      let problem = pattern(data, root, path);
-      if (problem) {
-        if (Array.isArray(problem)) {
-          problems = problems.concat(problem);
-        } else {
-          problems.push(problem);
-        }
-      }
-    } else if (Array.isArray(pattern)) {
-      if (!Array.isArray(data)) {
-        problems.push(error("data is not an array", data, [], path));
-      }
-      for (let p2 of pattern) {
-        for (let index of data.keys()) {
-          let problem = fails(data[index], p2, root, path + "[" + index + "]");
-          if (Array.isArray(problem)) {
-            problems = problems.concat(problem);
-          } else if (problem) {
-            problems.push(problem);
-          }
-        }
-      }
-    } else if (pattern && typeof pattern == "object") {
-      if (Array.isArray(data)) {
-        let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
-        if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
-        }
-      } else if (!data || typeof data != "object") {
-        problems.push(error("data is not an object, pattern is", data, pattern, path));
-      } else {
-        if (data instanceof URLSearchParams) {
-          data = Object.fromEntries(data);
-        }
-        if (pattern instanceof Function) {
-          let result = fails(data, pattern, root, path);
-          if (result) {
-            problems = problems.concat(result);
-          }
-        } else {
-          for (const [wKey, wVal] of Object.entries(pattern)) {
-            let result = fails(data[wKey], wVal, root, path + "." + wKey);
-            if (result) {
-              problems = problems.concat(result);
-            }
-          }
-        }
-      }
-    } else {
-      if (pattern != data) {
-        problems.push(error("data and pattern are not equal", data, pattern, path));
-      }
-    }
-    if (problems.length) {
-      return problems;
-    }
-    return false;
-  }
-  function error(message, found, expected, path, problems) {
-    let result = {
-      message,
-      found,
-      expected,
-      path
-    };
-    if (problems) {
-      result.problems = problems;
-    }
-    return result;
-  }
-
-  // src/oidc.util.mjs
-  var MustHave = (...options) => (value, root) => {
-    if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
-      return false;
-    }
-    return error("root data must have all of", root, options);
-  };
-  var MustInclude = (...options) => (value) => {
-    if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
-      return false;
-    } else {
-      return error("data must be an array which includes", value, options);
-    }
-  };
-  var validJWA = [
-    "HS256",
-    "HS384",
-    "HS512",
-    "RS256",
-    "RS384",
-    "RS512",
-    "ES256",
-    "ES384",
-    "ES512"
-  ];
-  var validAuthMethods = [
-    "client_secret_post",
-    "client_secret_basic",
-    "client_secret_jwt",
-    "private_key_jwt"
-  ];
-
-  // src/oidc.discovery.mjs
-  async function oidcDiscovery(options = {}) {
-    assert(options, {
-      client: Optional(instanceOf(everything_default.client().constructor)),
-      issuer: Required(validURL)
-    });
-    const defaultOptions = {
-      client: everything_default.client().with(thrower()).with(jsonmw()),
-      requireDynamicRegistration: false
-    };
-    options = Object.assign({}, defaultOptions, options);
-    const TestSucceeded = false;
-    function MustUseHTTPS(url2) {
-      return TestSucceeded;
-    }
-    const openid_provider_metadata = {
-      issuer: Required(allOf(options.issuer, MustUseHTTPS)),
-      authorization_endpoint: Required(validURL),
-      token_endpoint: Required(validURL),
-      userinfo_endpoint: Recommended(validURL),
-      // todo: test for https protocol
-      jwks_uri: Required(validURL),
-      registration_endpoint: options.requireDynamicRegistration ? Required(validURL) : Recommended(validURL),
-      scopes_supported: Recommended(MustInclude("openid")),
-      response_types_supported: options.requireDynamicRegistration ? Required(MustInclude("code", "id_token", "id_token token")) : Required([]),
-      response_modes_supported: Optional([]),
-      grant_types_supported: options.requireDynamicRegistration ? Optional(MustInclude("authorization_code")) : Optional([]),
-      acr_values_supported: Optional([]),
-      subject_types_supported: Required([]),
-      id_token_signing_alg_values_supported: Required(MustInclude("RS256")),
-      id_token_encryption_alg_values_supported: Optional([]),
-      id_token_encryption_enc_values_supported: Optional([]),
-      userinfo_signing_alg_values_supported: Optional([]),
-      userinfo_encryption_alg_values_supported: Optional([]),
-      userinfo_encryption_enc_values_supported: Optional([]),
-      request_object_signing_alg_values_supported: Optional(MustInclude("RS256")),
-      // not testing for 'none'
-      request_object_encryption_alg_values_supported: Optional([]),
-      request_object_encryption_enc_values_supported: Optional([]),
-      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods)),
-      token_endpoint_auth_signing_alg_values_supported: Optional(MustInclude("RS256"), not(MustInclude("none"))),
-      display_values_supported: Optional(anyOf("page", "popup", "touch", "wap")),
-      claim_types_supported: Optional(anyOf("normal", "aggregated", "distributed")),
-      claims_supported: Recommended([]),
-      service_documentation: Optional(validURL),
-      claims_locales_supported: Optional([]),
-      ui_locales_supported: Optional([]),
-      claims_parameter_supported: Optional(Boolean),
-      request_parameter_supported: Optional(Boolean),
-      request_uri_parameter_supported: Optional(Boolean),
-      op_policy_uri: Optional(validURL),
-      op_tos_uri: Optional(validURL)
-    };
-    const configURL = everything_default.url(options.issuer, ".well-known/openid-configuration");
-    const response2 = await options.client.get(
-      // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
-      // note: this allows path components in the options.issuer url
-      configURL
-    );
-    const openid_config = response2.data;
-    assert(openid_config, openid_provider_metadata);
-    assert(openid_config.issuer, options.issuer);
-    return openid_config;
-  }
-
-  // src/oidc.register.mjs
-  async function register(options) {
-    const openid_client_metadata = {
-      redirect_uris: Required([validURL]),
-      response_types: Optional([]),
-      grant_types: Optional(anyOf("authorization_code", "refresh_token")),
-      //TODO: match response_types with grant_types
-      application_type: Optional(oneOf("native", "web")),
-      contacts: Optional([validEmail]),
-      client_name: Optional(String),
-      logo_uri: Optional(validURL),
-      client_uri: Optional(validURL),
-      policy_uri: Optional(validURL),
-      tos_uri: Optional(validURL),
-      jwks_uri: Optional(validURL, not(MustHave("jwks"))),
-      jwks: Optional(validURL, not(MustHave("jwks_uri"))),
-      sector_identifier_uri: Optional(validURL),
-      subject_type: Optional(String),
-      id_token_signed_response_alg: Optional(oneOf(...validJWA)),
-      id_token_encrypted_response_alg: Optional(oneOf(...validJWA)),
-      id_token_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("id_token_encrypted_response_alg")),
-      userinfo_signed_response_alg: Optional(oneOf(...validJWA)),
-      userinfo_encrypted_response_alg: Optional(oneOf(...validJWA)),
-      userinfo_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("userinfo_encrypted_response_alg")),
-      request_object_signing_alg: Optional(oneOf(...validJWA)),
-      request_object_encryption_alg: Optional(oneOf(...validJWA)),
-      request_object_encryption_enc: Optional(oneOf(...validJWA)),
-      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods)),
-      token_endpoint_auth_signing_alg: Optional(oneOf(...validJWA)),
-      default_max_age: Optional(Number),
-      require_auth_time: Optional(Boolean),
-      default_acr_values: Optional([String]),
-      initiate_login_uri: Optional([validURL]),
-      request_uris: Optional([validURL])
-    };
-    assert(options, {
-      client: Optional(instanceOf(everything_default.client().constructor)),
-      registration_endpoint: validURL,
-      client_info: openid_client_metadata
-    });
-    const defaultOptions = {
-      client: everything_default.client().with(thrower()).with(jsonmw())
-    };
-    options = Object.assign({}, defaultOptions, options);
-    let response2 = await options.client.post(options.registration_endpoint, {
-      body: options.client_info
-    });
-    let info = response2.data;
-    if (!info.client_id || !info.client_secret) {
-      throw everything_default.metroError("metro.oidc: Error: dynamic registration of client failed, no client_id or client_secret returned", response2);
-    }
-    options.client_info = Object.assign(options.client_info, info);
-    return options.client_info;
-  }
-
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.mjs
   var oauth2_exports = {};
   __export(oauth2_exports, {
+    authorizePopup: () => authorizePopup,
     base64url_encode: () => base64url_encode,
     createState: () => createState,
     default: () => oauth2mw,
@@ -960,85 +610,85 @@
 
   // node_modules/@muze-nl/metro-oauth2/node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
-  var assert2 = (source, test) => {
+  var assert = (source, test) => {
     if (globalThis.assertEnabled) {
-      let problems = fails2(source, test);
+      let problems = fails(source, test);
       if (problems) {
         throw new assertError("Assertions failed", problems, source);
       }
     }
   };
-  var Optional2 = (pattern) => (data) => data == null || typeof data == "undefined" ? false : fails2(data, pattern);
-  var Required2 = (pattern) => (data) => fails2(data, pattern);
-  var Recommended2 = (pattern) => (data) => data == null || typeof data == "undefined" ? (() => {
+  var Optional = (pattern) => (data) => data == null || typeof data == "undefined" ? false : fails(data, pattern);
+  var Required = (pattern) => (data) => fails(data, pattern);
+  var Recommended = (pattern) => (data) => data == null || typeof data == "undefined" ? (() => {
     console.warning("data does not contain recommended value", data, pattern);
     return false;
-  })() : fails2(data, pattern);
-  var oneOf2 = (...patterns) => (data) => {
+  })() : fails(data, pattern);
+  var oneOf = (...patterns) => (data) => {
     for (let pattern of patterns) {
-      if (!fails2(data, pattern)) {
+      if (!fails(data, pattern)) {
         return false;
       }
     }
-    return error2("data does not match oneOf patterns", data, patterns);
+    return error("data does not match oneOf patterns", data, patterns);
   };
-  var anyOf2 = (...patterns) => (data) => {
+  var anyOf = (...patterns) => (data) => {
     if (!Array.isArray(data)) {
-      return error2("data is not an array", data, "anyOf");
+      return error("data is not an array", data, "anyOf");
     }
     for (let value of data) {
-      if (oneOf2(...patterns)(value)) {
-        return error2("data does not match anyOf patterns", value, patterns);
+      if (oneOf(...patterns)(value)) {
+        return error("data does not match anyOf patterns", value, patterns);
       }
     }
     return false;
   };
-  function validURL2(data) {
+  function validURL(data) {
     try {
       if (data instanceof URL) {
         data = data.href;
       }
       let url2 = new URL(data);
       if (url2.href != data) {
-        return error2("data is not a valid url", data, "validURL");
+        return error("data is not a valid url", data, "validURL");
       }
     } catch (e) {
-      return error2("data is not a valid url", data, "validURL");
+      return error("data is not a valid url", data, "validURL");
     }
     return false;
   }
-  function fails2(data, pattern, root) {
+  function fails(data, pattern, root) {
     if (!root) {
       root = data;
     }
     let problems = [];
     if (pattern === Boolean) {
       if (typeof data != "boolean") {
-        problems.push(error2("data is not a boolean", data, pattern));
+        problems.push(error("data is not a boolean", data, pattern));
       }
     } else if (pattern === Number) {
       if (typeof data != "number") {
-        problems.push(error2("data is not a number", data, pattern));
+        problems.push(error("data is not a number", data, pattern));
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
-        let index = data.findIndex((element) => fails2(element, pattern, root));
+        let index = data.findIndex((element) => fails(element, pattern, root));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
         }
       } else if (!pattern.test(data)) {
-        problems.push(error2("data does not match pattern", data, pattern));
+        problems.push(error("data does not match pattern", data, pattern));
       }
     } else if (pattern instanceof Function) {
       if (pattern(data, root)) {
-        problems.push(error2("data does not match function", data, pattern));
+        problems.push(error("data does not match function", data, pattern));
       }
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
-        problems.push(error2("data is not an array", data, []));
+        problems.push(error("data is not an array", data, []));
       }
       for (p of pattern) {
-        let problem = fails2(data, p, root);
+        let problem = fails(data, p, root);
         if (Array.isArray(problem)) {
           problems.concat(problem);
         } else if (problem) {
@@ -1047,23 +697,23 @@
       }
     } else if (pattern && typeof pattern == "object") {
       if (Array.isArray(data)) {
-        let index = data.findIndex((element) => fails2(element, pattern, root));
+        let index = data.findIndex((element) => fails(element, pattern, root));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern));
         }
       } else if (!data || typeof data != "object") {
-        problems.push(error2("data is not an object, pattern is", data, pattern));
+        problems.push(error("data is not an object, pattern is", data, pattern));
       } else {
         if (data instanceof URLSearchParams) {
           data = Object.fromEntries(data);
         }
         let p2 = problems[problems.length - 1];
         for (const [wKey, wVal] of Object.entries(pattern)) {
-          let result = fails2(data[wKey], wVal, root);
+          let result = fails(data[wKey], wVal, root);
           if (result) {
             if (!p2 || typeof p2 == "string") {
               p2 = {};
-              problems.push(error2(p2, data[wKey], wVal));
+              problems.push(error(p2, data[wKey], wVal));
             }
             p2[wKey] = result.problems;
           }
@@ -1071,7 +721,7 @@
       }
     } else {
       if (pattern != data) {
-        problems.push(error2("data and pattern are not equal", data, pattern));
+        problems.push(error("data and pattern are not equal", data, pattern));
       }
     }
     if (problems.length) {
@@ -1086,7 +736,7 @@
       this.details = details;
     }
   };
-  function error2(message, found, expected) {
+  function error(message, found, expected) {
     return {
       message,
       found,
@@ -1126,7 +776,7 @@
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.mjs
   function oauth2mw(options) {
     const defaultOptions = {
-      client: everything_default.client(),
+      client: client(),
       force_authorization: false,
       site: "default",
       oauth2_configuration: {
@@ -1136,16 +786,14 @@
         grant_type: "authorization_code",
         code_verifier: generateCodeVerifier(64)
       },
-      callbacks: {
-        authorize: async (url2) => {
-          if (window.location.href != url2.href) {
-            window.location.replace(url2.href);
-          }
-          return false;
+      authorize_callback: async (url2) => {
+        if (window.location.href != url2.href) {
+          window.location.replace(url2.href);
         }
+        return false;
       }
     };
-    assert2(options, {});
+    assert(options, {});
     const oauth22 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
     options.oauth2_configuration = oauth22;
@@ -1156,13 +804,13 @@
     if (!options.state) {
       options.state = store.state;
     }
-    assert2(options, {
+    assert(options, {
       oauth2_configuration: {
-        client_id: Required2(/.+/),
+        client_id: Required(/.+/),
         grant_type: "authorization_code",
-        authorization_endpoint: Required2(validURL2),
-        token_endpoint: Required2(validURL2),
-        redirect_uri: Required2(validURL2)
+        authorization_endpoint: Required(validURL),
+        token_endpoint: Required(validURL),
+        redirect_uri: Required(validURL)
       }
     });
     for (let option in oauth22) {
@@ -1212,7 +860,7 @@
         try {
           let token = await fetchAccessToken();
           if (!token) {
-            return everything_default.response("false");
+            return response("false");
           }
         } catch (e) {
           throw e;
@@ -1222,14 +870,14 @@
         try {
           let token = await fetchRefreshToken();
           if (!token) {
-            return everything_default.response("false");
+            return response("false");
           }
         } catch (e) {
           throw e;
         }
         return oauth2authorized(req, next);
       } else {
-        req = everything_default.request(req, {
+        req = request(req, {
           headers: {
             Authorization: accessToken.type + " " + accessToken.value
           }
@@ -1239,7 +887,7 @@
     }
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {
-        let url2 = everything_default.url(window.location);
+        let url2 = url(window.location);
         let code, state, params2;
         if (url2.searchParams.has("code")) {
           params2 = url2.searchParams;
@@ -1267,10 +915,10 @@
     async function fetchAccessToken() {
       if (oauth22.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
         let authReqURL = await getAuthorizationCodeURL();
-        if (!options.callbacks.authorize || typeof options.callbacks.authorize !== "function") {
-          throw everything_default.metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.options.callbacks.authorize");
+        if (!options.authorize_callback || typeof options.authorize_callback !== "function") {
+          throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.authorize_callback");
         }
-        let token = await options.callbacks.authorize(authReqURL);
+        let token = await options.authorize_callback(authReqURL);
         if (token) {
           options.tokens.set("authorization_code", token);
         } else {
@@ -1281,7 +929,7 @@
       let response2 = await options.client.post(tokenReq);
       if (!response2.ok) {
         let msg = await response2.text();
-        throw everything_default.metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
+        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -1302,7 +950,7 @@
       let refreshTokenReq = getAccessTokenRequest("refresh_token");
       let response2 = await options.client.post(refreshTokenReq);
       if (!response2.ok) {
-        throw everything_default.metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
+        throw metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -1323,10 +971,10 @@
     }
     async function getAuthorizationCodeURL() {
       if (!oauth22.authorization_endpoint) {
-        throw everything_default.metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
+        throw metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = everything_default.url(oauth22.authorization_endpoint, { hash: "" });
-      assert2(oauth22, {
+      let url2 = url(oauth22.authorization_endpoint, { hash: "" });
+      assert(oauth22, {
         client_id: /.+/,
         redirect_uri: /.+/,
         scope: /.*/
@@ -1350,7 +998,7 @@
         search.client_secret = oauth22.client_secret;
       }
       if (oauth22.code_verifier) {
-        search.code_challenge = base64url_encode(await generateCodeChallenge(oauth22.code_verifier));
+        search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
         search.code_challenge_method = "S256";
       }
       if (oauth22.scope) {
@@ -1359,23 +1007,23 @@
       if (oauth22.prompt) {
         search.prompt = oauth22.prompt;
       }
-      return everything_default.url(url2, { search });
+      return url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
-      assert2(oauth22, {
+      assert(oauth22, {
         client_id: /.+/,
         redirect_uri: /.+/
       });
       if (!oauth22.token_endpoint) {
-        throw everything_default.metroError("oauth2mw: Missing options.endpoints.token url");
+        throw metroError("oauth2mw: Missing options.endpoints.token url");
       }
-      let url2 = everything_default.url(oauth22.token_endpoint, { hash: "" });
+      let url2 = url(oauth22.token_endpoint, { hash: "" });
       let params2 = {
         grant_type: grant_type || oauth22.grant_type,
         client_id: oauth22.client_id
       };
       if (oauth22.code_verifier) {
-        params2.code_verifier = base64url_encode(oauth22.code_verifier);
+        params2.code_verifier = oauth22.code_verifier;
       }
       if (oauth22.client_secret) {
         params2.client_secret = oauth22.client_secret;
@@ -1387,10 +1035,6 @@
         case "authorization_code":
           params2.redirect_uri = oauth22.redirect_uri;
           params2.code = options.tokens.get("authorization_code");
-          if (options.dpop) {
-            const keyPair = options.tokens.get("keyPair");
-            params2.dpop_jkt = keyPair.publicKey;
-          }
           break;
         case "client_credentials":
           break;
@@ -1401,7 +1045,7 @@
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
           break;
       }
-      return everything_default.request(url2, { method: "POST", body: new URLSearchParams(params2) });
+      return request(url2, { method: "POST", body: new URLSearchParams(params2) });
     }
   }
   function isExpired(token) {
@@ -1426,13 +1070,13 @@
   function generateCodeVerifier(size = 64) {
     const code_verifier = new Uint8Array(size);
     globalThis.crypto.getRandomValues(code_verifier);
-    return code_verifier;
+    return base64url_encode(code_verifier);
   }
   async function generateCodeChallenge(code_verifier) {
-    const b64encoded = base64url_encode(code_verifier);
     const encoder2 = new TextEncoder();
-    const data = encoder2.encode(b64encoded);
-    return await globalThis.crypto.subtle.digest("SHA-256", data);
+    const data = encoder2.encode(code_verifier);
+    const challenge = await globalThis.crypto.subtle.digest("SHA-256", data);
+    return base64url_encode(challenge);
   }
   function base64url_encode(buffer) {
     const byteString = Array.from(new Uint8Array(buffer), (b) => String.fromCharCode(b)).join("");
@@ -1462,6 +1106,14 @@
     }
     return true;
   }
+  async function authorizePopup(authorizationCodeURL) {
+    return new Promise((resolve, reject) => {
+      addEventListener("oauth2authorized", (evt) => {
+        resolve(event.authorization_code);
+      }, { once: true });
+      window.open(authorizationCodeURL);
+    });
+  }
 
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.mockserver.mjs
   var oauth2_mockserver_exports = {};
@@ -1488,7 +1140,7 @@
       })
     };
   };
-  var error3;
+  var error2;
   var pkce = {};
   function oauth2mockserver(options = {}) {
     const defaultOptions = {
@@ -1500,12 +1152,12 @@
       let url2 = everything_default.url(req.url);
       switch (url2.pathname) {
         case "/authorize/":
-          if (error3 = fails2(url2.searchParams, {
+          if (error2 = fails(url2.searchParams, {
             response_type: "code",
             client_id: "mockClientId",
-            state: Optional2(/.*/)
+            state: Optional(/.*/)
           })) {
-            return everything_default.response(badRequest(error3));
+            return everything_default.response(badRequest(error2));
           }
           if (url2.searchParams.has("code_challenge")) {
             if (!url2.searchParams.has("code_challenge_method")) {
@@ -1527,17 +1179,17 @@
             req.data.forEach((value, key) => body[key] = value);
             req = req.with({ body });
           }
-          if (error3 = fails2(req, {
+          if (error2 = fails(req, {
             method: "POST",
             data: {
-              grant_type: oneOf2("refresh_token", "authorization_code")
+              grant_type: oneOf("refresh_token", "authorization_code")
             }
           })) {
-            return everything_default.response(badRequest(error3));
+            return everything_default.response(badRequest(error2));
           }
           switch (req.data.grant_type) {
             case "refresh_token":
-              if (error3 = fails2(req.data, oneOf2({
+              if (error2 = fails(req.data, oneOf({
                 refresh_token: "mockRefreshToken",
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
@@ -1546,11 +1198,11 @@
                 client_id: "mockClientId",
                 code_verifier: /.+/
               }))) {
-                return everything_default.response(badRequest(error3));
+                return everything_default.response(badRequest(error2));
               }
               break;
             case "access_token":
-              if (error3 = fails2(req.data, oneOf2({
+              if (error2 = fails(req.data, oneOf({
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
               }, {
@@ -1559,7 +1211,7 @@
                 //FIXME: check that this matches code_verifier
                 code_challenge_method: "S256"
               }))) {
-                return everything_default.response(badRequest(error3));
+                return everything_default.response(badRequest(error2));
               }
               break;
           }
@@ -1623,43 +1275,43 @@
     "ES384",
     "ES512"
   ];
-  var validAuthMethods2 = [
+  var validAuthMethods = [
     "client_secret_post",
     "client_secret_base",
     "client_secret_jwt",
     "private_key_jwt"
   ];
   var oauth_authorization_server_metadata = {
-    issuer: Required2(validURL2),
-    authorization_endpoint: Required2(validURL2),
-    token_endpoint: Required2(validURL2),
-    jwks_uri: Optional2(validURL2),
-    registration_endpoint: Optional2(validURL2),
-    scopes_supported: Recommended2([]),
-    response_types_supported: Required2(anyOf2("code", "token")),
-    response_modes_supported: Optional2([]),
-    grant_types_supported: Optional2([]),
-    token_endpoint_auth_methods_supported: Optional2([]),
-    token_endpoint_auth_signing_alg_values_supported: Optional2([]),
-    service_documentation: Optional2(validURL2),
-    ui_locales_supported: Optional2([]),
-    op_policy_uri: Optional2(validURL2),
-    op_tos_uri: Optional2(validURL2),
-    revocation_endpoint: Optional2(validURL2),
-    revocation_endpoint_auth_methods_supported: Optional2(validAuthMethods2),
-    revocation_endpoint_auth_signing_alg_values_supported: Optional2(validAlgorithms),
-    introspection_endpoint: Optional2(validURL2),
-    introspection_endpoint_auth_methods_supported: Optional2(validAuthMethods2),
-    introspection_endpoint_auth_signing_alg_values_supported: Optional2(validAlgorithms),
-    code_challendge_methods_supported: Optional2([])
+    issuer: Required(validURL),
+    authorization_endpoint: Required(validURL),
+    token_endpoint: Required(validURL),
+    jwks_uri: Optional(validURL),
+    registration_endpoint: Optional(validURL),
+    scopes_supported: Recommended([]),
+    response_types_supported: Required(anyOf("code", "token")),
+    response_modes_supported: Optional([]),
+    grant_types_supported: Optional([]),
+    token_endpoint_auth_methods_supported: Optional([]),
+    token_endpoint_auth_signing_alg_values_supported: Optional([]),
+    service_documentation: Optional(validURL),
+    ui_locales_supported: Optional([]),
+    op_policy_uri: Optional(validURL),
+    op_tos_uri: Optional(validURL),
+    revocation_endpoint: Optional(validURL),
+    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    introspection_endpoint: Optional(validURL),
+    introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    code_challendge_methods_supported: Optional([])
   };
   function makeClient(options = {}) {
     const defaultOptions = {
       client: everything_default.client()
     };
     options = Object.assign({}, defaultOptions, options);
-    assert2(options, {
-      issuer: Required2(validURL2)
+    assert(options, {
+      issuer: Required(validURL)
     });
     const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer);
     let client2 = options.client.with(options.issuer);
@@ -1667,9 +1319,9 @@
   async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
     let res = client2.get(everything_default.url(issuer, ".wellknown/oauth_authorization_server"));
     if (res.ok) {
-      assert2(res.headers.get("Content-Type"), /application\/json.*/);
+      assert(res.headers.get("Content-Type"), /application\/json.*/);
       let configuration = await res.json();
-      assert2(configuration, oauth_authorization_server_metadata);
+      assert(configuration, oauth_authorization_server_metadata);
       return configuration;
     }
     throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
@@ -1680,11 +1332,11 @@
     return new Promise((resolve, reject) => {
       const request2 = globalThis.indexedDB.open("metro", 1);
       request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
-      request2.onerror = (event) => {
-        reject(event);
+      request2.onerror = (event2) => {
+        reject(event2);
       };
-      request2.onsuccess = (event) => {
-        const db = event.target.result;
+      request2.onsuccess = (event2) => {
+        const db = event2.target.result;
         resolve({
           set: function(value, key) {
             return new Promise((resolve2, reject2) => {
@@ -1928,11 +1580,12 @@
 
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.dpop.mjs
   function dpopmw(options) {
-    assert2(options, {
-      site: Required2(validURL2),
-      authorization_endpoint: Required2(validURL2),
-      token_endpoint: Required2(validURL2)
-      //		dpop_signing_alg_values_supported: Required([]) // this property is unfortunately rarely supported
+    assert(options, {
+      site: Required(validURL),
+      authorization_endpoint: Required(validURL),
+      token_endpoint: Required(validURL),
+      dpop_signing_alg_values_supported: Optional([])
+      // this property is unfortunately rarely supported
     });
     return async (req, next) => {
       const keys = await keysStore();
@@ -1943,7 +1596,14 @@
         await keys.set(keyInfo);
       }
       const url2 = everything_default.url(req.url);
-      if (req.url.startsWith(options.authorization_endpoint) || req.url.startsWith(options.token_endpoint)) {
+      if (req.url.startsWith(options.authorization_endpoint)) {
+        let params2 = req.body;
+        if (params2 instanceof URLSearchParams || params2 instanceof FormData) {
+          params2.set("dpop_jkt", keyInfo.keyPair.publicKey);
+        } else {
+          params2.dpop_jkt = keyInfo.keyPair.publicKey;
+        }
+      } else if (req.url.startsWith(options.token_endpoint)) {
         const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method);
         req = req.with({
           headers: {
@@ -1957,7 +1617,6 @@
         req = req.with({
           headers: {
             "Authorization": "DPoP " + accessToken,
-            //solidcommunity server sends accesstoken with type Bearer
             "DPoP": dpopHeader
           }
         });
@@ -1971,15 +1630,382 @@
   }
 
   // node_modules/@muze-nl/metro-oauth2/src/browser.mjs
-  var oauth2 = Object.assign(oauth2mw, oauth2_exports, {
+  var oauth2 = Object.assign(oauth2_exports, {
+    oauth2mw,
     mockserver: oauth2_mockserver_exports,
-    discovery: oauth2_discovery_exports,
+    discover: oauth2_discovery_exports,
     tokenstore: tokenStore,
     dpopmw,
     keysstore: keysStore
   });
-  globalThis.oauth2 = oauth2;
-  var browser_default = oauth2;
+  if (!globalThis.metro.oauth2) {
+    globalThis.metro.oauth2 = oauth2;
+  }
+
+  // node_modules/@muze-nl/assert/src/assert.mjs
+  globalThis.assertEnabled = false;
+  function assert2(source, test) {
+    if (globalThis.assertEnabled) {
+      let problems = fails2(source, test);
+      if (problems) {
+        console.error("\u{1F170}\uFE0F  Assertions failed because of:", problems, "in this source:", source);
+        throw new Error("Assertions failed", {
+          cause: { problems, source }
+        });
+      }
+    }
+  }
+  function Optional2(pattern) {
+    return function _Optional(data, root, path) {
+      if (typeof data != "undefined" && data != null && typeof pattern != "undefined") {
+        return fails2(data, pattern, root, path);
+      }
+    };
+  }
+  function Required2(pattern) {
+    return function _Required(data, root, path) {
+      if (data == null || typeof data == "undefined") {
+        return error3("data is required", data, pattern || "any value", path);
+      } else if (typeof pattern != "undefined") {
+        return fails2(data, pattern, root, path);
+      } else {
+        return false;
+      }
+    };
+  }
+  function Recommended2(pattern) {
+    return function _Recommended(data, root, path) {
+      if (data == null || typeof data == "undefined") {
+        console.warn("data does not contain recommended value", data, pattern, path);
+        return false;
+      } else {
+        return fails2(data, pattern, root, path);
+      }
+    };
+  }
+  function oneOf2(...patterns) {
+    return function _oneOf(data, root, path) {
+      for (let pattern of patterns) {
+        if (!fails2(data, pattern, root, path)) {
+          return false;
+        }
+      }
+      return error3("data does not match oneOf patterns", data, patterns, path);
+    };
+  }
+  function anyOf2(...patterns) {
+    return function _anyOf(data, root, path) {
+      if (!Array.isArray(data)) {
+        return error3("data is not an array", data, "anyOf", path);
+      }
+      for (let value of data) {
+        if (oneOf2(...patterns)(value)) {
+          return error3("data does not match anyOf patterns", value, patterns, path);
+        }
+      }
+      return false;
+    };
+  }
+  function allOf(...patterns) {
+    return function _allOf(data, root, path) {
+      let problems = [];
+      for (let pattern of patterns) {
+        problems = problems.concat(fails2(data, pattern, root, path));
+      }
+      problems = problems.filter(Boolean);
+      if (problems.length) {
+        return error3("data does not match all given patterns", data, patterns, path, problems);
+      }
+    };
+  }
+  function validURL2(data, root, path) {
+    try {
+      if (data instanceof URL) {
+        data = data.href;
+      }
+      let url2 = new URL(data);
+      if (url2.href != data) {
+        if (!(url2.href + "/" == data || url2.href == data + "/")) {
+          return error3("data is not a valid url", data, "validURL", path);
+        }
+      }
+    } catch (e) {
+      return error3("data is not a valid url", data, "validURL", path);
+    }
+  }
+  function validEmail(data, root, path) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
+      return error3("data is not a valid email", data, "validEmail", path);
+    }
+  }
+  function instanceOf(constructor) {
+    return function _instanceOf(data, root, path) {
+      if (!(data instanceof constructor)) {
+        return error3("data is not an instanceof pattern", data, constructor, path);
+      }
+    };
+  }
+  function not(pattern) {
+    return function _not(data, root, path) {
+      if (!fails2(data, pattern, root, path)) {
+        return error3("data matches pattern, when required not to", data, pattern, path);
+      }
+    };
+  }
+  function fails2(data, pattern, root, path = "") {
+    if (!root) {
+      root = data;
+    }
+    let problems = [];
+    if (pattern === Boolean) {
+      if (typeof data != "boolean" && !(data instanceof Boolean)) {
+        problems.push(error3("data is not a boolean", data, pattern, path));
+      }
+    } else if (pattern === Number) {
+      if (typeof data != "number" && !(data instanceof Number)) {
+        problems.push(error3("data is not a number", data, pattern, path));
+      }
+    } else if (pattern === String) {
+      if (typeof data != "string" && !(data instanceof String)) {
+        problems.push(error3("data is not a string", data, pattern, path));
+      }
+      if (data == "") {
+        problems.push(error3("data is an empty string, which is not allowed", data, pattern, path));
+      }
+    } else if (pattern instanceof RegExp) {
+      if (Array.isArray(data)) {
+        let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
+        if (index > -1) {
+          problems.push(error3("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+        }
+      } else if (typeof data == "undefined") {
+        problems.push(error3("data is undefined, should match pattern", data, pattern, path));
+      } else if (!pattern.test(data)) {
+        problems.push(error3("data does not match pattern", data, pattern, path));
+      }
+    } else if (pattern instanceof Function) {
+      let problem = pattern(data, root, path);
+      if (problem) {
+        if (Array.isArray(problem)) {
+          problems = problems.concat(problem);
+        } else {
+          problems.push(problem);
+        }
+      }
+    } else if (Array.isArray(pattern)) {
+      if (!Array.isArray(data)) {
+        problems.push(error3("data is not an array", data, [], path));
+      }
+      for (let p2 of pattern) {
+        for (let index of data.keys()) {
+          let problem = fails2(data[index], p2, root, path + "[" + index + "]");
+          if (Array.isArray(problem)) {
+            problems = problems.concat(problem);
+          } else if (problem) {
+            problems.push(problem);
+          }
+        }
+      }
+    } else if (pattern && typeof pattern == "object") {
+      if (Array.isArray(data)) {
+        let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
+        if (index > -1) {
+          problems.push(error3("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+        }
+      } else if (!data || typeof data != "object") {
+        problems.push(error3("data is not an object, pattern is", data, pattern, path));
+      } else {
+        if (data instanceof URLSearchParams) {
+          data = Object.fromEntries(data);
+        }
+        if (pattern instanceof Function) {
+          let result = fails2(data, pattern, root, path);
+          if (result) {
+            problems = problems.concat(result);
+          }
+        } else {
+          for (const [wKey, wVal] of Object.entries(pattern)) {
+            let result = fails2(data[wKey], wVal, root, path + "." + wKey);
+            if (result) {
+              problems = problems.concat(result);
+            }
+          }
+        }
+      }
+    } else {
+      if (pattern != data) {
+        problems.push(error3("data and pattern are not equal", data, pattern, path));
+      }
+    }
+    if (problems.length) {
+      return problems;
+    }
+    return false;
+  }
+  function error3(message, found, expected, path, problems) {
+    let result = {
+      message,
+      found,
+      expected,
+      path
+    };
+    if (problems) {
+      result.problems = problems;
+    }
+    return result;
+  }
+
+  // src/oidc.util.mjs
+  var MustHave = (...options) => (value, root) => {
+    if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
+      return false;
+    }
+    return error3("root data must have all of", root, options);
+  };
+  var MustInclude = (...options) => (value) => {
+    if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
+      return false;
+    } else {
+      return error3("data must be an array which includes", value, options);
+    }
+  };
+  var validJWA = [
+    "HS256",
+    "HS384",
+    "HS512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "ES256",
+    "ES384",
+    "ES512"
+  ];
+  var validAuthMethods2 = [
+    "client_secret_post",
+    "client_secret_basic",
+    "client_secret_jwt",
+    "private_key_jwt"
+  ];
+
+  // src/oidc.discovery.mjs
+  async function oidcDiscovery(options = {}) {
+    assert2(options, {
+      client: Optional2(instanceOf(everything_default.client().constructor)),
+      issuer: Required2(validURL2)
+    });
+    const defaultOptions = {
+      client: everything_default.client().with(thrower()).with(jsonmw()),
+      requireDynamicRegistration: false
+    };
+    options = Object.assign({}, defaultOptions, options);
+    const TestSucceeded = false;
+    function MustUseHTTPS(url2) {
+      return TestSucceeded;
+    }
+    const openid_provider_metadata = {
+      issuer: Required2(allOf(options.issuer, MustUseHTTPS)),
+      authorization_endpoint: Required2(validURL2),
+      token_endpoint: Required2(validURL2),
+      userinfo_endpoint: Recommended2(validURL2),
+      // todo: test for https protocol
+      jwks_uri: Required2(validURL2),
+      registration_endpoint: options.requireDynamicRegistration ? Required2(validURL2) : Recommended2(validURL2),
+      scopes_supported: Recommended2(MustInclude("openid")),
+      response_types_supported: options.requireDynamicRegistration ? Required2(MustInclude("code", "id_token", "id_token token")) : Required2([]),
+      response_modes_supported: Optional2([]),
+      grant_types_supported: options.requireDynamicRegistration ? Optional2(MustInclude("authorization_code")) : Optional2([]),
+      acr_values_supported: Optional2([]),
+      subject_types_supported: Required2([]),
+      id_token_signing_alg_values_supported: Required2(MustInclude("RS256")),
+      id_token_encryption_alg_values_supported: Optional2([]),
+      id_token_encryption_enc_values_supported: Optional2([]),
+      userinfo_signing_alg_values_supported: Optional2([]),
+      userinfo_encryption_alg_values_supported: Optional2([]),
+      userinfo_encryption_enc_values_supported: Optional2([]),
+      request_object_signing_alg_values_supported: Optional2(MustInclude("RS256")),
+      // not testing for 'none'
+      request_object_encryption_alg_values_supported: Optional2([]),
+      request_object_encryption_enc_values_supported: Optional2([]),
+      token_endpoint_auth_methods_supported: Optional2(anyOf2(...validAuthMethods2)),
+      token_endpoint_auth_signing_alg_values_supported: Optional2(MustInclude("RS256"), not(MustInclude("none"))),
+      display_values_supported: Optional2(anyOf2("page", "popup", "touch", "wap")),
+      claim_types_supported: Optional2(anyOf2("normal", "aggregated", "distributed")),
+      claims_supported: Recommended2([]),
+      service_documentation: Optional2(validURL2),
+      claims_locales_supported: Optional2([]),
+      ui_locales_supported: Optional2([]),
+      claims_parameter_supported: Optional2(Boolean),
+      request_parameter_supported: Optional2(Boolean),
+      request_uri_parameter_supported: Optional2(Boolean),
+      op_policy_uri: Optional2(validURL2),
+      op_tos_uri: Optional2(validURL2)
+    };
+    const configURL = everything_default.url(options.issuer, ".well-known/openid-configuration");
+    const response2 = await options.client.get(
+      // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
+      // note: this allows path components in the options.issuer url
+      configURL
+    );
+    const openid_config = response2.data;
+    assert2(openid_config, openid_provider_metadata);
+    assert2(openid_config.issuer, options.issuer);
+    return openid_config;
+  }
+
+  // src/oidc.register.mjs
+  async function register(options) {
+    const openid_client_metadata = {
+      redirect_uris: Required2([validURL2]),
+      response_types: Optional2([]),
+      grant_types: Optional2(anyOf2("authorization_code", "refresh_token")),
+      //TODO: match response_types with grant_types
+      application_type: Optional2(oneOf2("native", "web")),
+      contacts: Optional2([validEmail]),
+      client_name: Optional2(String),
+      logo_uri: Optional2(validURL2),
+      client_uri: Optional2(validURL2),
+      policy_uri: Optional2(validURL2),
+      tos_uri: Optional2(validURL2),
+      jwks_uri: Optional2(validURL2, not(MustHave("jwks"))),
+      jwks: Optional2(validURL2, not(MustHave("jwks_uri"))),
+      sector_identifier_uri: Optional2(validURL2),
+      subject_type: Optional2(String),
+      id_token_signed_response_alg: Optional2(oneOf2(...validJWA)),
+      id_token_encrypted_response_alg: Optional2(oneOf2(...validJWA)),
+      id_token_encrypted_response_enc: Optional2(oneOf2(...validJWA), MustHave("id_token_encrypted_response_alg")),
+      userinfo_signed_response_alg: Optional2(oneOf2(...validJWA)),
+      userinfo_encrypted_response_alg: Optional2(oneOf2(...validJWA)),
+      userinfo_encrypted_response_enc: Optional2(oneOf2(...validJWA), MustHave("userinfo_encrypted_response_alg")),
+      request_object_signing_alg: Optional2(oneOf2(...validJWA)),
+      request_object_encryption_alg: Optional2(oneOf2(...validJWA)),
+      request_object_encryption_enc: Optional2(oneOf2(...validJWA)),
+      token_endpoint_auth_method: Optional2(oneOf2(...validAuthMethods2)),
+      token_endpoint_auth_signing_alg: Optional2(oneOf2(...validJWA)),
+      default_max_age: Optional2(Number),
+      require_auth_time: Optional2(Boolean),
+      default_acr_values: Optional2([String]),
+      initiate_login_uri: Optional2([validURL2]),
+      request_uris: Optional2([validURL2])
+    };
+    assert2(options, {
+      client: Optional2(instanceOf(everything_default.client().constructor)),
+      registration_endpoint: validURL2,
+      client_info: openid_client_metadata
+    });
+    const defaultOptions = {
+      client: everything_default.client().with(thrower()).with(jsonmw())
+    };
+    options = Object.assign({}, defaultOptions, options);
+    let response2 = await options.client.post(options.registration_endpoint, {
+      body: options.client_info
+    });
+    let info = response2.data;
+    if (!info.client_id || !info.client_secret) {
+      throw everything_default.metroError("metro.oidc: Error: dynamic registration of client failed, no client_id or client_secret returned", response2);
+    }
+    options.client_info = Object.assign(options.client_info, info);
+    return options.client_info;
+  }
 
   // src/oidc.store.mjs
   function oidcStore(site) {
@@ -2004,17 +2030,24 @@
   // src/oidcmw.mjs
   function oidcmw(options = {}) {
     const defaultOptions = {
-      client: everything_default.client(),
-      force_authorization: false
+      client: client(),
+      force_authorization: false,
+      use_dpop: true,
+      authorize_callback: async (url2) => {
+        if (window.location.href != url2.href) {
+          window.location.replace(url2.href);
+        }
+        return false;
+      }
     };
     options = Object.assign({}, defaultOptions, options);
-    assert(options, {
-      client: Required(instanceOf(everything_default.client().constructor)),
+    assert2(options, {
+      client: Required2(instanceOf(client().constructor)),
       // required because it is set in defaultOptions
-      client_info: Required(),
-      issuer: Required(validURL),
-      oauth2: Optional({}),
-      openid_configuration: Optional()
+      client_info: Required2(),
+      issuer: Required2(validURL2),
+      oauth2: Optional2({}),
+      openid_configuration: Optional2()
     });
     if (!options.store) {
       options.store = oidcStore(options.issuer);
@@ -2046,9 +2079,9 @@
         options.store.set("openid_configuration", options.openid_configuration);
       }
       if (!options.client_info?.client_id) {
-        assert(options.client_info?.client_name, Required());
+        assert2(options.client_info?.client_name, Required2());
         if (!options.openid_configuration.registration_endpoint) {
-          throw everything_default.metroError("metro.oidcmw: Error: issuer " + options.issuer + " does not support dynamic client registration, but you haven't specified a client_id");
+          throw metroError("metro.oidcmw: Error: issuer " + options.issuer + " does not support dynamic client registration, but you haven't specified a client_id");
         }
         options.client_info = await register({
           registration_endpoint: options.openid_configuration.registration_endpoint,
@@ -2062,6 +2095,7 @@
           site: options.issuer,
           client: options.client,
           force_authorization: true,
+          authorize_callback: options.authorize_callback,
           oauth2_configuration: {
             client_id: options.client_info.client_id,
             client_secret: options.client_info.client_secret,
@@ -2078,48 +2112,61 @@
         }
         //...
       );
-      const dpopOptions = {
-        site: options.issuer,
-        authorization_endpoint: options.openid_configuration.authorization_endpoint,
-        token_endpoint: options.openid_configuration.token_endpoint,
-        dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
-      };
       const storeIdToken = async (req2, next2) => {
         const res2 = await next2(req2);
         const contentType = res2.headers.get("content-type");
         if (contentType?.startsWith("application/json")) {
-          const res22 = res2.clone();
-          try {
-            let data = await res22.json();
-            if (data && data.id_token) {
-              options.store.set("id_token", data.id_token);
+          let id_token = res2.data?.id_token;
+          if (!id_token) {
+            const res22 = res2.clone();
+            try {
+              let data = await res22.json();
+              if (data && data.id_token) {
+                id_token = data.id_token;
+              }
+            } catch (e) {
             }
-          } catch (e) {
+          }
+          if (id_token) {
+            options.store.set("id_token", id_token);
           }
         }
         return res2;
       };
-      const dPopClient = options.client.with(options.issuer).with(storeIdToken).with(browser_default.dpopmw(dpopOptions));
-      oauth2Options.client = dPopClient;
-      const oauth2client = dPopClient.with(browser_default(oauth2Options));
+      let oauth2client = options.client.with(options.issuer).with(storeIdToken);
+      if (options.use_dpop) {
+        const dpopOptions = {
+          site: options.issuer,
+          authorization_endpoint: options.openid_configuration.authorization_endpoint,
+          token_endpoint: options.openid_configuration.token_endpoint,
+          dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
+        };
+        oauth2client = oauth2client.with(dpopmw(dpopOptions));
+        oauth2Options.client = oauth2client;
+      }
+      oauth2client = oauth2client.with(oauth2mw(oauth2Options));
       res = await oauth2client.fetch(req);
       return res;
     };
   }
   function isRedirected2() {
-    return browser_default.isRedirected();
+    return isRedirected();
   }
   function idToken(options) {
     return options.store.get("id_token");
   }
 
   // src/browser.mjs
-  var oidc = Object.assign(oidcmw, {
+  var oidc = {
+    oidcmw,
     discover: oidcDiscovery,
     register,
     isRedirected: isRedirected2,
     idToken
-  });
-  globalThis.oidc = oidc;
+  };
+  if (!globalThis.metro.oidc) {
+    globalThis.metro.oidc = oidc;
+  }
+  var browser_default2 = oidc;
 })();
 //# sourceMappingURL=browser.js.map
