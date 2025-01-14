@@ -443,11 +443,24 @@ export function isRedirected() {
 	return true
 }
 
-export async function authorizePopup(authorizationCodeURL) {
-	return new Promise((resolve, reject) => {
-		addEventListener('oauth2authorized', (evt) => {
-			resolve(event.authorization_code)
-		}, {once:true})
-		window.open(authorizationCodeURL)
-	})
+/**
+ * Returns true if there is a valid accessToken or refreshToken in the
+ * tokens store.
+ * @param (tokensStore.tokens|issuer) tokens - if tokens is a string, it 
+ * 	is assumed to be the oidc issuer, and tokens are fetched using the default
+ *  tokenStore. If you use a different tokenStore, pass the tokens section of it here
+ */
+export function isAuthorized(tokens) {
+	if (typeof tokens == 'string') {//issuer
+		tokens = tokenStore(tokens).tokens
+	}
+	let accessToken = tokens.get('access_token')
+	if (accessToken && !isExpired(accessToken)) {
+		return true
+	}
+	let refreshToken = tokens.get('refresh_token')
+	if (refreshToken) { // assumes refresh token is still valid
+		return true
+	}
+	return false
 }
