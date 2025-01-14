@@ -59,15 +59,9 @@ const client = metro.client('https://oauth2api.example.com')
 However, it does require that you create a separate page as your `redirect_uri`, that will send the authorization_code to your application, e.g.:
 
 ```html
+<script src="metro-oidc/dist/browser.js"></script>
 <script>
-	let params = new URLSearchParams(document.location.search)
-	if (params.has('code')) {
-		window.opener.postMessage({
-			authorization_code: params.get('code')
-		})
-	} else if (params.has('error')) {
-		alert(params.get('error'))
-	}
+	metro.oauth2.popupHandleRedirect()
 	window.close()
 </script>
 ```
