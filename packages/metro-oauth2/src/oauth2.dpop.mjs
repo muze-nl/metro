@@ -1,6 +1,6 @@
 import metro from '@muze-nl/metro'
 import DPoP, {generateKeyPair} from 'dpop'
-import { assert, Required, validURL } from '@muze-nl/assert'
+import { assert, Required, Optional, validURL } from '@muze-nl/assert'
 import keysStore from './keysstore.mjs'
 
 export default function dpopmw(options) {
