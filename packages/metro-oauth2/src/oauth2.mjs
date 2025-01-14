@@ -325,10 +325,6 @@ export default function oauth2mw(options)
 			case 'authorization_code':
 				params.redirect_uri = oauth2.redirect_uri
 				params.code = options.tokens.get('authorization_code')
-				if (options.dpop) {
-					const keyPair = options.tokens.get('keyPair')
-					params.dpop_jkt = keyPair.publicKey
-				}
 			break
 			case 'client_credentials':
 				// nothing to add
