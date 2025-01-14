@@ -1,5 +1,6 @@
-import metro from '@muze-nl/metro'
-import oauth2 from '@muze-nl/metro-oauth2'
+import * as metro from '@muze-nl/metro/src/metro.mjs'
+import oauth2mw, * as oauth2 from '@muze-nl/metro-oauth2/src/oauth2.mjs'
+import dpopmw from '@muze-nl/metro-oauth2/src/oauth2.dpop.mjs'
 import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/assert'
 import discover from './oidc.discovery.mjs'
 import register from './oidc.register.mjs'
@@ -9,7 +10,14 @@ export default function oidcmw(options={}) {
 
 	const defaultOptions = {
 		client: metro.client(),
-		force_authorization: false
+		force_authorization: false,
+		use_dpop: true,
+		authorize_callback: async url => {
+			if (window.location.href != url.href) {
+				window.location.replace(url.href)
+			}
+			return false
+		}
 	}
 
 	options = Object.assign({}, defaultOptions, options)
@@ -73,6 +81,7 @@ export default function oidcmw(options={}) {
 				site: options.issuer,
 				client: options.client,
 				force_authorization: true,
+				authorize_callback: options.authorize_callback,
 				oauth2_configuration: {
 					client_id: options.client_info.client_id,
 					client_secret: options.client_info.client_secret,
@@ -88,43 +97,46 @@ export default function oidcmw(options={}) {
 			//...
 		)
 
-		const dpopOptions = {
-			site: options.issuer,
-			authorization_endpoint: options.openid_configuration.authorization_endpoint,
-			token_endpoint: options.openid_configuration.token_endpoint,
-			dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
-		}
-
 		const storeIdToken = async (req, next) => {
 			const res = await next(req)
 			const contentType = res.headers.get('content-type')
 			if (contentType?.startsWith('application/json')) {
-				//FIXME; check that this is actually the token endpoint
-				const res2 = res.clone() // otherwise res.body can't be read again
-				try {
-					let data = await res2.json()
-					if (data && data.id_token) {
-						options.store.set('id_token', data.id_token)
+				//FIXME: check that this is actually the token endpoint
+				let id_token = res.data?.id_token
+				if (!id_token) {
+					const res2 = res.clone() // otherwise res.body can't be read again
+					try {
+						let data = await res2.json()
+						if (data && data.id_token) {
+							id_token = data.id_token
+						}
+					} catch(e) {
+						// ignore errors
 					}
-				} catch(e) {
-					// ignore errors
+				}
+				if (id_token) {
+					options.store.set('id_token', id_token)
 				}
 			}
 			return res
 		}
 
-		const dPopClient = options.client
-			.with(options.issuer)
-			.with(storeIdToken)
-			.with(oauth2.dpopmw(dpopOptions))
+		let oauth2client = options.client.with(options.issuer).with(storeIdToken)
 
-		oauth2Options.client = dPopClient
+		if (options.use_dpop) {
+			const dpopOptions = {
+				site: options.issuer,
+				authorization_endpoint: options.openid_configuration.authorization_endpoint,
+				token_endpoint: options.openid_configuration.token_endpoint,
+				dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
+			}
+			oauth2client = oauth2client.with(dpopmw(dpopOptions)) // add DPoP headers in requests with Authorization headers
+			oauth2Options.client = oauth2client // make sure oath2 token request use dpop
+		}
 
-		const oauth2client = dPopClient
-			.with(oauth2(oauth2Options))
+		oauth2client = oauth2client.with(oauth2mw(oauth2Options))
 
 		res = await oauth2client.fetch(req)
-		// ...
 
 		return res
 	}
@@ -138,3 +150,7 @@ export function isRedirected() {
 export function idToken(options) {
 	return options.store.get('id_token')
 }
+
+export async function authorizePopup(authorizationCodeURL) {
+	return oauth2.authorizePopup(authorizationCodeURL)
+}	
