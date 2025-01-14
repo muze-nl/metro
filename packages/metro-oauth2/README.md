@@ -66,6 +66,35 @@ However, it does require that you create a separate page as your `redirect_uri`,
 </script>
 ```
 
+You can also use an iframe to show the login screen of and OAuth2 Provider, however, not all providers allow their login screens to be shown inside an iframe. However, if they do, use something like this as your `authorize_callback`:
+
+```javascript
+	function authorizeIframe(authorizeURL) {
+		return new Promise((resolve, reject) => {
+			window.addEventListener('message', (event) => {
+				if (event.data.authorization_code) {
+					resolve(event.data.authorization_code)
+				} else {
+					reject('Error: '.event.data.error)
+				}
+				document.getElementById('authorize').close()
+			})
+			document.getElementById('authorizeIframe').src=authorizeURL
+			document.getElementById('authorize').showModal()
+		})
+	}
+```
+
+This code assumes you have a dialog and iframe like this:
+
+```html
+<dialog id="authorize">
+	<iframe id="authorizeIframe"></iframe>
+</dialog>
+```
+
+You can still use the same redirect page as for `authorizePopup`, it will automatically determine it is running in an iframe instead of a new window.
+
 ## Configuration
 
 Valid configuration options are:
