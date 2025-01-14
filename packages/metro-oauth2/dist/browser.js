@@ -604,7 +604,7 @@
       }
     }
   };
-  var Optional2 = (pattern) => (data) => data == null || typeof data == "undefined" ? false : fails(data, pattern);
+  var Optional = (pattern) => (data) => data == null || typeof data == "undefined" ? false : fails(data, pattern);
   var Required = (pattern) => (data) => fails(data, pattern);
   var Recommended = (pattern) => (data) => data == null || typeof data == "undefined" ? (() => {
     console.warning("data does not contain recommended value", data, pattern);
@@ -1139,7 +1139,7 @@
           if (error2 = fails(url2.searchParams, {
             response_type: "code",
             client_id: "mockClientId",
-            state: Optional2(/.*/)
+            state: Optional(/.*/)
           })) {
             return everything_default.response(badRequest(error2));
           }
@@ -1269,25 +1269,25 @@
     issuer: Required(validURL),
     authorization_endpoint: Required(validURL),
     token_endpoint: Required(validURL),
-    jwks_uri: Optional2(validURL),
-    registration_endpoint: Optional2(validURL),
+    jwks_uri: Optional(validURL),
+    registration_endpoint: Optional(validURL),
     scopes_supported: Recommended([]),
     response_types_supported: Required(anyOf("code", "token")),
-    response_modes_supported: Optional2([]),
-    grant_types_supported: Optional2([]),
-    token_endpoint_auth_methods_supported: Optional2([]),
-    token_endpoint_auth_signing_alg_values_supported: Optional2([]),
-    service_documentation: Optional2(validURL),
-    ui_locales_supported: Optional2([]),
-    op_policy_uri: Optional2(validURL),
-    op_tos_uri: Optional2(validURL),
-    revocation_endpoint: Optional2(validURL),
-    revocation_endpoint_auth_methods_supported: Optional2(validAuthMethods),
-    revocation_endpoint_auth_signing_alg_values_supported: Optional2(validAlgorithms),
-    introspection_endpoint: Optional2(validURL),
-    introspection_endpoint_auth_methods_supported: Optional2(validAuthMethods),
-    introspection_endpoint_auth_signing_alg_values_supported: Optional2(validAlgorithms),
-    code_challendge_methods_supported: Optional2([])
+    response_modes_supported: Optional([]),
+    grant_types_supported: Optional([]),
+    token_endpoint_auth_methods_supported: Optional([]),
+    token_endpoint_auth_signing_alg_values_supported: Optional([]),
+    service_documentation: Optional(validURL),
+    ui_locales_supported: Optional([]),
+    op_policy_uri: Optional(validURL),
+    op_tos_uri: Optional(validURL),
+    revocation_endpoint: Optional(validURL),
+    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    introspection_endpoint: Optional(validURL),
+    introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    code_challendge_methods_supported: Optional([])
   };
   function makeClient(options = {}) {
     const defaultOptions = {
