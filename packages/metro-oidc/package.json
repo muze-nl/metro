@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-oidc",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "oidc client middleware for @muze-nl/metro",
   "type": "module",
   "source": [

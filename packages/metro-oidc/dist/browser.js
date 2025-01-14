@@ -591,7 +591,9 @@
       thrower
     }
   });
-  globalThis.metro = metro;
+  if (!globalThis.metro) {
+    globalThis.metro = metro;
+  }
   var everything_default = metro;
 
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.mjs
