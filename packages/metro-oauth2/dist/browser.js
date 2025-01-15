@@ -520,37 +520,51 @@
   // node_modules/@muze-nl/metro/src/mw/json.mjs
   function jsonmw(options) {
     options = Object.assign({
+      mimetype: "application/json",
       reviver: null,
       replacer: null,
       space: ""
     }, options);
     return async (req, next) => {
-      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
+      if (!isJSON(req.headers.get("Accept"))) {
         req = req.with({
           headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": options.mimetype
           }
         });
+      }
+      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
         if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
+          if (!isJSON(req.headers.get("content-type"))) {
+            req = req.with({
+              headers: {
+                "Content-Type": options.mimetype
+              }
+            });
+          }
           req = req.with({
             body: JSON.stringify(req.data, options.replacer, options.space)
           });
         }
-      } else {
-        req = req.with({
-          headers: {
-            "Accept": "application/json"
-          }
-        });
       }
       let res = await next(req);
-      let body = await res.text();
-      let json = JSON.parse(body, options.reviver);
-      return res.with({
-        body: json
-      });
+      if (isJSON(res.headers.get("content-type"))) {
+        let tempRes = res.clone();
+        let body = await tempRes.text();
+        try {
+          let json = JSON.parse(body, options.reviver);
+          return res.with({
+            body: json
+          });
+        } catch (e) {
+        }
+      }
+      return res;
     };
+  }
+  var jsonRE = /^application\/([a-zA-Z0-9\-_]+\+)?json\b/;
+  function isJSON(contentType) {
+    return jsonRE.exec(contentType);
   }
 
   // node_modules/@muze-nl/metro/src/mw/thrower.mjs
@@ -577,7 +591,9 @@
       thrower
     }
   });
-  globalThis.metro = metro;
+  if (!globalThis.metro) {
+    globalThis.metro = metro;
+  }
   var everything_default = metro;
 
   // src/oauth2.mjs
@@ -596,118 +612,166 @@
 
   // node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
-  var assert = (source, test) => {
+  function assert(source, test) {
     if (globalThis.assertEnabled) {
       let problems = fails(source, test);
       if (problems) {
-        throw new assertError("Assertions failed", problems, source);
+        console.error("\u{1F170}\uFE0F  Assertions failed because of:", problems, "in this source:", source);
+        throw new Error("Assertions failed", {
+          cause: { problems, source }
+        });
       }
     }
-  };
-  var Optional = (pattern) => (data) => data == null || typeof data == "undefined" ? false : fails(data, pattern);
-  var Required = (pattern) => (data) => fails(data, pattern);
-  var Recommended = (pattern) => (data) => data == null || typeof data == "undefined" ? (() => {
-    console.warning("data does not contain recommended value", data, pattern);
-    return false;
-  })() : fails(data, pattern);
-  var oneOf = (...patterns) => (data) => {
-    for (let pattern of patterns) {
-      if (!fails(data, pattern)) {
+  }
+  function Optional(pattern) {
+    return function _Optional(data, root, path) {
+      if (typeof data != "undefined" && data != null && typeof pattern != "undefined") {
+        return fails(data, pattern, root, path);
+      }
+    };
+  }
+  function Required(pattern) {
+    return function _Required(data, root, path) {
+      if (data == null || typeof data == "undefined") {
+        return error2("data is required", data, pattern || "any value", path);
+      } else if (typeof pattern != "undefined") {
+        return fails(data, pattern, root, path);
+      } else {
         return false;
       }
-    }
-    return error2("data does not match oneOf patterns", data, patterns);
-  };
-  var anyOf = (...patterns) => (data) => {
-    if (!Array.isArray(data)) {
-      return error2("data is not an array", data, "anyOf");
-    }
-    for (let value of data) {
-      if (oneOf(...patterns)(value)) {
-        return error2("data does not match anyOf patterns", value, patterns);
+    };
+  }
+  function Recommended(pattern) {
+    return function _Recommended(data, root, path) {
+      if (data == null || typeof data == "undefined") {
+        console.warn("data does not contain recommended value", data, pattern, path);
+        return false;
+      } else {
+        return fails(data, pattern, root, path);
       }
-    }
-    return false;
-  };
-  function validURL(data) {
+    };
+  }
+  function oneOf(...patterns) {
+    return function _oneOf(data, root, path) {
+      for (let pattern of patterns) {
+        if (!fails(data, pattern, root, path)) {
+          return false;
+        }
+      }
+      return error2("data does not match oneOf patterns", data, patterns, path);
+    };
+  }
+  function anyOf(...patterns) {
+    return function _anyOf(data, root, path) {
+      if (!Array.isArray(data)) {
+        return error2("data is not an array", data, "anyOf", path);
+      }
+      for (let value of data) {
+        if (oneOf(...patterns)(value)) {
+          return error2("data does not match anyOf patterns", value, patterns, path);
+        }
+      }
+      return false;
+    };
+  }
+  function validURL(data, root, path) {
     try {
       if (data instanceof URL) {
         data = data.href;
       }
       let url2 = new URL(data);
       if (url2.href != data) {
-        return error2("data is not a valid url", data, "validURL");
+        if (!(url2.href + "/" == data || url2.href == data + "/")) {
+          return error2("data is not a valid url", data, "validURL", path);
+        }
       }
     } catch (e) {
-      return error2("data is not a valid url", data, "validURL");
+      return error2("data is not a valid url", data, "validURL", path);
     }
-    return false;
   }
-  function fails(data, pattern, root) {
+  function fails(data, pattern, root, path = "") {
     if (!root) {
       root = data;
     }
     let problems = [];
     if (pattern === Boolean) {
-      if (typeof data != "boolean") {
-        problems.push(error2("data is not a boolean", data, pattern));
+      if (typeof data != "boolean" && !(data instanceof Boolean)) {
+        problems.push(error2("data is not a boolean", data, pattern, path));
       }
     } else if (pattern === Number) {
-      if (typeof data != "number") {
-        problems.push(error2("data is not a number", data, pattern));
+      if (typeof data != "number" && !(data instanceof Number)) {
+        problems.push(error2("data is not a number", data, pattern, path));
+      }
+    } else if (pattern === String) {
+      if (typeof data != "string" && !(data instanceof String)) {
+        problems.push(error2("data is not a string", data, pattern, path));
+      }
+      if (data == "") {
+        problems.push(error2("data is an empty string, which is not allowed", data, pattern, path));
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
-        let index = data.findIndex((element) => fails(element, pattern, root));
+        let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
+      } else if (typeof data == "undefined") {
+        problems.push(error2("data is undefined, should match pattern", data, pattern, path));
       } else if (!pattern.test(data)) {
-        problems.push(error2("data does not match pattern", data, pattern));
+        problems.push(error2("data does not match pattern", data, pattern, path));
       }
     } else if (pattern instanceof Function) {
-      if (pattern(data, root)) {
-        problems.push(error2("data does not match function", data, pattern));
+      let problem = pattern(data, root, path);
+      if (problem) {
+        if (Array.isArray(problem)) {
+          problems = problems.concat(problem);
+        } else {
+          problems.push(problem);
+        }
       }
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
-        problems.push(error2("data is not an array", data, []));
+        problems.push(error2("data is not an array", data, [], path));
       }
-      for (p of pattern) {
-        let problem = fails(data, p, root);
-        if (Array.isArray(problem)) {
-          problems.concat(problem);
-        } else if (problem) {
-          problems.push(problem);
+      for (let p of pattern) {
+        for (let index of data.keys()) {
+          let problem = fails(data[index], p, root, path + "[" + index + "]");
+          if (Array.isArray(problem)) {
+            problems = problems.concat(problem);
+          } else if (problem) {
+            problems.push(problem);
+          }
         }
       }
     } else if (pattern && typeof pattern == "object") {
       if (Array.isArray(data)) {
-        let index = data.findIndex((element) => fails(element, pattern, root));
+        let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern));
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
       } else if (!data || typeof data != "object") {
-        problems.push(error2("data is not an object, pattern is", data, pattern));
+        problems.push(error2("data is not an object, pattern is", data, pattern, path));
       } else {
         if (data instanceof URLSearchParams) {
           data = Object.fromEntries(data);
         }
-        let p2 = problems[problems.length - 1];
-        for (const [wKey, wVal] of Object.entries(pattern)) {
-          let result = fails(data[wKey], wVal, root);
+        if (pattern instanceof Function) {
+          let result = fails(data, pattern, root, path);
           if (result) {
-            if (!p2 || typeof p2 == "string") {
-              p2 = {};
-              problems.push(error2(p2, data[wKey], wVal));
+            problems = problems.concat(result);
+          }
+        } else {
+          for (const [wKey, wVal] of Object.entries(pattern)) {
+            let result = fails(data[wKey], wVal, root, path + "." + wKey);
+            if (result) {
+              problems = problems.concat(result);
             }
-            p2[wKey] = result.problems;
           }
         }
       }
     } else {
       if (pattern != data) {
-        problems.push(error2("data and pattern are not equal", data, pattern));
+        problems.push(error2("data and pattern are not equal", data, pattern, path));
       }
     }
     if (problems.length) {
@@ -715,19 +779,17 @@
     }
     return false;
   }
-  var assertError = class extends Error {
-    constructor(message, problems, ...details) {
-      super(message);
-      this.problems = problems;
-      this.details = details;
-    }
-  };
-  function error2(message, found, expected) {
-    return {
+  function error2(message, found, expected, path, problems) {
+    let result = {
       message,
       found,
-      expected
+      expected,
+      path
     };
+    if (problems) {
+      result.problems = problems;
+    }
+    return result;
   }
 
   // src/tokenstore.mjs
