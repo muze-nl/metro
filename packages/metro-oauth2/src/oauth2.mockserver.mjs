@@ -1,4 +1,4 @@
-import * as metro from '@muze-nl/metro'
+import metro from '@muze-nl/metro'
 import * as assert from '@muze-nl/assert'
 
 const baseResponse = {
@@ -23,13 +23,11 @@ const badRequest = (error) => {
 	}
 }
 
-let error, expect, token
+let error
 let pkce = {}
 
 export default function oauth2mockserver(options={}) {
 
-	// TODO: add PCKE support, so assert either client_secret or code_verifier / code_challenge
-	// store code_challenge and code_challenge_method for each authorization_code
 	// TODO: add DPoP support
 	const defaultOptions = {
 		'PKCE': false,
@@ -37,7 +35,7 @@ export default function oauth2mockserver(options={}) {
 	}
 	options = Object.assign({}, defaultOptions, options)
 
-	return (req, next) => {
+	return async (req, next) => {
 		let url = metro.url(req.url)
 		switch(url.pathname) {
 			case '/authorize/':
@@ -53,7 +51,7 @@ export default function oauth2mockserver(options={}) {
 						return metro.response(badRequest('missing code_challenge_method'))
 					}
 					pkce.code_challenge = url.searchParams.get('code_challenge')
-					pcke.code_challenge_method = url.searchParams.get('code_challenge_method')
+					pkce.code_challenge_method = url.searchParams.get('code_challenge_method')
 				}
 				return metro.response(baseResponse, {
 					body: JSON.stringify({
@@ -63,14 +61,22 @@ export default function oauth2mockserver(options={}) {
 				})
 			break
 			case '/token/':
-				if (error = assert.fails(url.searchParams, {
-					grant_type: assert.oneOf('refresh_token','authorization_code')
+				if (req.data instanceof URLSearchParams) {
+					let body = {}
+					req.data.forEach((value,key) => body[key] = value)
+					req = req.with({body})
+				}
+				if (error = assert.fails(req, {
+					method: 'POST',
+					data: {
+						grant_type: assert.oneOf('refresh_token','authorization_code')
+					}
 				})) {
 					return metro.response(badRequest(error))
 				}
-				switch(url.searchParams.grant_type) {
+				switch(req.data.grant_type) {
 					case 'refresh_token':
-						if (error = assert.fails(url.searchParams, assert.oneOf({
+						if (error = assert.fails(req.data, assert.oneOf({
 							refresh_token: 'mockRefreshToken',
 							client_id: 'mockClientId',
 							client_secret: 'mockClientSecret'
@@ -83,7 +89,7 @@ export default function oauth2mockserver(options={}) {
 						}
 					break
 					case 'access_token':
-						if (error = assert.fails(url.searchParams, assert.oneOf({
+						if (error = assert.fails(req.data, assert.oneOf({
 							client_id: 'mockClientId',
 							client_secret: 'mockClientSecret'
 						}, {

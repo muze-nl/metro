@@ -1,8 +1,5 @@
-import * as metro from '@muze-nl/metro'
-import { assert, Required, Recommended, Optional, oneOf, anyOf } from '@muze-nl/assert'
-import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
-import mwOauth2 from './oauth2.mjs'
-import mwOAuth2PKCE from './oauth2.pkce.mjs'
+import metro from '@muze-nl/metro'
+import { assert, validURL, Required, Recommended, Optional, anyOf } from '@muze-nl/assert'
 // import mwOauth2DPoP from './oauth2.DPoP.mjs'
 
 /**
@@ -11,9 +8,6 @@ import mwOAuth2PKCE from './oauth2.pkce.mjs'
  * 
  * oauth2 discovery: https://datatracker.ietf.org/doc/html/rfc8414
  */
-
-const MustNotHave = (...options) => 
-	(value, root) => options.filter(o => root.hasOwnKey(o)).length == 0
 
 //FIXME: list valid algorithms per usecase, these are for JWK
 const validAlgorithms = [
@@ -63,9 +57,9 @@ export default function makeClient(options={}) {
 	let client = options.client.with(options.issuer)
 }
 
-async function fetchWellknownOauthAuthorizationServer(issuer)
+async function fetchWellknownOauthAuthorizationServer(issuer, client)
 {
-	let res = options.client.get(metro.url(issuer,'.wellknown/oauth_authorization_server'))
+	let res = client.get(metro.url(issuer,'.wellknown/oauth_authorization_server'))
 	if (res.ok) {
 		assert(res.headers.get('Content-Type'), /application\/json.*/)
 		let configuration = await res.json()

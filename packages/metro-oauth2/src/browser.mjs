@@ -1,9 +1,25 @@
-import * as oauth2 from './oauth2.mjs'
+import metro from '@muze-nl/metro'
+import oauth2mw, * as oauth2module from './oauth2.mjs'
 import * as oauth2mockserver from './oauth2.mockserver.mjs'
-import * as oauth2pkce from './oauth2.pkce.mjs'
-import * as oauth2discovery from './oauth2.discovery.mjs'
+import * as oauth2discover from './oauth2.discovery.mjs'
+import { authorizePopup, handleRedirect } from './oauth2.popup.mjs'
+import { tokenStore } from './tokenstore.mjs'
+import keysStore from './keysstore.mjs'
+import dpopmw from './oauth2.dpop.mjs'
 
-globalThis.oauth2 = oauth2
-globalThis.oauth2.mockserver = oauth2mockserver
-globalThis.oauth2.pkce = oauth2pkce
-globalThis.oauth2.discovery = oauth2discovery
+const oauth2 = Object.assign(oauth2module, {
+	oauth2mw,
+	mockserver: oauth2mockserver,
+	discover: oauth2discover,
+	tokenstore: tokenStore,
+	dpopmw,
+	keysstore: keysStore,
+	authorizePopup,
+	popupHandleRedirect: handleRedirect
+})
+
+if (!globalThis.metro.oauth2) {
+	globalThis.metro.oauth2 = oauth2
+}
+
+export default oauth2

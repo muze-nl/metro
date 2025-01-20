@@ -1,5 +1,5 @@
 import tap from 'tap'
-import * as metro from '@muze-nl/metro'
+import metro from '@muze-nl/metro'
 import oauth2mw from '../src/oauth2.mjs'
 import oauth2mockserver from '../src/oauth2.mockserver.mjs'
 
@@ -13,10 +13,13 @@ tap.test('start', async t => {
 
 tap.test('oauth2start', async t => {
 	const oauth2client = client.with(oauth2mw({
-		access_token: {
-			type: 'Bearer',
-			value: 'mockAccessToken'
+		oauth2_configuration: {
+			access_token: {
+				type: 'Bearer',
+				value: 'mockAccessToken'
+			},
 		},
+		authorize_callback: async (url) => 'mockAuthorizeToken',
 		force_authorization: true
 	}))
 
@@ -29,26 +32,25 @@ tap.test('oauth2start', async t => {
 
 tap.test('authorize', async t => {
 	const oauth2client = client.with(oauth2mw({
-		client: client, // with mock oauth2 middleware
-		client_id: 'mockClientId',
-		client_secret: 'mockClientSecret',
-		grant_type: 'authorization_code',
-		endpoints: {
-			authorize: '/authorize/',
-			token: '/token/'
+		client: client, // with mock oauth2 middleware,
+		oauth2_configuration: {
+			client_id: 'mockClientId',
+			client_secret: 'mockClientSecret',
+			grant_type: 'authorization_code',
+			authorize_endpoint: '/authorize/',
+			token_endpoint: '/token/'
 		},
-		callbacks: {
-			authorize: (url) => 'mockAuthorizeToken'
-		}
+		authorize_callback: async (url) => 'mockAuthorizeToken',
 	}))
 	let url = metro.url('/protected/')
-//	metro.trace.add('group', metro.trace.group())
-	metro.trace.add('group', {
-		request: req => console.log(req.url)
-	})
+	//metro.trace.add('group', metro.trace.group())
+	// metro.trace.add('group', {
+	// 	request: req => console.log(req.url)
+	// })
 	let res = await oauth2client.get(url)
-		t.ok(res.ok)
-	let json = await res.json()
+	t.ok(res.ok)
+	let text = await res.text()
+	let json = JSON.parse(text) //await res.json()
 	t.equal(json.result,'Success')
 	t.end()
 })
