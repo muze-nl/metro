@@ -30,7 +30,7 @@ It will then configure the correct OAuth2 settings and handle the request with [
 
 metro.oidc uses OAuth2.1 by default, including PKCE and DPoP. The Keypair used in DPoP is created non-extractable, so they cannot be leaked. This means that the access_token and refresh_token, even if leaked, cannot be used anywhere else.
 
-You can disable PCKE by setting `options.client_info.code_verifier` to false.
+You can disable PKCE by setting `options.client_info.code_verifier` to false.
 You can disable DPoP by setting `options.use_dpop` to false.
 
 [project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
