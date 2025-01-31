@@ -148,5 +148,11 @@ export function isRedirected() {
 }
 
 export function idToken(options) {
+	if (!options.store) {
+		if (!options.issuer) {
+			throw metro.metroError('Must supply options.issuer or options.store to get the id_token')
+		}
+		options.store = oidcStore(options.issuer)
+	}
 	return options.store.get('id_token')
 }
