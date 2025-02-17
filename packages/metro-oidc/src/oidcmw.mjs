@@ -76,6 +76,7 @@ export default function oidcmw(options={}) {
 		// now initialize an oauth2 client stack, using options.client as default
 		// with forceAuthentication: true
 		const scope = options.scope || 'openid'
+
 		const oauth2Options = Object.assign(
 			{
 				site: options.issuer,
@@ -91,7 +92,7 @@ export default function oidcmw(options={}) {
 					authorization_endpoint: options.openid_configuration.authorization_endpoint,
 					token_endpoint: options.openid_configuration.token_endpoint,
 					scope, //FIXME: should only use scopes supported by server
-					redirect_uri: options.client_info.redirect_uris[0] //FIXME: find the best match?
+					redirect_uri: options.client_info.redirect_uris[0]
 				}
 			}
 			//...
