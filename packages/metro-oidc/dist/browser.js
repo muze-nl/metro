@@ -1772,7 +1772,7 @@
   }
 
   // node_modules/@muze-nl/metro-oauth2/src/browser.mjs
-  var oauth2 = Object.assign(oauth2_exports, {
+  var oauth2 = Object.assign({}, oauth2_exports, {
     oauth2mw,
     mockserver: oauth2_mockserver_exports,
     discover: oauth2_discovery_exports,
@@ -2038,7 +2038,6 @@
             scope,
             //FIXME: should only use scopes supported by server
             redirect_uri: options.client_info.redirect_uris[0]
-            //FIXME: find the best match?
           }
         }
         //...

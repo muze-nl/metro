@@ -49,6 +49,6 @@
   "dependencies": {
     "@muze-nl/assert": "^0.3.3",
     "@muze-nl/metro": "^0.6.5",
-    "@muze-nl/metro-oauth2": "^0.5.4"
+    "@muze-nl/metro-oauth2": "^0.5.5"
   }
 }
