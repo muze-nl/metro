@@ -5,10 +5,10 @@
 The OpenID Connect middleware allows you to configure a [metro client](https://github.com/muze-nl/metro) to handle authorization and authentication using OpenID Connect:
 
 ```javascript
-import oidcmw from '@muze-nl/metro-oidc'
+import oidc from '@muze-nl/metro-oidc'
 
 const client = metro.client('https://oauth2api.example.com')
-.with( oidcmw({
+.with( oidc.oidcmw({
 	client_info: {
 		client_name: 'My Client',
 		redirect_uris: [
@@ -22,6 +22,8 @@ async function fetchMovies() {
 	return await client.get('https://example.solidcommunity.net/movies/')
 }
 ````
+
+_Note_: If your client has more than 1 possible `redirect_uri`, all will be used to register that client, but the first one will be used for this session. So make sure to put the `redirect_uri` you want to use now at `redirect_uris[0]``.
 
 The OIDC middleware will automatically discover the configuration of the issuer, as well as do a dynamic client registration, if you haven't set a `client_info.client_id`.
 It will then configure the correct OAuth2 settings and handle the request with [metro oauth2](https://github.com/muze-nl/metro-oauth2) middleware. It may redirect the browser to let the user login with the OIDC issuer. You can skip the automatic configuration step, if you provide the `openid_configuration` parameter set yourself. If you don't, the oidcmw middleware will only run the discovery process once, and store the information in localStorage. The same with the client_info and dynamic registration.
