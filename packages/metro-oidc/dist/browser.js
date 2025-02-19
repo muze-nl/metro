@@ -1093,12 +1093,12 @@
         search.response_mode = oauth22.response_mode;
       }
       options.state.set(search.state);
-      if (oauth22.client_secret) {
-        search.client_secret = oauth22.client_secret;
-      }
       if (oauth22.code_verifier) {
+        options.tokens.set("code_verifier", oauth22.code_verifier);
         search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
         search.code_challenge_method = "S256";
+      } else if (oauth22.client_secret) {
+        search.client_secret = oauth22.client_secret;
       }
       if (oauth22.scope) {
         search.scope = oauth22.scope;
@@ -1121,10 +1121,10 @@
         grant_type: grant_type || oauth22.grant_type,
         client_id: oauth22.client_id
       };
-      if (oauth22.code_verifier) {
-        params2.code_verifier = oauth22.code_verifier;
-      }
-      if (oauth22.client_secret) {
+      const code_verifier = options.tokens.get("code_verifier");
+      if (code_verifier) {
+        params2.code_verifier = code_verifier;
+      } else if (oauth22.client_secret) {
         params2.client_secret = oauth22.client_secret;
       }
       if (oauth22.scope) {
@@ -1167,9 +1167,15 @@
     throw new TypeError("Unknown expires type " + duration);
   }
   function generateCodeVerifier(size = 64) {
-    const code_verifier = new Uint8Array(size);
-    globalThis.crypto.getRandomValues(code_verifier);
-    return base64url_encode(code_verifier);
+    size = Math.min(43, Math.max(128, size));
+    const allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    const random = new Uint8Array(size);
+    globalThis.crypto.getRandomValues(random);
+    const code_verifier = Array.from(random).map((b) => {
+      let c = allowed[b % allowed.length];
+      return c;
+    }).join("");
+    return code_verifier;
   }
   async function generateCodeChallenge(code_verifier) {
     const encoder2 = new TextEncoder();
@@ -2042,6 +2048,12 @@
         }
         //...
       );
+      const pkceSupported = options.openid_configuration.code_challenge_methods_supported.length;
+      if (pkceSupported) {
+        delete oauth2Options.oauth2_configuration.client_secret;
+      } else {
+        oauth2Options.oauth2_configuration.code_verifier = false;
+      }
       const storeIdToken = async (req2, next2) => {
         const res2 = await next2(req2);
         const contentType = res2.headers.get("content-type");
