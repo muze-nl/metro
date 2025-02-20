@@ -1097,7 +1097,8 @@
         options.tokens.set("code_verifier", oauth22.code_verifier);
         search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
         search.code_challenge_method = "S256";
-      } else if (oauth22.client_secret) {
+      }
+      if (oauth22.client_secret) {
         search.client_secret = oauth22.client_secret;
       }
       if (oauth22.scope) {
@@ -1124,7 +1125,8 @@
       const code_verifier = options.tokens.get("code_verifier");
       if (code_verifier) {
         params2.code_verifier = code_verifier;
-      } else if (oauth22.client_secret) {
+      }
+      if (oauth22.client_secret) {
         params2.client_secret = oauth22.client_secret;
       }
       if (oauth22.scope) {
@@ -2048,12 +2050,6 @@
         }
         //...
       );
-      const pkceSupported = options.openid_configuration.code_challenge_methods_supported.length;
-      if (pkceSupported) {
-        delete oauth2Options.oauth2_configuration.client_secret;
-      } else {
-        oauth2Options.oauth2_configuration.code_verifier = false;
-      }
       const storeIdToken = async (req2, next2) => {
         const res2 = await next2(req2);
         const contentType = res2.headers.get("content-type");
