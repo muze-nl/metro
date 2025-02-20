@@ -97,13 +97,6 @@ export default function oidcmw(options={}) {
 			}
 			//...
 		)
-
-		const pkceSupported = options.openid_configuration.code_challenge_methods_supported.length
-		if (pkceSupported) {
-			delete oauth2Options.oauth2_configuration.client_secret
-		} else {
-			oauth2Options.oauth2_configuration.code_verifier = false
-		}
 		
 		const storeIdToken = async (req, next) => {
 			const res = await next(req)
