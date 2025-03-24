@@ -3,7 +3,7 @@
 # Generic Hugo configuration.
 # For a full list of options see: https://gohugo.io/configuration/all/
 # ------------------------------------------------------------------------------
-baseURL: 'https://muze-nl.github.io/metro/'
+baseURL: 'https://metro.muze.nl/'
 disableHugoGeneratorInject: true
 ignorefiles:
   - 'go.*'

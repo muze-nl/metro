@@ -12,8 +12,15 @@ You can add middleware to a client using the client() function directly, or by c
 import jsonmw from '@muze-nl/metro/src/mw/jsonmw'
 const client = metro.client( jsonmw() )
 ```
+With @muze-nl/metro, you get these middleware modules:
+- [json](./json.md)
+- [thrower](./thrower.md)
+- [echo mock](./echomock.md)
+- [error mock](./errormock.md)
 
-See the [middleware documentation](./middleware/) for a list of default middleware available with MetroJS. In addition, there is a seperate package [@muze-nl/metro-oauth2](https://github.com/muze-nl/metro-oauth2/) that implements an OAuth2 client as metro middleware.
+In addition there are a few separate middleware libraries:
+- [@muze-nl/metro-oauth2](https://github.com/muze-nl/metro-oauth2/)
+- [@muze-nl/metro-oidc](https://github.com/muze-nl/metro-oidc/)
 
 ## Creating middleware
 
