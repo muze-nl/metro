@@ -1,0 +1,51 @@
+---
+name: Deploy Hugo site to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/github-pages.yaml'
+      - 'docs/**'
+  # Allow manually triggering the workflow.
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+permissions:
+  # Required for requesting a OIDC JWT, see https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect
+  id-token: write
+  # pages to trigger a GitHub Pages build
+  pages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+        id: pages
+      - name: Build with Hugo
+        uses: docker://hugomods/hugo:std-go-git
+        with:
+          args: >-
+            sh -c "cd docs; hugo mod init 'github.com/muze-nl/metro' && hugo mod get -u && hugo --gc --minify --baseURL '${{ steps.pages.outputs.base_url }}/'"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/public
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment

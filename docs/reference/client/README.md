@@ -1,3 +1,6 @@
+---
+title: 'Client'
+---
 # Client
 
 ```
@@ -6,9 +9,9 @@ metro.client(...options) : Client
 
 Returns a new client, with a default request object built out of the options passed. Later option values in the parameter list override earlier values.
 
-You can pass any option that would be valid for the default [Request constructor](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request). You can also provide a [metro request](../request/README.md) as option. Any option specified will result in all subsequent HTTP calls having those options by default. You can still override them.
+You can pass any option that would be valid for the default [Request constructor](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request). You can also provide a [metro request](../request/) as option. Any option specified will result in all subsequent HTTP calls having those options by default. You can still override them.
 
-Where [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/fetch) uses the first parameter to specify the URL, you can use any position in the parameters for `metro.client()` to pass a URL. Either by using the [`metro.url()`](../url/README.md) function to create a specific URL object, or the browsers default [`URL()`](https://developer.mozilla.org/en-US/docs/Web/API/URL) class, or a [Location](https://developer.mozilla.org/en-US/docs/Web/API/Location) object, like `document.location`. Or by just using a string. Any string that is passed as an option is assumed to be a URL. 
+Where [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/fetch) uses the first parameter to specify the URL, you can use any position in the parameters for `metro.client()` to pass a URL. Either by using the [`metro.url()`](../url.md) function to create a specific URL object, or the browsers default [`URL()`](https://developer.mozilla.org/en-US/docs/Web/API/URL) class, or a [Location](https://developer.mozilla.org/en-US/docs/Web/API/Location) object, like `document.location`. Or by just using a string. Any string that is passed as an option is assumed to be a URL. 
 
 ## with
 
@@ -28,7 +31,7 @@ In addition you can also add a middleware function with this signature:
 async (req, next) => Response
 ```
 
-Where `req` is a [metro request](../request/README.md), which is a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) for the default [Request class](https://developer.mozilla.org/en-US/docs/Web/API/Request). See below. `next` is an asynchronous function that takes a request and returns a Promise\<Response>. You must call this function yourself in your middleware function. Here is an example that just adds an authorization header to each request:
+Where `req` is a [metro request](../request/), which is a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) for the default [Request class](https://developer.mozilla.org/en-US/docs/Web/API/Request). See below. `next` is an asynchronous function that takes a request and returns a Promise\<Response>. You must call this function yourself in your middleware function. Here is an example that just adds an authorization header to each request:
 
 ```javascript
 const client = metro.client(async (req,next) => {

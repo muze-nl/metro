@@ -1,10 +1,13 @@
+---
+title: 'client.get'
+---
 # client.get
 
 ```
 client.get(...options) : Promise<Response>
 ```
 
-This method is available by default, but can be disable. The `get()` method will start a `HTTP GET` request, using [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/fetch), with the given options. It will return a [Promise]()https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise which resolves in a [Response](../response/README.md) on success.
+This method is available by default, but can be disable. The `get()` method will start a `HTTP GET` request, using [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/fetch), with the given options. It will return a [Promise]()https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise which resolves in a [Response](../response/) on success.
 
 This method is fully backwards compatible with the `fetch()` method, except the HTTP method is fixed to `GET`.
 

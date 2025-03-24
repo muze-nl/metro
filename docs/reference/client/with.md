@@ -1,3 +1,6 @@
+---
+title: 'client.with'
+---
 # client.with
 
 ```

@@ -1,3 +1,6 @@
+---
+title: 'Tracers'
+---
 # Metro Tracers
 
 Tracers allow you to look under the hood and see what is going on in each middleware function. Every time a middleware function is called, the client checks if any tracers are set. If so, the request tracer is called before the middleware function, and the response tracer is called after the middleware function.

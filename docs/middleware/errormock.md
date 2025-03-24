@@ -1,3 +1,6 @@
+---
+title: 'Error Mock Middleware'
+---
 # Error Mock Middleware
 
 The `errormw` middleware is a mock middleware. It doesn't actually call `fetch()`, instead it returns a fake response immediately. If you ask for a url with a pathname that is equal to a HTTP 400 or 500 errorcode, it will return a Response with that status code and message.

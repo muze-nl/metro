@@ -1,0 +1,14 @@
+/* Avoid title being shown twice */
+h1 + h1 {
+    display: none;
+}
+
+/* Hide the "Built with Hugo" link */
+p:has(a[href="https://gohugo.io/"]) {
+    display: none;
+}
+
+/* Hide duplicate menu items */
+[data-nav-id*="/readme/index.html"] {
+    display: none;
+}

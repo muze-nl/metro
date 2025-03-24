@@ -1,3 +1,6 @@
+---
+title: 'metro.fetch: incorrect options parameter'
+---
 # metro.fetch: incorrect options parameter
 
 The `metro.fetch()` function has two parameters:

@@ -1,3 +1,7 @@
+---
+title: 'Tutorial'
+weight: 2
+---
 # MetroJS Tutorial
 
 ## Getting Started
@@ -159,7 +163,7 @@ async function postData(data) {
 
 ## CORS Requests
 
-Just like Fetch, Metro automatically uses CORS mode if you send a request to a different domain. But if you need more than basic CORS, you can use all the options available in the [Fetch API]():
+Just like Fetch, Metro automatically uses CORS mode if you send a request to a different domain. But if you need more than basic CORS, you can use all the options available in the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API):
 
 ```javascript
 const client = metro.client('https://example.com')

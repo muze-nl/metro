@@ -1,3 +1,6 @@
+---
+title: 'metro.trace.add'
+---
 # metro.trace.add
 
 ```

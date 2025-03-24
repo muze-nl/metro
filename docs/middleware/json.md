@@ -1,3 +1,6 @@
+---
+title: 'JSON middleware'
+---
 # JSON middleware
 
 The `jsonmw()` middleware allows you to automatically parse and stringify javascript data when sending or receiving data.

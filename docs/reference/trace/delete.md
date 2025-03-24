@@ -1,3 +1,6 @@
+---
+title: 'metro.trace.delete'
+---
 # metro.trace.delete
 
 ```

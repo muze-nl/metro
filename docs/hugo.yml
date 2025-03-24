@@ -1,0 +1,83 @@
+---
+# ==============================================================================
+# Generic Hugo configuration.
+# For a full list of options see: https://gohugo.io/configuration/all/
+# ------------------------------------------------------------------------------
+baseURL: 'https://muze-nl.github.io/metro/'
+disableHugoGeneratorInject: true
+ignorefiles:
+  - 'go.*'
+  - 'hugo.yml'
+  - 'public/*'
+languageCode: 'en-us'
+title: 'MetroJS'
+# ==============================================================================
+
+# ==============================================================================
+# Markup configuration.
+# For a full list of options see: https://gohugo.io/configuration/markup/
+# ------------------------------------------------------------------------------
+markup:
+  goldmark:
+    renderer:
+      # Allow HTML in Markdown to be rendered as-is
+      unsafe: true
+# ==============================================================================
+
+# ==============================================================================
+# Module configuration.
+# For a full list of options see: https://gohugo.io/configuration/module/
+# ------------------------------------------------------------------------------
+module:
+  imports:
+    - path: github.com/McShelby/hugo-theme-relearn
+  mounts:
+    # Mount the docs/ directory as content root
+    - excludeFiles:
+        - 'go.*'
+        - 'hugo.yml'
+        - 'public/.*'
+      source: './'
+      target: 'content/'
+    # Load custom CSS
+    - source: '_/custom.css'
+      target: 'assets/css/custom.css'
+    # Use the img/ directory for Hugo image too
+    - source: 'img/'
+      target: 'content/reference/img/'
+    # Use the introduction.md file as the homepage
+    - source: 'introduction.md'
+      target: 'content/_index.md'
+    # Add pages to create sections in the sidebar
+    # This also makes it possible to define menu order using "weight"
+    - source: 'details/README.md'
+      target: 'content/details/_index.md'
+    - source: 'middleware/README.md'
+      target: 'content/middleware/_index.md'
+    - source: 'reference/README.md'
+      target: 'content/reference/_index.md'
+    - source: 'reference/client/README.md'
+      target: 'content/reference/client/_index.md'
+    - source: 'reference/request/README.md'
+      target: 'content/reference/request/_index.md'
+    - source: 'reference/response/README.md'
+      target: 'content/reference/response/_index.md'
+    - source: 'reference/trace/README.md'
+      target: 'content/reference/trace/_index.md'
+# ==============================================================================
+
+# ==============================================================================
+# Theme Specific configuration.For a full list of options see:
+# https://mcshelby.github.io/hugo-theme-relearn/configuration/reference/
+# ------------------------------------------------------------------------------
+params:
+  alwaysopen: false
+  collapsibleMenu: true
+  disableGeneratorVersion: true
+  disableInlineCopyToClipBoard: true
+  disableLandingPageButton: true
+  themeVariant:
+    - 'auto'
+    - 'zen-dark'
+    - 'zen-light'
+# ==============================================================================

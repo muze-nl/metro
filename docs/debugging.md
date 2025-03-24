@@ -1,3 +1,7 @@
+---
+title: 'Debugging'
+weight: 4
+---
 # Debugging
 
 ## Introduction
@@ -33,4 +37,3 @@ There is a default tracer method included with MetroJS, called metro.trace.group
 ```javascript
 metro.trace.add('group', metro.trace.group())
 ```
-

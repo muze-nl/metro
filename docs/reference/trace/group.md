@@ -1,3 +1,6 @@
+---
+title: 'metro.trace.group'
+---
 # metro.trace.group
 
 ```

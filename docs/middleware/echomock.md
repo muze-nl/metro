@@ -1,3 +1,6 @@
+---
+title: 'Echo Middleware'
+---
 # Echo Middleware
 
 The `echomw` middleware is a mock middleware. It doesn't actually call `fetch()`, instead it copies the incoming request directly to a response. It doesn't call `next()`, so any other middleware is skipped.

@@ -1,3 +1,6 @@
+---
+title: 'Invalid Middlewares Value'
+---
 # Invalid Middlewares Value
 
 This error occurs if you mis-configure the MetroJS client when adding one or more middleware modules.

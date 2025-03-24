@@ -1,3 +1,6 @@
+---
+title: 'Formdata'
+---
 # metro.formdata
 
 ```
@@ -14,4 +17,3 @@ let body = metro.formdata({
   ]
 })
 ```
-

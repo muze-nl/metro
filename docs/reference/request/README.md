@@ -1,3 +1,6 @@
+---
+title: 'Request'
+---
 # metro.request
 
 ```
@@ -8,7 +11,7 @@ Returns a new request, built out of the options passed. Later option values over
 
 You can add any valid property of [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request) to an option. 
 
-If you enter a string as option, it will always be interpreted as a URL. Just like a [metro.url](../url/README.md) or [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) or [Location](https://developer.mozilla.org/en-US/docs/Web/API/Location) object. e.g.:
+If you enter a string as option, it will always be interpreted as a URL. Just like a [metro.url](../url.md) or [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) or [Location](https://developer.mozilla.org/en-US/docs/Web/API/Location) object. e.g.:
 
 ```javascript
 let req = metro.request('https://example.com/')
