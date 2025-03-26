@@ -69,5 +69,5 @@ This will result in a client with only the `get()` and `post()` methods. Any wor
 - [put](./put.md)
 - [delete](./delete.md)
 - [patch](./patch.md)
-- [options](.options.md)
+- [options](./options.md)
 - [query](./query.md)
