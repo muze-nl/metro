@@ -1,6 +1,10 @@
-# MetroJS: HTTPS Client with middleware
-
+[![GitHub License](https://img.shields.io/github/license/muze-nl/metro)](https://github.com/muze-nl/metro/blob/main/LICENSE)
+[![GitHub package.json version](https://img.shields.io/github/package-json/v/muze-nl/metro)]()
+[![NPM Version](https://img.shields.io/npm/v/@muze-nl/metro)](https://www.npmjs.com/package/@muze-nl/metro)
+[![npm bundle size](https://img.shields.io/bundlephobia/min/@muze-nl/metro)](https://www.npmjs.com/package/@muze-nl/metro)
 [![Project stage: Experimental][project-stage-badge: Experimental]][project-stage-page]
+
+# MetroJS: HTTPS Client with middleware
 
 ```javascript
 import * as metro from '@muze-nl/metro'
@@ -24,6 +28,17 @@ const client = metro.client({
   return res.with({ body })
 })
 ```
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Quickstart](docs/quickstart.md)
+3. [Usage](#usage)
+4. [Middleware](#middleware)
+5. [Documentation](docs/) - See also [metro.muze.nl](https://metro.muze.nl/)
+6. [Contributions](CONTIBRUTING.md)
+7. [License](#license)
+
+<a name="introduction"></a>
+## Introduction
 
 MetroJS is an HTTPS client with support for middleware. Similar to [ExpressJS](https://expressjs.com/), but for the client.
 
@@ -47,7 +62,8 @@ Both metro.request() and metro.response() are compatible with the normal Request
 and Response objects, used by the Fetch API. Any code that works with those, will work
 with the request and response objects in MetroJS.
 
-## Install / Usage
+<a name="usage"></a>
+## Usage
 
 ```bash
 npm install @muze-nl/metro
@@ -75,6 +91,7 @@ async function main() {
 }
 ```
 
+<a name="middleware"></a>
 ## Using middleware
 A middleware is a function with `(request, next)` as parameters, returning a `response`.
 Both request and response adhere to the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
@@ -99,60 +116,13 @@ async function myMiddleware(req,next) {
 Both request and response have a `with` function. This allows you to create a new request or response, from 
 the existing one, with one or more options added or changed. The original request or response is not changed.
 
-## Existing middleware
+[Read more about middleware](docs/middleware/)
 
-With @muze-nl/metro, you get these middleware modules:
-- [json](./docs/middleware/json.md)
-- [thrower](./docs/middleware/thrower.md)
-- [echo mock](./docs/middleware/echomock.md)
-- [error mock](./docs/middleware/errormock.md)
+<a name="license"></a>
+## License
 
-In addition work is ongoing on these separate middleware libraries:
-- [@muze-nl/metro-oauth2](https://github.com/muze-nl/metro-oauth2/)
-- [@muze-nl/metro-oidc](https://github.com/muze-nl/metro-oidc/)
+This software is licensed under MIT open source license. See the [License](./LICENSE) file.
 
-## Debugging
-
-Middleware is powerful, but can also be difficult to debug. For this reason MetroJS adds a trace feature. This 
-allows you to add a request and response tracer function, which is called before and after each middleware call:
-
-```javascript
-const client = metro.client()
-metro.trace.add('mytracer', {
-  request: (req) => {
-    console.log('request',req)
-  },
-  response: (res) => {
-    console.log('response',res)
-  }
-})
-```
-
-There is a default trace function that shows the call request/response in a nested fashion:
-
-```javascript
-metro.trace.add('group', metro.trace.group())
-```
-
-## Creating middleware
-
-You can just create a async function with `(req,next) => res` as its signature. But often it is important
-to be able to set options specific for that middleware. The best way to do this is to create a module like
-so:
-
-```javascript
-export default function myMiddleware(options)
-{
-  return async (req,next) => {
-    // alter request, using options
-    let res = await next(req)
-    // alter response, using options
-    return res
-  }
-}
-```
-
-See for example the [jsonmw](src/mw/json.mjs) middleware.
 
 [project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
 [project-stage-page]: https://blog.pother.ca/project-stages/
