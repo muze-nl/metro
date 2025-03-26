@@ -34,7 +34,7 @@ const client = metro.client({
 3. [Usage](#usage)
 4. [Middleware](#middleware)
 5. [Documentation](docs/) - See also [metro.muze.nl](https://metro.muze.nl/)
-6. [Contributions](CONTIBRUTING.md)
+6. [Contributions](CONTRIBUTING.md)
 7. [License](#license)
 
 <a name="introduction"></a>
