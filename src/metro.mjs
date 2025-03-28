@@ -27,7 +27,7 @@ if (!Symbol.metroSource) {
  * @method query
  * @method fetch
  */
-class Client
+export class Client
 {
 	#options = {
 		url: typeof window != 'undefined' ? window.location : 'https://localhost'
