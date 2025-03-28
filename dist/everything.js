@@ -8,6 +8,7 @@
   // src/metro.mjs
   var metro_exports = {};
   __export(metro_exports, {
+    Client: () => Client,
     client: () => client,
     formdata: () => formdata,
     metroError: () => metroError,
