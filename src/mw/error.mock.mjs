@@ -65,8 +65,8 @@ const status = {
 	'/511/': 'Network Authentication Required'
 }
 
-export default function errorMock(options) {
-	return (req, next) => {
+export default function errormw(options) {
+	return async function error(req, next) {
 		let url = metro.url(req.url)
 		if (status[url.pathname]) {
 			let error = {

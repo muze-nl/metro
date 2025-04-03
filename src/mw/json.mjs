@@ -8,7 +8,7 @@ export default function jsonmw(options) {
 		space: ''
 	}, options)
 
-	return async (req, next) => {
+	return async function json(req, next) {
 		if (!isJSON(req.headers.get('Accept'))) {
 			req = req.with({
 				headers: {

@@ -1,8 +1,8 @@
 import * as metro from '../metro.mjs'
 
-export default function thrower(options) {
+export default function throwermw(options) {
 
-	return async (req, next) => {
+	return async function thrower(req, next) {
 		let res = await next(req)
 		if (!res.ok) {
 			if (options && typeof options[res.status] == 'function') {

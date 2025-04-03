@@ -1,7 +1,7 @@
 import * as metro from '../metro.mjs'
 
 export default function echomw() {
-	return async (req, next) => {
+	return async function echo(req, next) {
 		let options = {
 			status: 200,
 			statusText: 'OK',
