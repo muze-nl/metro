@@ -29,10 +29,10 @@ if (!Symbol.metroSource) {
  */
 export class Client
 {
-	#options = {
-		url: typeof window != 'undefined' ? window.location : 'https://localhost'
+	clientOptions = {
+		url: typeof window != 'undefined' ? window.location : 'https://localhost',
+		verbs: ['get','post','put','delete','patch','head','options','query']
 	}
-	#verbs = ['get','post','put','delete','patch','head','options','query']
 
 	static tracers = {}
 
@@ -50,9 +50,7 @@ export class Client
 	{
 		for (let option of options) {
 			if (typeof option == 'string' || option instanceof String) {
-				this.#options.url = ''+option
-			} else if (option instanceof Client) {
-				Object.assign(this.#options, option.#options)
+				this.clientOptions.url = ''+option
 			} else if (option instanceof Function) {
 				this.#addMiddlewares([option])
 			} else if (option && typeof option == 'object') {
@@ -60,28 +58,23 @@ export class Client
 					if (param == 'middlewares') {
 						this.#addMiddlewares(option[param])
 					} else if (typeof option[param] == 'function') {
-						this.#options[param] = option[param](this.#options[param], this.#options)
+						this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions)
 					} else {
-						this.#options[param] = option[param]
+						this.clientOptions[param] = option[param]
 					}
 				}
 			}
 		}
-		if (this.#options.verbs) {
-			this.#verbs = this.#options.verbs
-			delete this.#options.verbs
-		}
 
-		for (const verb of this.#verbs) {
+		for (const verb of this.clientOptions.verbs) {
 			this[verb] = async function(...options) {
 				return this.fetch(request(
-					this.#options,
+					this.clientOptions,
 					...options,
 					{method: verb.toUpperCase()}
 				))
 			}
 		}
-		Object.freeze(this)
 	}
 
 	#addMiddlewares(middlewares)
@@ -94,10 +87,10 @@ export class Client
 			throw metroError('metro.client: middlewares must be a function or an array of functions '
 				+metroURL+'client/invalid-middlewares/', middlewares[index])
 		}
-		if (!Array.isArray(this.#options.middlewares)) {
-			this.#options.middlewares = []
+		if (!Array.isArray(this.clientOptions.middlewares)) {
+			this.clientOptions.middlewares = []
 		}
-		this.#options.middlewares = this.#options.middlewares.concat(middlewares)
+		this.clientOptions.middlewares = this.clientOptions.middlewares.concat(middlewares)
 	}
 
 	/**
@@ -131,8 +124,8 @@ export class Client
 			return response(res)
 		}
 		
-		let middlewares = [metrofetch].concat(this.#options?.middlewares?.slice() || [])
-		options = Object.assign({}, this.#options, options)
+		let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || [])
+		options = Object.assign({}, this.clientOptions, options)
 		//@TODO: do this once in constructor?
 		let next
 		for (let middleware of middlewares) {
@@ -159,7 +152,7 @@ export class Client
 	}
 
 	with(...options) {
-		return new Client(this, ...options)
+		return new Client(deepClone(this.clientOptions), ...options)
 	}
 }
 
@@ -170,7 +163,7 @@ export class Client
  */
 export function client(...options)
 {
-	return new Client(...options)
+	return new Client(...deepClone(options))
 }
 
 function appendHeaders(r, headers)
@@ -685,4 +678,22 @@ export const trace = {
 			}
 		}
 	}
+}
+
+export function deepClone(object) {
+	if (Array.isArray(object)) {
+		return object.slice().map(deepClone)
+	}
+	if (object && typeof object==='object') {
+		if (object.__proto__.constructor==Object || !object.__proto__) { // plain objects
+			let result = Object.assign({}, object)
+			Object.keys(result).forEach(key => {
+				result[key] = deepClone(object[key])
+			})
+			return result
+		} else {
+			return object // don't clone custom classes or functions
+		}
+	}
+	return object
 }
