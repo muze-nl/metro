@@ -10,6 +10,7 @@
   __export(metro_exports, {
     Client: () => Client,
     client: () => client,
+    deepClone: () => deepClone,
     formdata: () => formdata,
     metroError: () => metroError,
     request: () => request,
@@ -25,10 +26,10 @@
     Symbol.metroSource = Symbol("source");
   }
   var Client = class _Client {
-    #options = {
-      url: typeof window != "undefined" ? window.location : "https://localhost"
+    clientOptions = {
+      url: typeof window != "undefined" ? window.location : "https://localhost",
+      verbs: ["get", "post", "put", "delete", "patch", "head", "options", "query"]
     };
-    #verbs = ["get", "post", "put", "delete", "patch", "head", "options", "query"];
     static tracers = {};
     /**
      * @typedef {Object} ClientOptions
@@ -43,9 +44,7 @@
     constructor(...options) {
       for (let option of options) {
         if (typeof option == "string" || option instanceof String) {
-          this.#options.url = "" + option;
-        } else if (option instanceof _Client) {
-          Object.assign(this.#options, option.#options);
+          this.clientOptions.url = "" + option;
         } else if (option instanceof Function) {
           this.#addMiddlewares([option]);
         } else if (option && typeof option == "object") {
@@ -53,27 +52,22 @@
             if (param == "middlewares") {
               this.#addMiddlewares(option[param]);
             } else if (typeof option[param] == "function") {
-              this.#options[param] = option[param](this.#options[param], this.#options);
+              this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions);
             } else {
-              this.#options[param] = option[param];
+              this.clientOptions[param] = option[param];
             }
           }
         }
       }
-      if (this.#options.verbs) {
-        this.#verbs = this.#options.verbs;
-        delete this.#options.verbs;
-      }
-      for (const verb of this.#verbs) {
+      for (const verb of this.clientOptions.verbs) {
         this[verb] = async function(...options2) {
           return this.fetch(request(
-            this.#options,
+            this.clientOptions,
             ...options2,
             { method: verb.toUpperCase() }
           ));
         };
       }
-      Object.freeze(this);
     }
     #addMiddlewares(middlewares) {
       if (typeof middlewares == "function") {
@@ -83,10 +77,10 @@
       if (index >= 0) {
         throw metroError("metro.client: middlewares must be a function or an array of functions " + metroURL + "client/invalid-middlewares/", middlewares[index]);
       }
-      if (!Array.isArray(this.#options.middlewares)) {
-        this.#options.middlewares = [];
+      if (!Array.isArray(this.clientOptions.middlewares)) {
+        this.clientOptions.middlewares = [];
       }
-      this.#options.middlewares = this.#options.middlewares.concat(middlewares);
+      this.clientOptions.middlewares = this.clientOptions.middlewares.concat(middlewares);
     }
     /**
      * Mimics the standard browser fetch method, but uses any middleware installed through
@@ -113,8 +107,8 @@
         const res = await fetch(req2);
         return response(res);
       };
-      let middlewares = [metrofetch].concat(this.#options?.middlewares?.slice() || []);
-      options = Object.assign({}, this.#options, options);
+      let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || []);
+      options = Object.assign({}, this.clientOptions, options);
       let next;
       for (let middleware of middlewares) {
         next = /* @__PURE__ */ function(next2, middleware2) {
@@ -139,11 +133,11 @@
       return next(req);
     }
     with(...options) {
-      return new _Client(this, ...options);
+      return new _Client(deepClone(this.clientOptions), ...options);
     }
   };
   function client(...options) {
-    return new Client(...options);
+    return new Client(...deepClone(options));
   }
   function getRequestParams(req, current) {
     let params = current || {};
@@ -537,6 +531,23 @@
       };
     }
   };
+  function deepClone(object) {
+    if (Array.isArray(object)) {
+      return object.slice().map(deepClone);
+    }
+    if (object && typeof object === "object") {
+      if (object.__proto__.constructor == Object || !object.__proto__) {
+        let result = Object.assign({}, object);
+        Object.keys(result).forEach((key) => {
+          result[key] = deepClone(object[key]);
+        });
+        return result;
+      } else {
+        return object;
+      }
+    }
+    return object;
+  }
 
   // src/mw/json.mjs
   function jsonmw(options) {
@@ -546,7 +557,7 @@
       replacer: null,
       space: ""
     }, options);
-    return async (req, next) => {
+    return async function json(req, next) {
       if (!isJSON(req.headers.get("Accept"))) {
         req = req.with({
           headers: {
@@ -573,9 +584,9 @@
         let tempRes = res.clone();
         let body = await tempRes.text();
         try {
-          let json = JSON.parse(body, options.reviver);
+          let json2 = JSON.parse(body, options.reviver);
           return res.with({
-            body: json
+            body: json2
           });
         } catch (e) {
         }
@@ -589,8 +600,8 @@
   }
 
   // src/mw/thrower.mjs
-  function thrower(options) {
-    return async (req, next) => {
+  function throwermw(options) {
+    return async function thrower(req, next) {
       let res = await next(req);
       if (!res.ok) {
         if (options && typeof options[res.status] == "function") {
@@ -609,7 +620,7 @@
   var metro = Object.assign({}, metro_exports, {
     mw: {
       jsonmw,
-      thrower
+      thrower: throwermw
     }
   });
   if (!globalThis.metro) {
