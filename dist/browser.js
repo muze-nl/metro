@@ -394,6 +394,7 @@
     Object.freeze(u);
     return new Proxy(u, {
       get(target, prop, receiver) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
             return true;
@@ -411,6 +412,31 @@
             break;
           case "folderpath":
             return target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
+            break;
+          case "authority":
+            result = target.username ?? "";
+            result += target.password ? ":" + target.password : "";
+            result += result ? "@" : "";
+            result += target.hostname;
+            result += target.port ? ":" + target.port : "";
+            result += "/";
+            result = target.protocol + "//" + result;
+            return result;
+            break;
+          case "origin":
+            result = target.protocol + "//" + target.hostname;
+            result += target.port ? ":" + target.port : "";
+            result += "/";
+            return result;
+            break;
+          case "fragment":
+            return target.hash.substring(1);
+            break;
+          case "scheme":
+            if (target.protocol) {
+              return target.protocol.substring(0, target.protocol.length - 1);
+            }
+            return "";
             break;
         }
         if (target[prop] instanceof Function) {
