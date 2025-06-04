@@ -8,7 +8,9 @@
   // node_modules/@muze-nl/metro/src/metro.mjs
   var metro_exports = {};
   __export(metro_exports, {
+    Client: () => Client,
     client: () => client,
+    deepClone: () => deepClone,
     formdata: () => formdata,
     metroError: () => metroError,
     request: () => request,
@@ -24,10 +26,10 @@
     Symbol.metroSource = Symbol("source");
   }
   var Client = class _Client {
-    #options = {
-      url: typeof window != "undefined" ? window.location : "https://localhost"
+    clientOptions = {
+      url: typeof window != "undefined" ? window.location : "https://localhost",
+      verbs: ["get", "post", "put", "delete", "patch", "head", "options", "query"]
     };
-    #verbs = ["get", "post", "put", "delete", "patch", "head", "options", "query"];
     static tracers = {};
     /**
      * @typedef {Object} ClientOptions
@@ -42,9 +44,7 @@
     constructor(...options) {
       for (let option of options) {
         if (typeof option == "string" || option instanceof String) {
-          this.#options.url = "" + option;
-        } else if (option instanceof _Client) {
-          Object.assign(this.#options, option.#options);
+          this.clientOptions.url = "" + option;
         } else if (option instanceof Function) {
           this.#addMiddlewares([option]);
         } else if (option && typeof option == "object") {
@@ -52,27 +52,22 @@
             if (param == "middlewares") {
               this.#addMiddlewares(option[param]);
             } else if (typeof option[param] == "function") {
-              this.#options[param] = option[param](this.#options[param], this.#options);
+              this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions);
             } else {
-              this.#options[param] = option[param];
+              this.clientOptions[param] = option[param];
             }
           }
         }
       }
-      if (this.#options.verbs) {
-        this.#verbs = this.#options.verbs;
-        delete this.#options.verbs;
-      }
-      for (const verb of this.#verbs) {
+      for (const verb of this.clientOptions.verbs) {
         this[verb] = async function(...options2) {
           return this.fetch(request(
-            this.#options,
+            this.clientOptions,
             ...options2,
             { method: verb.toUpperCase() }
           ));
         };
       }
-      Object.freeze(this);
     }
     #addMiddlewares(middlewares) {
       if (typeof middlewares == "function") {
@@ -80,12 +75,12 @@
       }
       let index = middlewares.findIndex((m) => typeof m != "function");
       if (index >= 0) {
-        throw metroError("metro.client: middlewares must be a function or an array of functions " + metroURL + "client/invalid-middlewares-value/", middlewares[index]);
+        throw metroError("metro.client: middlewares must be a function or an array of functions " + metroURL + "client/invalid-middlewares/", middlewares[index]);
       }
-      if (!Array.isArray(this.#options.middlewares)) {
-        this.#options.middlewares = [];
+      if (!Array.isArray(this.clientOptions.middlewares)) {
+        this.clientOptions.middlewares = [];
       }
-      this.#options.middlewares = this.#options.middlewares.concat(middlewares);
+      this.clientOptions.middlewares = this.clientOptions.middlewares.concat(middlewares);
     }
     /**
      * Mimics the standard browser fetch method, but uses any middleware installed through
@@ -97,13 +92,13 @@
     fetch(req, options) {
       req = request(req, options);
       if (!req.url) {
-        throw metroError("metro.client." + req.method.toLowerCase() + ": Missing url parameter " + metroURL + "client/missing-url-param/", req);
+        throw metroError("metro.client." + req.method.toLowerCase() + ": Missing url parameter " + metroURL + "client/fetch-missing-url/", req);
       }
       if (!options) {
         options = {};
       }
-      if (!(typeof options === "object") || Array.isArray(options) || options instanceof String) {
-        throw metroError("metro.client.fetch: Options is not an object");
+      if (!(typeof options === "object") || options instanceof String) {
+        throw metroError("metro.client.fetch: Invalid options parameter " + metroURL + "client/fetch-invalid-options/", options);
       }
       const metrofetch = async function browserFetch(req2) {
         if (req2[Symbol.metroProxy]) {
@@ -112,8 +107,8 @@
         const res = await fetch(req2);
         return response(res);
       };
-      let middlewares = [metrofetch].concat(this.#options?.middlewares?.slice() || []);
-      options = Object.assign({}, this.#options, options);
+      let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || []);
+      options = Object.assign({}, this.clientOptions, options);
       let next;
       for (let middleware of middlewares) {
         next = /* @__PURE__ */ function(next2, middleware2) {
@@ -138,11 +133,11 @@
       return next(req);
     }
     with(...options) {
-      return new _Client(this, ...options);
+      return new _Client(deepClone(this.clientOptions), ...options);
     }
   };
   function client(...options) {
-    return new Client(...options);
+    return new Client(...deepClone(options));
   }
   function getRequestParams(req, current) {
     let params2 = current || {};
@@ -210,13 +205,16 @@
         Object.assign(requestParams, getRequestParams(option, requestParams));
       }
     }
+    let r = new Request(requestParams.url, requestParams);
     let data = requestParams.body;
     if (data) {
       if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof TypedArray == "undefined" || !(data instanceof TypedArray))) {
-        requestParams.body = JSON.stringify(data);
+        if (typeof data.toString == "function") {
+          requestParams.body = data.toString({ headers: r.headers });
+          r = new Request(requestParams.url, requestParams);
+        }
       }
     }
-    let r = new Request(requestParams.url, requestParams);
     Object.freeze(r);
     return new Proxy(r, {
       get(target, prop, receiver) {
@@ -234,8 +232,6 @@
               }
               return request(target, ...options2);
             };
-            break;
-          case "body":
             break;
           case "data":
             return data;
@@ -296,6 +292,9 @@
     let data = void 0;
     if (responseParams.body) {
       data = responseParams.body;
+    }
+    if ([101, 204, 205, 304].includes(responseParams.status)) {
+      responseParams.body = null;
     }
     let r = new Response(responseParams.body, responseParams);
     Object.freeze(r);
@@ -361,27 +360,31 @@
         appendSearchParams(u, option);
       } else if (option && typeof option == "object") {
         for (let param in option) {
-          if (param == "search") {
-            if (typeof option.search == "function") {
-              option.search(u.search, u);
-            } else {
-              u.search = new URLSearchParams(option.search);
-            }
-          } else if (param == "searchParams") {
-            appendSearchParams(u, option.searchParams);
-          } else {
-            if (!validParams.includes(param)) {
-              throw metroError("metro.url: unknown url parameter " + metroURL + "url/unknown-param-name/", param);
-            }
-            if (typeof option[param] == "function") {
-              option[param](u[param], u);
-            } else if (typeof option[param] == "string" || option[param] instanceof String || typeof option[param] == "number" || option[param] instanceof Number || typeof option[param] == "boolean" || option[param] instanceof Boolean) {
-              u[param] = "" + option[param];
-            } else if (typeof option[param] == "object" && option[param].toString) {
-              u[param] = option[param].toString();
-            } else {
-              throw metroError("metro.url: unsupported value for " + param + " " + metroURL + "url/unsupported-param-value/", options[param]);
-            }
+          switch (param) {
+            case "search":
+              if (typeof option.search == "function") {
+                option.search(u.search, u);
+              } else {
+                u.search = new URLSearchParams(option.search);
+              }
+              break;
+            case "searchParams":
+              appendSearchParams(u, option.searchParams);
+              break;
+            default:
+              if (!validParams.includes(param)) {
+                throw metroError("metro.url: unknown url parameter " + metroURL + "url/unknown-param-name/", param);
+              }
+              if (typeof option[param] == "function") {
+                option[param](u[param], u);
+              } else if (typeof option[param] == "string" || option[param] instanceof String || typeof option[param] == "number" || option[param] instanceof Number || typeof option[param] == "boolean" || option[param] instanceof Boolean) {
+                u[param] = "" + option[param];
+              } else if (typeof option[param] == "object" && option[param].toString) {
+                u[param] = option[param].toString();
+              } else {
+                throw metroError("metro.url: unsupported value for " + param + " " + metroURL + "url/unsupported-param-value/", options[param]);
+              }
+              break;
           }
         }
       } else {
@@ -391,6 +394,7 @@
     Object.freeze(u);
     return new Proxy(u, {
       get(target, prop, receiver) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
             return true;
@@ -403,6 +407,37 @@
               return url(target, ...options2);
             };
             break;
+          case "filename":
+            return target.pathname.split("/").pop();
+            break;
+          case "folderpath":
+            return target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
+            break;
+          case "authority":
+            result = target.username ?? "";
+            result += target.password ? ":" + target.password : "";
+            result += result ? "@" : "";
+            result += target.hostname;
+            result += target.port ? ":" + target.port : "";
+            result += "/";
+            result = target.protocol + "//" + result;
+            return result;
+            break;
+          case "origin":
+            result = target.protocol + "//" + target.hostname;
+            result += target.port ? ":" + target.port : "";
+            result += "/";
+            return result;
+            break;
+          case "fragment":
+            return target.hash.substring(1);
+            break;
+          case "scheme":
+            if (target.protocol) {
+              return target.protocol.substring(0, target.protocol.length - 1);
+            }
+            return "";
+            break;
         }
         if (target[prop] instanceof Function) {
           return target[prop].bind(target);
@@ -414,6 +449,9 @@
   function formdata(...options) {
     var params2 = new FormData();
     for (let option of options) {
+      if (option instanceof HTMLFormElement) {
+        option = new FormData(option);
+      }
       if (option instanceof FormData) {
         for (let entry of option.entries()) {
           params2.append(entry[0], entry[1]);
@@ -429,7 +467,7 @@
           }
         }
       } else {
-        throw new metroError("metro.formdata: unknown option type, only FormData or Object supported", option);
+        throw new metroError("metro.formdata: unknown option type " + metroURL + "formdata/unknown-option-value/", option);
       }
     }
     Object.freeze(params2);
@@ -516,6 +554,23 @@
       };
     }
   };
+  function deepClone(object) {
+    if (Array.isArray(object)) {
+      return object.slice().map(deepClone);
+    }
+    if (object && typeof object === "object") {
+      if (object.__proto__.constructor == Object || !object.__proto__) {
+        let result = Object.assign({}, object);
+        Object.keys(result).forEach((key) => {
+          result[key] = deepClone(object[key]);
+        });
+        return result;
+      } else {
+        return object;
+      }
+    }
+    return object;
+  }
 
   // node_modules/@muze-nl/metro/src/mw/json.mjs
   function jsonmw(options) {
@@ -525,7 +580,7 @@
       replacer: null,
       space: ""
     }, options);
-    return async (req, next) => {
+    return async function json(req, next) {
       if (!isJSON(req.headers.get("Accept"))) {
         req = req.with({
           headers: {
@@ -552,9 +607,9 @@
         let tempRes = res.clone();
         let body = await tempRes.text();
         try {
-          let json = JSON.parse(body, options.reviver);
+          let json2 = JSON.parse(body, options.reviver);
           return res.with({
-            body: json
+            body: json2
           });
         } catch (e) {
         }
@@ -568,8 +623,8 @@
   }
 
   // node_modules/@muze-nl/metro/src/mw/thrower.mjs
-  function thrower(options) {
-    return async (req, next) => {
+  function throwermw(options) {
+    return async function thrower(req, next) {
       let res = await next(req);
       if (!res.ok) {
         if (options && typeof options[res.status] == "function") {
@@ -588,7 +643,7 @@
   var metro = Object.assign({}, metro_exports, {
     mw: {
       jsonmw,
-      thrower
+      thrower: throwermw
     }
   });
   if (!globalThis.metro) {
@@ -644,7 +699,7 @@
   function Recommended(pattern) {
     return function _Recommended(data, root, path) {
       if (data == null || typeof data == "undefined") {
-        console.warn("data does not contain recommended value", data, pattern, path);
+        warn("data does not contain recommended value", data, pattern, path);
         return false;
       } else {
         return fails(data, pattern, root, path);
@@ -761,8 +816,8 @@
             problems = problems.concat(result);
           }
         } else {
-          for (const [wKey, wVal] of Object.entries(pattern)) {
-            let result = fails(data[wKey], wVal, root, path + "." + wKey);
+          for (const [patternKey, subpattern] of Object.entries(pattern)) {
+            let result = fails(data[patternKey], subpattern, root, path + "." + patternKey);
             if (result) {
               problems = problems.concat(result);
             }
@@ -781,15 +836,18 @@
   }
   function error2(message, found, expected, path, problems) {
     let result = {
+      path,
       message,
       found,
-      expected,
-      path
+      expected
     };
     if (problems) {
       result.problems = problems;
     }
     return result;
+  }
+  function warn(message, data, pattern, path) {
+    console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
   }
 
   // src/tokenstore.mjs
