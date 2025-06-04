@@ -8,7 +8,9 @@
   // node_modules/@muze-nl/metro/src/metro.mjs
   var metro_exports = {};
   __export(metro_exports, {
+    Client: () => Client,
     client: () => client,
+    deepClone: () => deepClone,
     formdata: () => formdata,
     metroError: () => metroError,
     request: () => request,
@@ -24,10 +26,10 @@
     Symbol.metroSource = Symbol("source");
   }
   var Client = class _Client {
-    #options = {
-      url: typeof window != "undefined" ? window.location : "https://localhost"
+    clientOptions = {
+      url: typeof window != "undefined" ? window.location : "https://localhost",
+      verbs: ["get", "post", "put", "delete", "patch", "head", "options", "query"]
     };
-    #verbs = ["get", "post", "put", "delete", "patch", "head", "options", "query"];
     static tracers = {};
     /**
      * @typedef {Object} ClientOptions
@@ -42,9 +44,7 @@
     constructor(...options) {
       for (let option of options) {
         if (typeof option == "string" || option instanceof String) {
-          this.#options.url = "" + option;
-        } else if (option instanceof _Client) {
-          Object.assign(this.#options, option.#options);
+          this.clientOptions.url = "" + option;
         } else if (option instanceof Function) {
           this.#addMiddlewares([option]);
         } else if (option && typeof option == "object") {
@@ -52,27 +52,22 @@
             if (param == "middlewares") {
               this.#addMiddlewares(option[param]);
             } else if (typeof option[param] == "function") {
-              this.#options[param] = option[param](this.#options[param], this.#options);
+              this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions);
             } else {
-              this.#options[param] = option[param];
+              this.clientOptions[param] = option[param];
             }
           }
         }
       }
-      if (this.#options.verbs) {
-        this.#verbs = this.#options.verbs;
-        delete this.#options.verbs;
-      }
-      for (const verb of this.#verbs) {
+      for (const verb of this.clientOptions.verbs) {
         this[verb] = async function(...options2) {
           return this.fetch(request(
-            this.#options,
+            this.clientOptions,
             ...options2,
             { method: verb.toUpperCase() }
           ));
         };
       }
-      Object.freeze(this);
     }
     #addMiddlewares(middlewares) {
       if (typeof middlewares == "function") {
@@ -82,10 +77,10 @@
       if (index >= 0) {
         throw metroError("metro.client: middlewares must be a function or an array of functions " + metroURL + "client/invalid-middlewares/", middlewares[index]);
       }
-      if (!Array.isArray(this.#options.middlewares)) {
-        this.#options.middlewares = [];
+      if (!Array.isArray(this.clientOptions.middlewares)) {
+        this.clientOptions.middlewares = [];
       }
-      this.#options.middlewares = this.#options.middlewares.concat(middlewares);
+      this.clientOptions.middlewares = this.clientOptions.middlewares.concat(middlewares);
     }
     /**
      * Mimics the standard browser fetch method, but uses any middleware installed through
@@ -112,8 +107,8 @@
         const res = await fetch(req2);
         return response(res);
       };
-      let middlewares = [metrofetch].concat(this.#options?.middlewares?.slice() || []);
-      options = Object.assign({}, this.#options, options);
+      let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || []);
+      options = Object.assign({}, this.clientOptions, options);
       let next;
       for (let middleware of middlewares) {
         next = /* @__PURE__ */ function(next2, middleware2) {
@@ -138,11 +133,11 @@
       return next(req);
     }
     with(...options) {
-      return new _Client(this, ...options);
+      return new _Client(deepClone(this.clientOptions), ...options);
     }
   };
   function client(...options) {
-    return new Client(...options);
+    return new Client(...deepClone(options));
   }
   function getRequestParams(req, current) {
     let params2 = current || {};
@@ -399,6 +394,7 @@
     Object.freeze(u);
     return new Proxy(u, {
       get(target, prop, receiver) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
             return true;
@@ -416,6 +412,31 @@
             break;
           case "folderpath":
             return target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
+            break;
+          case "authority":
+            result = target.username ?? "";
+            result += target.password ? ":" + target.password : "";
+            result += result ? "@" : "";
+            result += target.hostname;
+            result += target.port ? ":" + target.port : "";
+            result += "/";
+            result = target.protocol + "//" + result;
+            return result;
+            break;
+          case "origin":
+            result = target.protocol + "//" + target.hostname;
+            result += target.port ? ":" + target.port : "";
+            result += "/";
+            return result;
+            break;
+          case "fragment":
+            return target.hash.substring(1);
+            break;
+          case "scheme":
+            if (target.protocol) {
+              return target.protocol.substring(0, target.protocol.length - 1);
+            }
+            return "";
             break;
         }
         if (target[prop] instanceof Function) {
@@ -536,6 +557,23 @@
       };
     }
   };
+  function deepClone(object) {
+    if (Array.isArray(object)) {
+      return object.slice().map(deepClone);
+    }
+    if (object && typeof object === "object") {
+      if (object.__proto__.constructor == Object || !object.__proto__) {
+        let result = Object.assign({}, object);
+        Object.keys(result).forEach((key) => {
+          result[key] = deepClone(object[key]);
+        });
+        return result;
+      } else {
+        return object;
+      }
+    }
+    return object;
+  }
 
   // node_modules/@muze-nl/metro/src/mw/json.mjs
   function jsonmw(options) {
@@ -545,7 +583,7 @@
       replacer: null,
       space: ""
     }, options);
-    return async (req, next) => {
+    return async function json(req, next) {
       if (!isJSON(req.headers.get("Accept"))) {
         req = req.with({
           headers: {
@@ -572,9 +610,9 @@
         let tempRes = res.clone();
         let body = await tempRes.text();
         try {
-          let json = JSON.parse(body, options.reviver);
+          let json2 = JSON.parse(body, options.reviver);
           return res.with({
-            body: json
+            body: json2
           });
         } catch (e) {
         }
@@ -588,8 +626,8 @@
   }
 
   // node_modules/@muze-nl/metro/src/mw/thrower.mjs
-  function thrower(options) {
-    return async (req, next) => {
+  function throwermw(options) {
+    return async function thrower(req, next) {
       let res = await next(req);
       if (!res.ok) {
         if (options && typeof options[res.status] == "function") {
@@ -608,27 +646,13 @@
   var metro = Object.assign({}, metro_exports, {
     mw: {
       jsonmw,
-      thrower
+      thrower: throwermw
     }
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
   }
   var everything_default = metro;
-
-  // node_modules/@muze-nl/metro-oauth2/src/oauth2.mjs
-  var oauth2_exports = {};
-  __export(oauth2_exports, {
-    base64url_encode: () => base64url_encode,
-    createState: () => createState,
-    default: () => oauth2mw,
-    generateCodeChallenge: () => generateCodeChallenge,
-    generateCodeVerifier: () => generateCodeVerifier,
-    getExpires: () => getExpires,
-    isAuthorized: () => isAuthorized,
-    isExpired: () => isExpired,
-    isRedirected: () => isRedirected
-  });
 
   // node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
@@ -653,7 +677,7 @@
   function Required(pattern) {
     return function _Required(data, root, path) {
       if (data == null || typeof data == "undefined") {
-        return error2("data is required", data, pattern || "any value", path);
+        return error("data is required", data, pattern || "any value", path);
       } else if (typeof pattern != "undefined") {
         return fails(data, pattern, root, path);
       } else {
@@ -664,7 +688,7 @@
   function Recommended(pattern) {
     return function _Recommended(data, root, path) {
       if (data == null || typeof data == "undefined") {
-        console.warn("data does not contain recommended value", data, pattern, path);
+        warn("data does not contain recommended value", data, pattern, path);
         return false;
       } else {
         return fails(data, pattern, root, path);
@@ -678,17 +702,17 @@
           return false;
         }
       }
-      return error2("data does not match oneOf patterns", data, patterns, path);
+      return error("data does not match oneOf patterns", data, patterns, path);
     };
   }
   function anyOf(...patterns) {
     return function _anyOf(data, root, path) {
       if (!Array.isArray(data)) {
-        return error2("data is not an array", data, "anyOf", path);
+        return error("data is not an array", data, "anyOf", path);
       }
       for (let value of data) {
         if (oneOf(...patterns)(value)) {
-          return error2("data does not match anyOf patterns", value, patterns, path);
+          return error("data does not match anyOf patterns", value, patterns, path);
         }
       }
       return false;
@@ -702,7 +726,7 @@
       }
       problems = problems.filter(Boolean);
       if (problems.length) {
-        return error2("data does not match all given patterns", data, patterns, path, problems);
+        return error("data does not match all given patterns", data, patterns, path, problems);
       }
     };
   }
@@ -714,29 +738,29 @@
       let url2 = new URL(data);
       if (url2.href != data) {
         if (!(url2.href + "/" == data || url2.href == data + "/")) {
-          return error2("data is not a valid url", data, "validURL", path);
+          return error("data is not a valid url", data, "validURL", path);
         }
       }
     } catch (e) {
-      return error2("data is not a valid url", data, "validURL", path);
+      return error("data is not a valid url", data, "validURL", path);
     }
   }
   function validEmail(data, root, path) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
-      return error2("data is not a valid email", data, "validEmail", path);
+      return error("data is not a valid email", data, "validEmail", path);
     }
   }
   function instanceOf(constructor) {
     return function _instanceOf(data, root, path) {
       if (!(data instanceof constructor)) {
-        return error2("data is not an instanceof pattern", data, constructor, path);
+        return error("data is not an instanceof pattern", data, constructor, path);
       }
     };
   }
   function not(pattern) {
     return function _not(data, root, path) {
       if (!fails(data, pattern, root, path)) {
-        return error2("data matches pattern, when required not to", data, pattern, path);
+        return error("data matches pattern, when required not to", data, pattern, path);
       }
     };
   }
@@ -747,29 +771,29 @@
     let problems = [];
     if (pattern === Boolean) {
       if (typeof data != "boolean" && !(data instanceof Boolean)) {
-        problems.push(error2("data is not a boolean", data, pattern, path));
+        problems.push(error("data is not a boolean", data, pattern, path));
       }
     } else if (pattern === Number) {
       if (typeof data != "number" && !(data instanceof Number)) {
-        problems.push(error2("data is not a number", data, pattern, path));
+        problems.push(error("data is not a number", data, pattern, path));
       }
     } else if (pattern === String) {
       if (typeof data != "string" && !(data instanceof String)) {
-        problems.push(error2("data is not a string", data, pattern, path));
+        problems.push(error("data is not a string", data, pattern, path));
       }
       if (data == "") {
-        problems.push(error2("data is an empty string, which is not allowed", data, pattern, path));
+        problems.push(error("data is an empty string, which is not allowed", data, pattern, path));
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
         let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
       } else if (typeof data == "undefined") {
-        problems.push(error2("data is undefined, should match pattern", data, pattern, path));
+        problems.push(error("data is undefined, should match pattern", data, pattern, path));
       } else if (!pattern.test(data)) {
-        problems.push(error2("data does not match pattern", data, pattern, path));
+        problems.push(error("data does not match pattern", data, pattern, path));
       }
     } else if (pattern instanceof Function) {
       let problem = pattern(data, root, path);
@@ -782,7 +806,7 @@
       }
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
-        problems.push(error2("data is not an array", data, [], path));
+        problems.push(error("data is not an array", data, [], path));
       }
       for (let p of pattern) {
         for (let index of data.keys()) {
@@ -798,10 +822,10 @@
       if (Array.isArray(data)) {
         let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
       } else if (!data || typeof data != "object") {
-        problems.push(error2("data is not an object, pattern is", data, pattern, path));
+        problems.push(error("data is not an object, pattern is", data, pattern, path));
       } else {
         if (data instanceof URLSearchParams) {
           data = Object.fromEntries(data);
@@ -812,8 +836,8 @@
             problems = problems.concat(result);
           }
         } else {
-          for (const [wKey, wVal] of Object.entries(pattern)) {
-            let result = fails(data[wKey], wVal, root, path + "." + wKey);
+          for (const [patternKey, subpattern] of Object.entries(pattern)) {
+            let result = fails(data[patternKey], subpattern, root, path + "." + patternKey);
             if (result) {
               problems = problems.concat(result);
             }
@@ -822,7 +846,7 @@
       }
     } else {
       if (pattern != data) {
-        problems.push(error2("data and pattern are not equal", data, pattern, path));
+        problems.push(error("data and pattern are not equal", data, pattern, path));
       }
     }
     if (problems.length) {
@@ -830,17 +854,20 @@
     }
     return false;
   }
-  function error2(message, found, expected, path, problems) {
+  function error(message, found, expected, path, problems) {
     let result = {
+      path,
       message,
       found,
-      expected,
-      path
+      expected
     };
     if (problems) {
       result.problems = problems;
     }
     return result;
+  }
+  function warn(message, data, pattern, path) {
+    console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
   }
 
   // node_modules/@muze-nl/metro-oauth2/src/tokenstore.mjs
@@ -893,9 +920,9 @@
       }
     };
     assert(options, {});
-    const oauth22 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
+    const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
-    options.oauth2_configuration = oauth22;
+    options.oauth2_configuration = oauth2;
     const store = tokenStore(options.site);
     if (!options.tokens) {
       options.tokens = store.tokens;
@@ -912,12 +939,12 @@
         redirect_uri: Required(validURL)
       }
     });
-    for (let option in oauth22) {
+    for (let option in oauth2) {
       switch (option) {
         case "access_token":
         case "authorization_code":
         case "refresh_token":
-          options.tokens.set(option, oauth22[option]);
+          options.tokens.set(option, oauth2[option]);
           break;
       }
     }
@@ -1012,7 +1039,7 @@
       }
     }
     async function fetchAccessToken() {
-      if (oauth22.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
+      if (oauth2.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
         let authReqURL = await getAuthorizationCodeURL();
         if (!options.authorize_callback || typeof options.authorize_callback !== "function") {
           throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.authorize_callback");
@@ -1069,11 +1096,11 @@
       return data;
     }
     async function getAuthorizationCodeURL() {
-      if (!oauth22.authorization_endpoint) {
+      if (!oauth2.authorization_endpoint) {
         throw metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = url(oauth22.authorization_endpoint, { hash: "" });
-      assert(oauth22, {
+      let url2 = url(oauth2.authorization_endpoint, { hash: "" });
+      assert(oauth2, {
         client_id: /.+/,
         redirect_uri: /.+/,
         scope: /.*/
@@ -1081,66 +1108,64 @@
       let search = {
         response_type: "code",
         // implicit flow uses 'token' here, but is not considered safe, so not supported
-        client_id: oauth22.client_id,
-        redirect_uri: oauth22.redirect_uri,
-        state: oauth22.state || createState(40)
+        client_id: oauth2.client_id,
+        redirect_uri: oauth2.redirect_uri,
+        state: oauth2.state || createState(40)
         // OAuth2.1 RFC says optional, but its a good idea to always add/check it
       };
-      if (oauth22.response_type) {
-        search.response_type = oauth22.response_type;
+      if (oauth2.response_type) {
+        search.response_type = oauth2.response_type;
       }
-      if (oauth22.response_mode) {
-        search.response_mode = oauth22.response_mode;
+      if (oauth2.response_mode) {
+        search.response_mode = oauth2.response_mode;
       }
       options.state.set(search.state);
-      if (oauth22.code_verifier) {
-        options.tokens.set("code_verifier", oauth22.code_verifier);
-        search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
+      if (oauth2.client_secret) {
+        search.client_secret = oauth2.client_secret;
+      }
+      if (oauth2.code_verifier) {
+        search.code_challenge = await generateCodeChallenge(oauth2.code_verifier);
         search.code_challenge_method = "S256";
       }
-      if (oauth22.client_secret) {
-        search.client_secret = oauth22.client_secret;
+      if (oauth2.scope) {
+        search.scope = oauth2.scope;
       }
-      if (oauth22.scope) {
-        search.scope = oauth22.scope;
-      }
-      if (oauth22.prompt) {
-        search.prompt = oauth22.prompt;
+      if (oauth2.prompt) {
+        search.prompt = oauth2.prompt;
       }
       return url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
-      assert(oauth22, {
+      assert(oauth2, {
         client_id: /.+/,
         redirect_uri: /.+/
       });
-      if (!oauth22.token_endpoint) {
+      if (!oauth2.token_endpoint) {
         throw metroError("oauth2mw: Missing options.endpoints.token url");
       }
-      let url2 = url(oauth22.token_endpoint, { hash: "" });
+      let url2 = url(oauth2.token_endpoint, { hash: "" });
       let params2 = {
-        grant_type: grant_type || oauth22.grant_type,
-        client_id: oauth22.client_id
+        grant_type: grant_type || oauth2.grant_type,
+        client_id: oauth2.client_id
       };
-      const code_verifier = options.tokens.get("code_verifier");
-      if (code_verifier) {
-        params2.code_verifier = code_verifier;
+      if (oauth2.code_verifier) {
+        params2.code_verifier = oauth2.code_verifier;
       }
-      if (oauth22.client_secret) {
-        params2.client_secret = oauth22.client_secret;
+      if (oauth2.client_secret) {
+        params2.client_secret = oauth2.client_secret;
       }
-      if (oauth22.scope) {
-        params2.scope = oauth22.scope;
+      if (oauth2.scope) {
+        params2.scope = oauth2.scope;
       }
-      switch (oauth22.grant_type) {
+      switch (oauth2.grant_type) {
         case "authorization_code":
-          params2.redirect_uri = oauth22.redirect_uri;
+          params2.redirect_uri = oauth2.redirect_uri;
           params2.code = options.tokens.get("authorization_code");
           break;
         case "client_credentials":
           break;
         case "refresh_token":
-          params2.refresh_token = oauth22.refresh_token;
+          params2.refresh_token = oauth2.refresh_token;
           break;
         default:
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
@@ -1169,15 +1194,9 @@
     throw new TypeError("Unknown expires type " + duration);
   }
   function generateCodeVerifier(size = 64) {
-    size = Math.min(43, Math.max(128, size));
-    const allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
-    const random = new Uint8Array(size);
-    globalThis.crypto.getRandomValues(random);
-    const code_verifier = Array.from(random).map((b) => {
-      let c = allowed[b % allowed.length];
-      return c;
-    }).join("");
-    return code_verifier;
+    const code_verifier = new Uint8Array(size);
+    globalThis.crypto.getRandomValues(code_verifier);
+    return base64url_encode(code_verifier);
   }
   async function generateCodeChallenge(code_verifier) {
     const encoder2 = new TextEncoder();
@@ -1213,280 +1232,17 @@
     }
     return true;
   }
-  function isAuthorized(tokens) {
-    if (typeof tokens == "string") {
-      tokens = tokenStore(tokens).tokens;
-    }
-    let accessToken = tokens.get("access_token");
-    if (accessToken && !isExpired(accessToken)) {
-      return true;
-    }
-    let refreshToken = tokens.get("refresh_token");
-    if (refreshToken) {
-      return true;
-    }
-    return false;
-  }
-
-  // node_modules/@muze-nl/metro-oauth2/src/oauth2.mockserver.mjs
-  var oauth2_mockserver_exports = {};
-  __export(oauth2_mockserver_exports, {
-    default: () => oauth2mockserver
-  });
-  var baseResponse = {
-    status: 200,
-    statusText: "OK",
-    headers: {
-      "Content-Type": "application/json"
-    }
-  };
-  var badRequest = (error4) => {
-    return {
-      status: 400,
-      statusText: "Bad Request",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        error: "invalid_request",
-        error_description: error4
-      })
-    };
-  };
-  var error3;
-  var pkce = {};
-  function oauth2mockserver(options = {}) {
-    const defaultOptions = {
-      "PKCE": false,
-      "DPoP": false
-    };
-    options = Object.assign({}, defaultOptions, options);
-    return async (req, next) => {
-      let url2 = everything_default.url(req.url);
-      switch (url2.pathname) {
-        case "/authorize/":
-          if (error3 = fails(url2.searchParams, {
-            response_type: "code",
-            client_id: "mockClientId",
-            state: Optional(/.*/)
-          })) {
-            return everything_default.response(badRequest(error3));
-          }
-          if (url2.searchParams.has("code_challenge")) {
-            if (!url2.searchParams.has("code_challenge_method")) {
-              return everything_default.response(badRequest("missing code_challenge_method"));
-            }
-            pkce.code_challenge = url2.searchParams.get("code_challenge");
-            pkce.code_challenge_method = url2.searchParams.get("code_challenge_method");
-          }
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              code: "mockAuthorizeToken",
-              state: url2.searchParams.get("state")
-            })
-          });
-          break;
-        case "/token/":
-          if (req.data instanceof URLSearchParams) {
-            let body = {};
-            req.data.forEach((value, key) => body[key] = value);
-            req = req.with({ body });
-          }
-          if (error3 = fails(req, {
-            method: "POST",
-            data: {
-              grant_type: oneOf("refresh_token", "authorization_code")
-            }
-          })) {
-            return everything_default.response(badRequest(error3));
-          }
-          switch (req.data.grant_type) {
-            case "refresh_token":
-              if (error3 = fails(req.data, oneOf({
-                refresh_token: "mockRefreshToken",
-                client_id: "mockClientId",
-                client_secret: "mockClientSecret"
-              }, {
-                refresh_token: "mockRefreshToken",
-                client_id: "mockClientId",
-                code_verifier: /.+/
-              }))) {
-                return everything_default.response(badRequest(error3));
-              }
-              break;
-            case "access_token":
-              if (error3 = fails(req.data, oneOf({
-                client_id: "mockClientId",
-                client_secret: "mockClientSecret"
-              }, {
-                client_id: "mockClientId",
-                code_challenge: /.*/,
-                //FIXME: check that this matches code_verifier
-                code_challenge_method: "S256"
-              }))) {
-                return everything_default.response(badRequest(error3));
-              }
-              break;
-          }
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              access_token: "mockAccessToken",
-              token_type: "mockExample",
-              expires_in: 3600,
-              refresh_token: "mockRefreshToken",
-              example_parameter: "mockExampleValue"
-            })
-          });
-          break;
-        case "/protected/":
-          let auth = req.headers.get("Authorization");
-          let [type, token] = auth ? auth.split(" ") : [];
-          if (!token || token !== "mockAccessToken") {
-            return everything_default.response({
-              status: 401,
-              statusText: "Forbidden",
-              body: "401 Forbidden"
-            });
-          }
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              result: "Success"
-            })
-          });
-          break;
-        case "/public/":
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              result: "Success"
-            })
-          });
-          break;
-        default:
-          return everything_default.response({
-            status: 404,
-            statusText: "not found",
-            body: "404 Not Found " + url2
-          });
-          break;
-      }
-    };
-  }
-
-  // node_modules/@muze-nl/metro-oauth2/src/oauth2.discovery.mjs
-  var oauth2_discovery_exports = {};
-  __export(oauth2_discovery_exports, {
-    default: () => makeClient
-  });
-  var validAlgorithms = [
-    "HS256",
-    "HS384",
-    "HS512",
-    "RS256",
-    "RS384",
-    "RS512",
-    "ES256",
-    "ES384",
-    "ES512"
-  ];
-  var validAuthMethods = [
-    "client_secret_post",
-    "client_secret_base",
-    "client_secret_jwt",
-    "private_key_jwt"
-  ];
-  var oauth_authorization_server_metadata = {
-    issuer: Required(validURL),
-    authorization_endpoint: Required(validURL),
-    token_endpoint: Required(validURL),
-    jwks_uri: Optional(validURL),
-    registration_endpoint: Optional(validURL),
-    scopes_supported: Recommended([]),
-    response_types_supported: Required(anyOf("code", "token")),
-    response_modes_supported: Optional([]),
-    grant_types_supported: Optional([]),
-    token_endpoint_auth_methods_supported: Optional([]),
-    token_endpoint_auth_signing_alg_values_supported: Optional([]),
-    service_documentation: Optional(validURL),
-    ui_locales_supported: Optional([]),
-    op_policy_uri: Optional(validURL),
-    op_tos_uri: Optional(validURL),
-    revocation_endpoint: Optional(validURL),
-    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
-    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
-    introspection_endpoint: Optional(validURL),
-    introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
-    introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
-    code_challendge_methods_supported: Optional([])
-  };
-  function makeClient(options = {}) {
-    const defaultOptions = {
-      client: everything_default.client()
-    };
-    options = Object.assign({}, defaultOptions, options);
-    assert(options, {
-      issuer: Required(validURL)
-    });
-    const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer);
-    let client2 = options.client.with(options.issuer);
-  }
-  async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
-    let res = client2.get(everything_default.url(issuer, ".wellknown/oauth_authorization_server"));
-    if (res.ok) {
-      assert(res.headers.get("Content-Type"), /application\/json.*/);
-      let configuration = await res.json();
-      assert(configuration, oauth_authorization_server_metadata);
-      return configuration;
-    }
-    throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
-  }
-
-  // node_modules/@muze-nl/metro-oauth2/src/oauth2.popup.mjs
-  function handleRedirect() {
-    let params2 = new URLSearchParams(window.location.search);
-    if (!params2.has("code") && window.location.hash) {
-      let query = window.location.hash.substr(1);
-      params2 = new URLSearchParams("?" + query);
-    }
-    let parent = window.parent ? window.parent : window.opener;
-    if (params2.has("code")) {
-      parent.postMessage({
-        authorization_code: params2.get("code")
-      }, window.location.origin);
-    } else if (params2.has("error")) {
-      parent.postMessage({
-        error
-      }, window.location.origin);
-    } else {
-      parent.postMessage({
-        error: "Could not find an authorization_code"
-      }, window.location.origin);
-    }
-  }
-  function authorizePopup(authorizationCodeURL) {
-    return new Promise((resolve, reject) => {
-      addEventListener("message", (evt) => {
-        if (event.data.authorization_code) {
-          resolve(event.data.authorization_code);
-        } else if (event.data.error) {
-          reject(event.data.error);
-        } else {
-          reject("Unknown authorization error");
-        }
-      }, { once: true });
-      window.open(authorizationCodeURL);
-    });
-  }
 
   // node_modules/@muze-nl/metro-oauth2/src/keysstore.mjs
   function keysStore() {
     return new Promise((resolve, reject) => {
       const request2 = globalThis.indexedDB.open("metro", 1);
       request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
-      request2.onerror = (event2) => {
-        reject(event2);
+      request2.onerror = (event) => {
+        reject(event);
       };
-      request2.onsuccess = (event2) => {
-        const db = event2.target.result;
+      request2.onsuccess = (event) => {
+        const db = event.target.result;
         resolve({
           set: function(value, key) {
             return new Promise((resolve2, reject2) => {
@@ -1779,33 +1535,18 @@
     };
   }
 
-  // node_modules/@muze-nl/metro-oauth2/src/browser.mjs
-  var oauth2 = Object.assign({}, oauth2_exports, {
-    oauth2mw,
-    mockserver: oauth2_mockserver_exports,
-    discover: oauth2_discovery_exports,
-    tokenstore: tokenStore,
-    dpopmw,
-    keysstore: keysStore,
-    authorizePopup,
-    popupHandleRedirect: handleRedirect
-  });
-  if (!globalThis.metro.oauth2) {
-    globalThis.metro.oauth2 = oauth2;
-  }
-
   // src/oidc.util.mjs
   var MustHave = (...options) => (value, root) => {
     if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
       return false;
     }
-    return error2("root data must have all of", root, options);
+    return error("root data must have all of", root, options);
   };
   var MustInclude = (...options) => (value) => {
     if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
       return false;
     } else {
-      return error2("data must be an array which includes", value, options);
+      return error("data must be an array which includes", value, options);
     }
   };
   var validJWA = [
@@ -1819,7 +1560,7 @@
     "ES384",
     "ES512"
   ];
-  var validAuthMethods2 = [
+  var validAuthMethods = [
     "client_secret_post",
     "client_secret_basic",
     "client_secret_jwt",
@@ -1833,7 +1574,7 @@
       issuer: Required(validURL)
     });
     const defaultOptions = {
-      client: everything_default.client().with(thrower()).with(jsonmw()),
+      client: everything_default.client().with(throwermw()).with(jsonmw()),
       requireDynamicRegistration: false
     };
     options = Object.assign({}, defaultOptions, options);
@@ -1865,7 +1606,7 @@
       // not testing for 'none'
       request_object_encryption_alg_values_supported: Optional([]),
       request_object_encryption_enc_values_supported: Optional([]),
-      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods2)),
+      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods)),
       token_endpoint_auth_signing_alg_values_supported: Optional(MustInclude("RS256"), not(MustInclude("none"))),
       display_values_supported: Optional(anyOf("page", "popup", "touch", "wap")),
       claim_types_supported: Optional(anyOf("normal", "aggregated", "distributed")),
@@ -1918,7 +1659,7 @@
       request_object_signing_alg: Optional(oneOf(...validJWA)),
       request_object_encryption_alg: Optional(oneOf(...validJWA)),
       request_object_encryption_enc: Optional(oneOf(...validJWA)),
-      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods2)),
+      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods)),
       token_endpoint_auth_signing_alg: Optional(oneOf(...validJWA)),
       default_max_age: Optional(Number),
       require_auth_time: Optional(Boolean),
@@ -1932,7 +1673,7 @@
       client_info: openid_client_metadata
     });
     const defaultOptions = {
-      client: everything_default.client().with(thrower()).with(jsonmw())
+      client: everything_default.client().with(throwermw()).with(jsonmw())
     };
     options = Object.assign({}, defaultOptions, options);
     let response2 = await options.client.post(options.registration_endpoint, {
@@ -2111,6 +1852,6 @@
   if (!globalThis.metro.oidc) {
     globalThis.metro.oidc = oidc;
   }
-  var browser_default2 = oidc;
+  var browser_default = oidc;
 })();
 //# sourceMappingURL=browser.js.map
