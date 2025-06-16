@@ -2,6 +2,7 @@ import tap from 'tap'
 import metro from '@muze-nl/metro'
 import oauth2mw from '../src/oauth2.mjs'
 import oauth2mockserver from '../src/oauth2.mockserver.mjs'
+import { generateCodeChallenge } from '../src/oauth2.mjs'
 
 let client = metro.client().with(oauth2mockserver())
 
@@ -53,4 +54,13 @@ tap.test('authorize', async t => {
 	let json = JSON.parse(text) //await res.json()
 	t.equal(json.result,'Success')
 	t.end()
+})
+
+tap.test('pkce', async t => {
+	const code_verifier = "cdZvUojBXlScjLcNBGOwCvNGh2tm8oeHM7-a9KKod4MmMYny7waTqzMybbECDZWjsJpctl5YbMwGVQZqwx7yHg"
+	const expected_code_challenge = "AO8-0vf7_QrAqD_sITyMmjggKHkJwu95c8zsqXCiwFI"
+	const code_challenge = await generateCodeChallenge(code_verifier)
+	t.same(expected_code_challenge, code_challenge)
+	t.end()
+
 })
