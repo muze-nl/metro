@@ -281,6 +281,7 @@ export default function oauth2mw(options)
 			search.client_secret = oauth2.client_secret
 		}
 		if (oauth2.code_verifier) { //PKCE
+			options.tokens.set('code_verifier', oauth2.code_verifier)
 			search.code_challenge = await generateCodeChallenge(oauth2.code_verifier)
 			search.code_challenge_method = 'S256'
 		}
@@ -312,8 +313,11 @@ export default function oauth2mw(options)
 			grant_type: grant_type || oauth2.grant_type,
 			client_id:  oauth2.client_id
 		}
-		if (oauth2.code_verifier) { //PKCE
-			params.code_verifier = oauth2.code_verifier
+		const code_verifier = options.tokens.get('code_verifier') //PKCE
+		// use previously stored code_verifier, not the current random generated one
+		// previously stored code_verifier is linked to the code_challenge already sent
+		if (code_verifier) {
+			params.code_verifier = code_verifier
 		}
 		if (oauth2.client_secret) {
 			params.client_secret = oauth2.client_secret
