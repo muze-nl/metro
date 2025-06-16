@@ -1124,6 +1124,7 @@
         search.client_secret = oauth2.client_secret;
       }
       if (oauth2.code_verifier) {
+        options.tokens.set("code_verifier", oauth2.code_verifier);
         search.code_challenge = await generateCodeChallenge(oauth2.code_verifier);
         search.code_challenge_method = "S256";
       }
@@ -1148,8 +1149,9 @@
         grant_type: grant_type || oauth2.grant_type,
         client_id: oauth2.client_id
       };
-      if (oauth2.code_verifier) {
-        params2.code_verifier = oauth2.code_verifier;
+      const code_verifier = options.tokens.get("code_verifier");
+      if (code_verifier) {
+        params2.code_verifier = code_verifier;
       }
       if (oauth2.client_secret) {
         params2.client_secret = oauth2.client_secret;
