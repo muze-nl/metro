@@ -111,8 +111,10 @@ export default function oauth2mw(options)
 	async function oauth2authorized(req, next)
 	{
 		getTokensFromLocation()
-		let accessToken = options.tokens.get('access_token')
-		if (!accessToken) {
+		const accessToken = options.tokens.get('access_token')
+		const refreshToken = options.tokens.get('refresh_token')
+		const tokenIsExpired = isExpired(accessToken)
+		if (!accessToken || (tokenIsExpired && !refreshToken)) {
 			try {
 				let token = await fetchAccessToken()
 				if (!token) {
@@ -123,9 +125,9 @@ export default function oauth2mw(options)
 				throw(e)
 			}
 			return oauth2authorized(req, next)
-		} else if (isExpired(accessToken)) {
+		} else if (tokenIsExpired && refreshToken) {
 			try {
-				let token = await fetchRefreshToken()
+				let token = await refreshAccessToken()
 				if (!token) {
 					return metro.response('false')
 				}
@@ -217,6 +219,7 @@ export default function oauth2mw(options)
 			}
 			options.tokens.set('refresh_token', token)
 		}
+		options.tokens.delete('authorization_code') // no longer valid
 		return data
 	}
 
@@ -225,7 +228,7 @@ export default function oauth2mw(options)
 	 * If a new refresh_token is also returned, it will update the stored refresh_token
 	 * OAuth2.1 RFC 4.3
 	 */
-	async function fetchRefreshToken()
+	async function refreshAccessToken()
 	{
 		let refreshTokenReq = getAccessTokenRequest('refresh_token')
 		let response = await options.client.post(refreshTokenReq)
@@ -319,7 +322,7 @@ export default function oauth2mw(options)
 		if (oauth2.scope) {
 			params.scope = oauth2.scope
 		}
-		switch(oauth2.grant_type) {
+		switch(params.grant_type) {
 			case 'authorization_code':
 				params.redirect_uri = oauth2.redirect_uri
 				params.code = options.tokens.get('authorization_code')
