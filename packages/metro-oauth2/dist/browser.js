@@ -857,19 +857,22 @@
       localState = {
         get: () => localStorage.getItem("metro/state:" + site),
         set: (value) => localStorage.setItem("metro/state:" + site, value),
-        has: () => localStorage.getItem("metro/state:" + site) !== null
+        has: () => localStorage.getItem("metro/state:" + site) !== null,
+        delete: () => localStorage.remoteItem("metro/state:" + site)
       };
       localTokens = {
         get: (name) => JSON.parse(localStorage.getItem(site + ":" + name)),
         set: (name, value) => localStorage.setItem(site + ":" + name, JSON.stringify(value)),
-        has: (name) => localStorage.getItem(site + ":" + name) !== null
+        has: (name) => localStorage.getItem(site + ":" + name) !== null,
+        delete: (name) => localStorage.removeItem(site + ":" + name)
       };
     } else {
       let stateMap = /* @__PURE__ */ new Map();
       localState = {
         get: () => stateMap.get("metro/state:" + site),
         set: (value) => stateMap.set("metro/state:" + site, value),
-        has: () => stateMap.has("metro/state:" + site)
+        has: () => stateMap.has("metro/state:" + site),
+        delete: () => stateMap.delete("metro/state:" + site)
       };
       localTokens = /* @__PURE__ */ new Map();
     }
@@ -959,8 +962,10 @@
     };
     async function oauth2authorized(req, next) {
       getTokensFromLocation();
-      let accessToken = options.tokens.get("access_token");
-      if (!accessToken) {
+      const accessToken = options.tokens.get("access_token");
+      const refreshToken = options.tokens.get("refresh_token");
+      const tokenIsExpired = isExpired(accessToken);
+      if (!accessToken || tokenIsExpired && !refreshToken) {
         try {
           let token = await fetchAccessToken();
           if (!token) {
@@ -970,9 +975,9 @@
           throw e;
         }
         return oauth2authorized(req, next);
-      } else if (isExpired(accessToken)) {
+      } else if (tokenIsExpired && refreshToken) {
         try {
-          let token = await fetchRefreshToken();
+          let token = await refreshAccessToken();
           if (!token) {
             return response("false");
           }
@@ -1048,9 +1053,10 @@
         };
         options.tokens.set("refresh_token", token);
       }
+      options.tokens.delete("authorization_code");
       return data;
     }
-    async function fetchRefreshToken() {
+    async function refreshAccessToken() {
       let refreshTokenReq = getAccessTokenRequest("refresh_token");
       let response2 = await options.client.post(refreshTokenReq);
       if (!response2.ok) {
@@ -1127,20 +1133,20 @@
         grant_type: grant_type || oauth22.grant_type,
         client_id: oauth22.client_id
       };
-      const code_verifier = options.tokens.get("code_verifier");
-      if (code_verifier) {
-        params2.code_verifier = code_verifier;
-      }
       if (oauth22.client_secret) {
         params2.client_secret = oauth22.client_secret;
       }
       if (oauth22.scope) {
         params2.scope = oauth22.scope;
       }
-      switch (oauth22.grant_type) {
+      switch (params2.grant_type) {
         case "authorization_code":
           params2.redirect_uri = oauth22.redirect_uri;
           params2.code = options.tokens.get("authorization_code");
+          const code_verifier = options.tokens.get("code_verifier");
+          if (code_verifier) {
+            params2.code_verifier = code_verifier;
+          }
           break;
         case "client_credentials":
           break;
