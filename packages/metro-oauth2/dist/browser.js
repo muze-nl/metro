@@ -1151,7 +1151,8 @@
         case "client_credentials":
           break;
         case "refresh_token":
-          params2.refresh_token = oauth22.refresh_token;
+          const refreshToken = options.tokens.get("refresh_token");
+          params2.refresh_token = refreshToken.value;
           break;
         default:
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
