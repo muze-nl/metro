@@ -36,7 +36,7 @@ export default function oidcmw(options={}) {
 	if (!options.openid_configuration && options.store.has('openid_configuration')) {
 		options.openid_configuration = options.store.get('openid_configuration')
 	}
-	if (!options.client_info.client_id && options.store.has('client_info')) {
+	if (!options.client_info?.client_id && options.store.has('client_info')) {
 		options.client_info = options.store.get('client_info')
 	}
 
@@ -62,7 +62,6 @@ export default function oidcmw(options={}) {
 		}
 
 		if (!options.client_info?.client_id) {
-			assert(options.client_info?.client_name, Required())
 			if (!options.openid_configuration.registration_endpoint) {
 				throw metro.metroError('metro.oidcmw: Error: issuer '+options.issuer+' does not support dynamic client registration, but you haven\'t specified a client_id')
 			}
@@ -84,8 +83,8 @@ export default function oidcmw(options={}) {
 				force_authorization: true,
 				authorize_callback: options.authorize_callback,
 				oauth2_configuration: {
-					client_id: options.client_info.client_id,
-					client_secret: options.client_info.client_secret,
+					client_id: options.client_info?.client_id,
+					client_secret: options.client_info?.client_secret,
 					grant_type: 'authorization_code',
 					response_type: 'code',
 					response_mode: 'query',

@@ -53,12 +53,19 @@ export default async function register(options)
 	})
 
 	const defaultOptions = {
-		client: metro.client().with(throwermw()).with(jsonmw())
+		client: metro.client().with(throwermw()).with(jsonmw()),
+		client_info: {
+			redirect_uris: [ globalThis.document?.location.href ]
+		}
 	}
 
 	options = Object.assign({}, defaultOptions, options)
-
-
+	if (!options.client_info) {
+		options.client_info = {}
+	} 
+	if (!options.client_info.redirect_uris) {
+		options.client_info.redirect_uris = [ globalThis.document?.location.href ]
+	}
 	let response = await options.client
 		.post(options.registration_endpoint, {
 			body: options.client_info
