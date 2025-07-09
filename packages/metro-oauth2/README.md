@@ -162,3 +162,5 @@ The OAuth2 mock server expects/provides the following values for the OAuth2 sett
 - `refresh_token`: `mockRefreshToken`
 - `access_token`: `mockAccessToken`
 
+[project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
+[project-stage-page]: https://blog.pother.ca/project-stages/
