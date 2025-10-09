@@ -5,7 +5,6 @@ import echomw from '../src/mw/echo.mock.mjs'
 
 tap.test('start', async t => {
 	let c = metro.client().with(echomw()).with(jsonmw())
-	console.log(c.clientOptions.middlewares)
 	let req = metro.request('foo/', {
 		method: 'POST',
 		body: {
