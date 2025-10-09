@@ -1,6 +1,7 @@
 import tap from 'tap'
 import * as metro from '../src/metro.mjs'
 import echomw from '../src/mw/echo.mock.mjs'
+import jsonmw from '../src/mw/json.mjs'
 
 tap.test('deepClone', t => {
 	let options = {
@@ -98,4 +99,19 @@ tap.test('fetch', async t => {
 	let body = await response.text()
 	t.equal(body, 'foo')
 	t.end()	
+})
+
+tap.test('api', async t => {
+	let baseURL = 'http://localhost:3000/'
+	let api = metro.api(
+		metro.client(baseURL).with(echomw()).with(jsonmw()),
+		{
+			query: async function() {
+				return this.post('query/', {body:{foo:"bar"}})
+			}
+		}
+	)
+	let body = await api.query()
+	t.same(body, {foo:"bar"})
+	t.end()
 })
