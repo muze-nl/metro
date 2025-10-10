@@ -7,7 +7,7 @@ import { tokenStore } from './tokenstore.mjs'
 import keysStore from './keysstore.mjs'
 import dpopmw from './oauth2.dpop.mjs'
 
-const oauth2 = Object.assign(oauth2module, {
+const oauth2 = Object.assign({}, oauth2module, {
 	oauth2mw,
 	mockserver: oauth2mockserver,
 	discover: oauth2discover,
