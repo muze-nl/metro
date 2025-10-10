@@ -60,6 +60,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    # Only deploy from the main branch
+    if: github.ref == 'refs/heads/main'
     needs: build
     permissions:
       contents: read
