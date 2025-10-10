@@ -1786,7 +1786,7 @@
   }
 
   // src/browser.mjs
-  var oauth2 = Object.assign(oauth2_exports, {
+  var oauth2 = Object.assign({}, oauth2_exports, {
     oauth2mw,
     mockserver: oauth2_mockserver_exports,
     discover: oauth2_discovery_exports,
