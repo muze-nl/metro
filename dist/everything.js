@@ -626,7 +626,7 @@
   }
 
   // src/mw/thrower.mjs
-  function throwermw(options) {
+  function throwermw2(options) {
     return async function thrower(req, next) {
       let res = await next(req);
       if (!res.ok) {
@@ -642,12 +642,42 @@
     };
   }
 
+  // src/api.mjs
+  var API = class extends Client {
+    constructor(base, methods) {
+      const getdatamw = async (req, next) => {
+        let res = await next(req);
+        if (res.ok && res.data) {
+          return res.data;
+        } else {
+          return res;
+        }
+      };
+      if (typeof base == "string") {
+        super(base, jsonmw(), throwermw(), getdatamw);
+      } else if (base instanceof Client) {
+        super(base.clientOptions, getdatamw);
+      } else {
+        super(base, getdatamw);
+      }
+      for (const methodName in methods) {
+        if (typeof methods[methodName] == "function") {
+          this[methodName] = methods[methodName].bind(this);
+        }
+      }
+    }
+  };
+  function api(...options) {
+    return new API(...deepClone(options));
+  }
+
   // src/everything.mjs
   var metro = Object.assign({}, metro_exports, {
     mw: {
       jsonmw,
-      thrower: throwermw
-    }
+      thrower: throwermw2
+    },
+    api
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
