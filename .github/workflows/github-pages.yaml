@@ -41,14 +41,14 @@ jobs:
         uses: docker://hugomods/hugo:dart-sass-go-git-non-root
         with:
           args: |
-            hugo --source 'docs' mod init 'github.com/muze-nl/metro'
+            hugo --source 'docs' mod init 'github.com/${{ github.repository }}'
             hugo --source 'docs' mod get -u
       - name: Build with Hugo
         uses: docker://hugomods/hugo:dart-sass-go-git-non-root
         with:
           args: |
             hugo \
-              --baseURL 'https://metro.muze.nl/' \
+              --baseURL '${{ steps.pages.outputs.base_url }}/' \
               --gc \
               --minify
               --source 'docs'
