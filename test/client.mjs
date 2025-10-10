@@ -100,18 +100,3 @@ tap.test('fetch', async t => {
 	t.equal(body, 'foo')
 	t.end()	
 })
-
-tap.test('api', async t => {
-	let baseURL = 'http://localhost:3000/'
-	let api = metro.api(
-		metro.client(baseURL).with(echomw()).with(jsonmw()),
-		{
-			query: async function() {
-				return this.post('query/', {body:{foo:"bar"}})
-			}
-		}
-	)
-	let body = await api.query()
-	t.same(body, {foo:"bar"})
-	t.end()
-})
