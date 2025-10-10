@@ -10,7 +10,7 @@ on:
     paths:
       - '.github/workflows/github-pages.yaml'
       - 'docs/**'
-  # Allow manually triggering the workflow.
+  # Allow manually triggering the workflow from the Actions tab.
   workflow_dispatch:
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
@@ -19,24 +19,39 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
-permissions:
-  # Required for requesting a OIDC JWT, see https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect
-  id-token: write
-  # pages to trigger a GitHub Pages build
-  pages: write
+# Set stricter error checking for bash
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
 
 jobs:
   build:
+    env:
+      HUGO_VERSION: 0.151.0
+      HUGO_ENVIRONMENT: production
+      TZ: Europe/Amsterdam
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-        id: pages
-      - name: Build with Hugo
-        uses: docker://hugomods/hugo:std-go-git
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Install Hugo Modules
+        uses: docker://hugomods/hugo:dart-sass-go-git-non-root
         with:
-          args: >-
-            sh -c "cd docs; hugo mod init 'github.com/muze-nl/metro' && hugo mod get -u && hugo --gc --minify --baseURL 'https://metro.muze.nl/'"
+          args: |
+            hugo --source 'docs' mod init 'github.com/muze-nl/metro'
+            hugo --source 'docs' mod get -u
+      - name: Build with Hugo
+        uses: docker://hugomods/hugo:dart-sass-go-git-non-root
+        with:
+          args: |
+            hugo \
+              --baseURL 'https://metro.muze.nl/' \
+              --gc \
+              --minify
+              --source 'docs'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/public
@@ -46,7 +61,14 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build
+    permissions:
+      contents: read
+      # Required for requesting a OIDC JWT, see https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect
+      id-token: write
+      # Needed to trigger a GitHub Pages build
+      pages: write
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/deploy-pages@v4
-        id: deployment
+      - id: deployment
+        name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
