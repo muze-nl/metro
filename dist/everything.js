@@ -626,7 +626,7 @@
   }
 
   // src/mw/thrower.mjs
-  function throwermw2(options) {
+  function throwermw(options) {
     return async function thrower(req, next) {
       let res = await next(req);
       if (!res.ok) {
@@ -675,7 +675,7 @@
   var metro = Object.assign({}, metro_exports, {
     mw: {
       jsonmw,
-      thrower: throwermw2
+      thrower: throwermw
     },
     api
   });

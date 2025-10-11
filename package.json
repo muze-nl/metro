@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro",
-  "version": "0.6.11",
+  "version": "0.6.12",
   "description": "http client with middleware support",
   "type": "module",
   "sideEffects": false,
