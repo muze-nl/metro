@@ -84,7 +84,7 @@ export default function oauth2mw(options)
 				return res
 			}
 		} catch(err) {
-			switch(res.status) { 
+			switch(res?.status) { 
 				case 400: // Oauth2.1 RFC 3.2.4
 				case 401: // in case of incorrect authentication method
 					//FIXME: check payload of response as well? yes - may be able to recover

@@ -942,7 +942,7 @@
           return res;
         }
       } catch (err) {
-        switch (res.status) {
+        switch (res?.status) {
           case 400:
           case 401:
             return oauth2authorized(req, next);
