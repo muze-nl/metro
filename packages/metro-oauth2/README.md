@@ -114,7 +114,7 @@ Valid configuration options are:
 	- `redirect_uri` - The URL the OAuth2 authorization server will redirect back to
 	- `refresh_token` - sets the refresh token to use when the access token must be refreshed
 	- `token_endpoint` - URL of the access and refresh token endpoint
-	- `authorize_endpoint` - URL of the authorize endpoint
+	- `authorization_endpoint` - URL of the authorize endpoint
 
 ## Defaults
 
