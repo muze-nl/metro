@@ -36,7 +36,7 @@ export class API extends metro.Client
 				this[methodName] = methods[methodName].bind(bind)
 			} else if (methods[methodName] && typeof methods[methodName] == 'object') {
 				// allows for api.section.method()
-				this[methodName] = new this(base, methods[methodName], bind)
+				this[methodName] = new this.constructor(base, methods[methodName], bind)
 			} else { 
 				// allows you to set string/number values in the client api
 				this[methodName] = methods[methodName]

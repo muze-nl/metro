@@ -18,3 +18,20 @@ tap.test('api', async t => {
 	t.same(body, {foo:"bar"})
 	t.end()
 })
+
+tap.test('nested api', async t => {
+	let baseURL = 'http://localhost:3000/'
+	let myApi = jsonApi(
+		metro.client(baseURL).with(echomw()),
+		{
+			section: {
+				query: async function() {
+					return this.post('section/query/', {body:{foo:"bar"}})
+				}
+			}
+		}
+	)
+	let body = await myApi.section.query()
+	t.same(body, {foo:"bar"})
+	t.end()	
+})
