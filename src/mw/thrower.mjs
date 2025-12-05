@@ -1,5 +1,3 @@
-import * as metro from '../metro.mjs'
-
 export default function throwermw(options) {
 
 	return async function thrower(req, next) {
