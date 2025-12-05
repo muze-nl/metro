@@ -578,35 +578,38 @@
   // src/mw/json.mjs
   function jsonmw(options) {
     options = Object.assign({
-      mimetype: "application/json",
+      contentType: "application/json",
       reviver: null,
       replacer: null,
       space: ""
     }, options);
     return async function json(req, next) {
-      if (!isJSON(req.headers.get("Accept"))) {
+      if (!req.headers.get("Accept")) {
         req = req.with({
           headers: {
-            "Accept": options.mimetype
+            "Accept": options.accept ?? options.contentType
           }
         });
       }
-      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
         if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
-          if (!isJSON(req.headers.get("content-type"))) {
+          const contentType = req.headers.get("Content-Type");
+          if (!contentType || isPlainText(contentType)) {
             req = req.with({
               headers: {
-                "Content-Type": options.mimetype
+                "Content-Type": options.contentType
               }
             });
           }
-          req = req.with({
-            body: JSON.stringify(req.data, options.replacer, options.space)
-          });
+          if (isJSON(req.headers.get("Content-Type"))) {
+            req = req.with({
+              body: JSON.stringify(req.data, options.replacer, options.space)
+            });
+          }
         }
       }
       let res = await next(req);
-      if (isJSON(res.headers.get("content-type"))) {
+      if (isJSON(res.headers.get("Content-Type"))) {
         let tempRes = res.clone();
         let body = await tempRes.text();
         try {
@@ -623,6 +626,9 @@
   var jsonRE = /^application\/([a-zA-Z0-9\-_]+\+)?json\b/;
   function isJSON(contentType) {
     return jsonRE.exec(contentType);
+  }
+  function isPlainText(contentType) {
+    return /^text\/plain\b/.exec(contentType);
   }
 
   // src/mw/thrower.mjs
@@ -642,27 +648,35 @@
     };
   }
 
+  // src/mw/getdata.mjs
+  function getdatamw(options) {
+    return async function getdata(req, next) {
+      let res = await next(req);
+      if (res.ok && res.data) {
+        return res.data;
+      }
+      return res;
+    };
+  }
+
   // src/api.mjs
   var API = class extends Client {
-    constructor(base, methods) {
-      const getdatamw = async (req, next) => {
-        let res = await next(req);
-        if (res.ok && res.data) {
-          return res.data;
-        } else {
-          return res;
-        }
-      };
-      if (typeof base == "string") {
-        super(base, jsonmw(), throwermw(), getdatamw);
-      } else if (base instanceof Client) {
-        super(base.clientOptions, getdatamw);
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.clientOptions, throwermw(), getdatamw());
       } else {
-        super(base, getdatamw);
+        super(base, throwermw(), getdatamw());
+      }
+      if (!bind) {
+        bind = this;
       }
       for (const methodName in methods) {
         if (typeof methods[methodName] == "function") {
-          this[methodName] = methods[methodName].bind(this);
+          this[methodName] = methods[methodName].bind(bind);
+        } else if (methods[methodName] && typeof methods[methodName] == "object") {
+          this[methodName] = new this(base, methods[methodName], bind);
+        } else {
+          this[methodName] = methods[methodName];
         }
       }
     }
