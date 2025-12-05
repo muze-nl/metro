@@ -674,7 +674,7 @@
         if (typeof methods[methodName] == "function") {
           this[methodName] = methods[methodName].bind(bind);
         } else if (methods[methodName] && typeof methods[methodName] == "object") {
-          this[methodName] = new this(base, methods[methodName], bind);
+          this[methodName] = new this.constructor(base, methods[methodName], bind);
         } else {
           this[methodName] = methods[methodName];
         }
