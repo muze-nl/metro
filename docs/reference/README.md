@@ -26,3 +26,6 @@ weight: 5
 	- [delete](./trace/delete/)
 	- [group](./trace/group/)
 - [URL](./url/)
+- API
+	- [api](./api/)
+	- [jsonApi](./api/jsonApi/)
