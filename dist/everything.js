@@ -681,8 +681,20 @@
       }
     }
   };
+  var JsonAPI = class extends API {
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.with(jsonmw()), methods, bind);
+      } else {
+        super(client(base, jsonmw()), methods, bind);
+      }
+    }
+  };
   function api(...options) {
     return new API(...deepClone(options));
+  }
+  function jsonApi(...options) {
+    return new JsonAPI(...deepClone(options));
   }
 
   // src/everything.mjs
@@ -691,7 +703,8 @@
       jsonmw,
       thrower: throwermw
     },
-    api
+    api,
+    jsonApi
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
