@@ -13,8 +13,8 @@
   "scripts": {
     "test": "tap test/*.mjs",
     "tap": "tap",
-    "build": "./node_modules/.bin/esbuild src/index.mjs --outfile=dist/browser.min.js --bundle --minify --sourcemap",
-    "build-dev": "./node_modules/.bin/esbuild src/index.mjs --outfile=dist/browser.js --bundle --sourcemap"
+    "build": "esbuild src/index.mjs --outfile=dist/browser.min.js --bundle --minify --sourcemap",
+    "build-dev": "esbuild src/index.mjs --outfile=dist/browser.js --bundle --sourcemap"
   },
   "repository": {
     "type": "git",
