@@ -19,8 +19,6 @@ const badRequest = (error) => {
 	}
 }
 
-let error, expect, token
-
 const status = {
 	'/400/': 'Bad Request',
 	'/401/': 'Unauthorized',
@@ -65,17 +63,22 @@ const status = {
 	'/511/': 'Network Authentication Required'
 }
 
-export default function errormw(options) {
-	return async function error(req, next) {
+export default function errormw(options)
+{
+
+	const customStatus = Object.assign({}, status, options)
+
+	return async function error(req) {
 		let url = metro.url(req.url)
 		if (status[url.pathname]) {
 			let error = {
 				code: parseInt(url.pathname.substring(1)),
-				message: status[url.pathname]
+				message: customStatus[url.pathname]
 			}
 			return metro.response(badRequest(error))
 		} else {
 			return metro.response(baseResponse)
 		}
 	}
+
 }
