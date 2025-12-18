@@ -30,7 +30,7 @@ if (!Symbol.metroSource) {
 export class Client
 {
 	clientOptions = {
-		url: typeof window != 'undefined' ? window.location : 'https://localhost',
+		url: typeof window != 'undefined' ? url(window.location) : url('https://localhost'),
 		verbs: ['get','post','put','delete','patch','head','options','query']
 	}
 
@@ -50,13 +50,15 @@ export class Client
 	{
 		for (let option of options) {
 			if (typeof option == 'string' || option instanceof String) {
-				this.clientOptions.url = ''+option
+				this.clientOptions.url = url(this.clientOptions.url.href, option)
 			} else if (option instanceof Function) {
 				this.#addMiddlewares([option])
 			} else if (option && typeof option == 'object') {
 				for (let param in option) {
 					if (param == 'middlewares') {
 						this.#addMiddlewares(option[param])
+					} else if (param == 'url') {
+						this.clientOptions.url = url(this.clientOptions.url.href, option[param])
 					} else if (typeof option[param] == 'function') {
 						this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions)
 					} else {
@@ -75,6 +77,7 @@ export class Client
 				))
 			}
 		}
+		//NOTE: intentionally not Object.freeze()-ing this, so that metro.api can extend this class
 	}
 
 	#addMiddlewares(middlewares)
@@ -154,6 +157,11 @@ export class Client
 	with(...options) {
 		return new Client(deepClone(this.clientOptions), ...options)
 	}
+
+	get location() {
+		return this.clientOptions.url
+	}
+
 }
 
 /**
@@ -166,6 +174,8 @@ export function client(...options)
 	return new Client(...deepClone(options))
 }
 
+/*
+//FIXME: is this needed?
 function appendHeaders(r, headers)
 {
 	if (!Array.isArray(headers)) {
@@ -188,6 +198,7 @@ function appendHeaders(r, headers)
 		})
 	})
 }
+*/
 
 function getRequestParams(req, current)
 {
@@ -212,6 +223,7 @@ function getRequestParams(req, current)
 			if (prop == 'url') {
 				params.url = url(params.url, value)
 			} else if (prop == 'headers') {
+				//FIXME: test and see if appendHeaders is needed
 				params.headers = new Headers(current.headers)
 				if (!(value instanceof Headers)) {
 					value = new Headers(req.headers)
@@ -251,7 +263,7 @@ export function request(...options)
 	// so first gather all the options together into a single
 	// javascript object, then set it in one go
 	let requestParams = {
-		url: typeof window != 'undefined' ? window.location : 'https://localhost/',
+		url: typeof window != 'undefined' ? url(window.location) : url('https://localhost/'),
 		duplex: 'half' // required when setting body to ReadableStream, just set it here by default already
 	}
 	for (let option of options) {
@@ -283,7 +295,7 @@ export function request(...options)
 			&& !(data instanceof DataView)
 			&& !(data instanceof FormData)
 			&& !(data instanceof URLSearchParams)
-			&& (typeof TypedArray=='undefined' || !(data instanceof TypedArray))
+			&& (typeof globalThis.TypedArray=='undefined' || !(data instanceof globalThis.TypedArray))
 		) {
 			// if we are here, body is set with an object of a type
 			// not natively understood by Request, coerce it to a string
@@ -296,16 +308,17 @@ export function request(...options)
 	}
 	Object.freeze(r)
 	return new Proxy(r, {
-		get(target, prop, receiver) {
+		get(target, prop) {
+			let result
 			switch(prop) {
 				case Symbol.metroSource:
-					return target
+					result = target
 				break
 				case Symbol.metroProxy:
-					return true
+					result = true
 				break
 				case 'with':
-					return function(...options) {
+					result = function(...options) {
 						if (data) { // data is kept in a seperate value, if it set earlier
 							options.unshift({ body: data }) // unshifted so it can be overridden by options
 						}
@@ -313,16 +326,20 @@ export function request(...options)
 					}
 				break
 				case 'data':
-					return data
+					result = data
+				break
+				default:
+					if (target[prop] instanceof Function) {
+						if (prop === 'clone') {
+							// TODO: set req.data as the body of the clone
+						}
+						result = target[prop].bind(target)
+					} else {
+						result = target[prop]
+					}
 				break
 			}
-			if (target[prop] instanceof Function) {
-				if (prop === 'clone') {
-					// TODO: set req.data as the body of the clone
-				}
-				return target[prop].bind(target)
-			}
-			return target[prop]
+			return result
 		}
 	})
 }
@@ -346,6 +363,7 @@ function getResponseParams(res, current)
 			params[prop] = value(params[prop], params)
 		} else {
 			if (prop == 'url') {
+				//TODO: check if this should use metro.url
 				params.url = new URL(value, params.url || 'https://localhost/')
 			} else {
 				params[prop] = value
@@ -389,7 +407,7 @@ export function response(...options)
 				|| option instanceof ReadableStream
 				|| option instanceof URLSearchParams
 				|| option instanceof String
-				|| (typeof TypedArray != 'undefined' && option instanceof TypedArray)
+				|| (typeof globalThis.TypedArray != 'undefined' && option instanceof globalThis.TypedArray)
 			) {
 				responseParams.body = option
 			} else {
@@ -410,39 +428,45 @@ export function response(...options)
 	let r = new Response(responseParams.body, responseParams)	
 	Object.freeze(r)
 	return new Proxy(r, {
-		get(target, prop, receiver) {
+		get(target, prop) {
+			let result
 			switch(prop) {
 				case Symbol.metroProxy:
-					return true
+					result = true
 				break
 				case Symbol.metroSource:
-					return target
+					result = target
 				break
 				case 'with':
-					return function(...options) {
+					result = function(...options) {
 						return response(target, ...options)
 					}
 				break
 				case 'data':
 					// body is turned into ReadableStream
 					// data is the original body param
-					return data
+					result = data
 				break
 				case 'ok':
-					return (target.status>=200) && (target.status<400)
+					result = (target.status>=200) && (target.status<400)
+				break
+				default:
+					if (typeof target[prop] == 'function') {
+						result = target[prop].bind(target)
+					} else {
+						result = target[prop]
+					}
 				break
 			}
-			if (typeof target[prop] == 'function') {
-				return target[prop].bind(target)
-			}
-			return target[prop]
+			return result
 		}
 	})
 }
 
-function appendSearchParams(url, params) {
+function appendSearchParams(url, params)
+{
 	if (typeof params == 'function') {
-		 params(url.searchParams, url)
+		params(url.searchParams, url)
 	} else {
 		params = new URLSearchParams(params)
 		params.forEach((value,key) => {
@@ -465,7 +489,7 @@ function appendSearchParams(url, params) {
 export function url(...options)
 {
 	let validParams = ['hash','host','hostname','href',
-			'password','pathname','port','protocol','username','search','searchParams']
+		'password','pathname','port','protocol','username','search','searchParams']
 	let u = new URL('https://localhost/')
 	for (let option of options) {
 		if (typeof option == 'string' || option instanceof String) {
@@ -517,25 +541,25 @@ export function url(...options)
 	}
 	Object.freeze(u)
 	return new Proxy(u, {
-		get(target, prop, receiver) {
+		get(target, prop) {
 			let result
 			switch(prop) {
 				case Symbol.metroProxy:
-					return true
+					result = true
 				break
 				case Symbol.metroSource:
-					return target
+					result = target
 				break
 				case 'with':
-					return function(...options) {
+					result = function(...options) {
 						return url(target, ...options)
 					}
 				break
 				case 'filename':
-					return target.pathname.split('/').pop()
+					result = target.pathname.split('/').pop()
 				break
 				case 'folderpath':
-					return target.pathname.substring(0,target.pathname.lastIndexOf('\\')+1)
+					result = target.pathname.substring(0,target.pathname.lastIndexOf('\\')+1)
 				break
 				case 'authority':
 					result = target.username ?? ''
@@ -545,28 +569,31 @@ export function url(...options)
 					result += target.port ? ':'+target.port : ''
 					result += '/'
 					result = target.protocol + '//' + result
-					return result
-				break;
+				break
 				case 'origin':
 					result = target.protocol + '//' + target.hostname
 					result += target.port ? ':' + target.port : ''
 					result += '/'
-					return result
 				break
 				case 'fragment':
-					return target.hash.substring(1)
+					result = target.hash.substring(1)
 				break
 				case 'scheme':
 					if (target.protocol) {
-						return target.protocol.substring(0, target.protocol.length-1)
+						result = target.protocol.substring(0, target.protocol.length-1)
+					} else {
+						result = ''
 					}
-					return ''
+				break
+				default:
+					if (target[prop] instanceof Function) {
+						result = target[prop].bind(target)
+					} else {
+						result = target[prop]
+					}
 				break
 			}
-			if (target[prop] instanceof Function) {
-				return target[prop].bind(target)
-			}
-			return target[prop]
+			return result
 		}
 	})
 }
@@ -609,27 +636,32 @@ export function formdata(...options)
 	}
 	Object.freeze(params)
 	return new Proxy(params, {
-		get: (target,prop,receiver) => {
+		get(target, prop) {
+			let result
 			switch(prop) {
 				case Symbol.metroProxy:
-					return true
+					result = true
 				break
 				case Symbol.metroSource:
-					return target
+					result = target
 				break
 				//TODO: add toString() that can check
 				//headers param: toString({headers:request.headers})
 				//for the content-type
 				case 'with':
-					return function(...options) {
+					result = function(...options) {
 						return formdata(target, ...options)
 					}
 				break
+				default:
+					if (target[prop] instanceof Function) {
+						result = target[prop].bind(target)
+					} else {
+						result = target[prop]
+					}
+				break
 			}
-			if (target[prop] instanceof Function) {
-				return target[prop].bind(target)
-			}
-			return target[prop]
+			return result
 		}
 	})
 }
