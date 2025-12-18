@@ -28,11 +28,12 @@
           let prefixURL = prefixes2[prefix];
           if (prefixURL.match(/^http(s?):\/\/$/i)) {
             prefixURL += url.substring(prefixURL.length);
-          } else try {
-            prefixURL = new URL(prefixes2[prefix], url).href;
-          } catch (err) {
-            console.error("Could not parse prefix", prefixes2[prefix], err.message);
-          }
+          } else
+            try {
+              prefixURL = new URL(prefixes2[prefix], url).href;
+            } catch (err) {
+              console.error("Could not parse prefix", prefixes2[prefix], err.message);
+            }
           if (!this.prefixes[prefix]) {
             this.prefixes[prefix] = prefixURL;
           }
@@ -323,6 +324,6 @@
 
   // src/index.mjs
   globalThis.oldmmw = oldmmw;
-  var index_default = oldmmw;
+  var src_default = oldmmw;
 })();
 //# sourceMappingURL=browser.js.map
