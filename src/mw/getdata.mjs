@@ -1,4 +1,5 @@
-export default function getdatamw(options) {
+export default function getdatamw()
+{
 
 	return async function getdata(req, next) {
 		let res = await next(req)

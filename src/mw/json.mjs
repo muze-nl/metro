@@ -18,7 +18,7 @@ export default function jsonmw(options)
         if (req.method!=='GET' && req.method!=='HEAD') {
             //https://developer.mozilla.org/en-US/docs/Web/API/Request/body
             if (req.data && typeof req.data=='object' && !(req.data instanceof ReadableStream)) {
-            		const contentType = req.headers.get('Content-Type')
+                const contentType = req.headers.get('Content-Type')
                 if (!contentType || isPlainText(contentType)) {
                     req = req.with({
                         headers: {
@@ -65,5 +65,5 @@ function isJSON(contentType)
 
 function isPlainText(contentType)
 {
-		return /^text\/plain\b/.exec(contentType)
+    return /^text\/plain\b/.exec(contentType)
 }
