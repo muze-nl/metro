@@ -27,7 +27,7 @@
   }
   var Client = class _Client {
     clientOptions = {
-      url: typeof window != "undefined" ? window.location : "https://localhost",
+      url: typeof window != "undefined" ? url(window.location) : url("https://localhost"),
       verbs: ["get", "post", "put", "delete", "patch", "head", "options", "query"]
     };
     static tracers = {};
@@ -44,13 +44,15 @@
     constructor(...options) {
       for (let option of options) {
         if (typeof option == "string" || option instanceof String) {
-          this.clientOptions.url = "" + option;
+          this.clientOptions.url = url(this.clientOptions.url.href, option);
         } else if (option instanceof Function) {
           this.#addMiddlewares([option]);
         } else if (option && typeof option == "object") {
           for (let param in option) {
             if (param == "middlewares") {
               this.#addMiddlewares(option[param]);
+            } else if (param == "url") {
+              this.clientOptions.url = url(this.clientOptions.url.href, option[param]);
             } else if (typeof option[param] == "function") {
               this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions);
             } else {
@@ -135,6 +137,9 @@
     with(...options) {
       return new _Client(deepClone(this.clientOptions), ...options);
     }
+    get location() {
+      return this.clientOptions.url;
+    }
   };
   function client(...options) {
     return new Client(...deepClone(options));
@@ -192,7 +197,7 @@
   }
   function request(...options) {
     let requestParams = {
-      url: typeof window != "undefined" ? window.location : "https://localhost/",
+      url: typeof window != "undefined" ? url(window.location) : url("https://localhost/"),
       duplex: "half"
       // required when setting body to ReadableStream, just set it here by default already
     };
@@ -208,7 +213,7 @@
     let r = new Request(requestParams.url, requestParams);
     let data = requestParams.body;
     if (data) {
-      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof TypedArray == "undefined" || !(data instanceof TypedArray))) {
+      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof globalThis.TypedArray == "undefined" || !(data instanceof globalThis.TypedArray))) {
         if (typeof data.toString == "function") {
           requestParams.body = data.toString({ headers: r.headers });
           r = new Request(requestParams.url, requestParams);
@@ -217,16 +222,17 @@
     }
     Object.freeze(r);
     return new Proxy(r, {
-      get(target, prop, receiver) {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               if (data) {
                 options2.unshift({ body: data });
               }
@@ -234,15 +240,19 @@
             };
             break;
           case "data":
-            return data;
+            result = data;
+            break;
+          default:
+            if (target[prop] instanceof Function) {
+              if (prop === "clone") {
+              }
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (target[prop] instanceof Function) {
-          if (prop === "clone") {
-          }
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -282,7 +292,7 @@
       } else if (option instanceof Response) {
         Object.assign(responseParams, getResponseParams(option, responseParams));
       } else if (option && typeof option == "object") {
-        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof TypedArray != "undefined" && option instanceof TypedArray) {
+        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof globalThis.TypedArray != "undefined" && option instanceof globalThis.TypedArray) {
           responseParams.body = option;
         } else {
           Object.assign(responseParams, getResponseParams(option, responseParams));
@@ -299,30 +309,35 @@
     let r = new Response(responseParams.body, responseParams);
     Object.freeze(r);
     return new Proxy(r, {
-      get(target, prop, receiver) {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return response(target, ...options2);
             };
             break;
           case "data":
-            return data;
+            result = data;
             break;
           case "ok":
-            return target.status >= 200 && target.status < 400;
+            result = target.status >= 200 && target.status < 400;
+            break;
+          default:
+            if (typeof target[prop] == "function") {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (typeof target[prop] == "function") {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -393,25 +408,25 @@
     }
     Object.freeze(u);
     return new Proxy(u, {
-      get(target, prop, receiver) {
+      get(target, prop) {
         let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return url(target, ...options2);
             };
             break;
           case "filename":
-            return target.pathname.split("/").pop();
+            result = target.pathname.split("/").pop();
             break;
           case "folderpath":
-            return target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
+            result = target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
             break;
           case "authority":
             result = target.username ?? "";
@@ -421,28 +436,31 @@
             result += target.port ? ":" + target.port : "";
             result += "/";
             result = target.protocol + "//" + result;
-            return result;
             break;
           case "origin":
             result = target.protocol + "//" + target.hostname;
             result += target.port ? ":" + target.port : "";
             result += "/";
-            return result;
             break;
           case "fragment":
-            return target.hash.substring(1);
+            result = target.hash.substring(1);
             break;
           case "scheme":
             if (target.protocol) {
-              return target.protocol.substring(0, target.protocol.length - 1);
+              result = target.protocol.substring(0, target.protocol.length - 1);
+            } else {
+              result = "";
             }
-            return "";
+            break;
+          default:
+            if (target[prop] instanceof Function) {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (target[prop] instanceof Function) {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -472,27 +490,32 @@
     }
     Object.freeze(params);
     return new Proxy(params, {
-      get: (target, prop, receiver) => {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           //TODO: add toString() that can check
           //headers param: toString({headers:request.headers})
           //for the content-type
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return formdata(target, ...options2);
             };
             break;
+          default:
+            if (target[prop] instanceof Function) {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
+            break;
         }
-        if (target[prop] instanceof Function) {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
