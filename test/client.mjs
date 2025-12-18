@@ -100,3 +100,10 @@ tap.test('fetch', async t => {
 	t.equal(body, 'foo')
 	t.end()	
 })
+
+tap.test('get location', t => {
+	let url = 'http://localhost:3000/query/'
+	let client = metro.client(url)
+	t.equal(client.location.href, url)
+	t.end()
+})
