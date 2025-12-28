@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-oldm",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "linked data middleware for @muze-nl/metro",
   "type": "module",
   "source": [
