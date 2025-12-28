@@ -724,7 +724,8 @@
   var metro = Object.assign({}, metro_exports, {
     mw: {
       jsonmw,
-      thrower: throwermw
+      thrower: throwermw,
+      gedatamw
     },
     api,
     jsonApi
