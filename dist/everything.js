@@ -723,9 +723,9 @@
   // src/everything.mjs
   var metro = Object.assign({}, metro_exports, {
     mw: {
-      jsonmw,
+      json: jsonmw,
       thrower: throwermw,
-      gedatamw
+      gedata
     },
     api,
     jsonApi

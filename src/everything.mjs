@@ -1,14 +1,14 @@
 import * as m from './metro.mjs'
 import { api, jsonApi } from './api.mjs'
-import jsonmw from './mw/json.mjs'
+import json from './mw/json.mjs'
 import thrower from './mw/thrower.mjs'
-import getdatamw from './mw/getdata.mjs'
+import getdata from './mw/getdata.mjs'
 
 const metro = Object.assign({}, m, {
 	mw: {
-		jsonmw,
+		json,
 		thrower,
-		gedatamw
+		gedata
 	},
 	api,
 	jsonApi

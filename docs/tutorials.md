@@ -21,7 +21,7 @@ This gives access to everything included in metro, like the json and thrower mid
 
 ```javascript
 import * as metro from '@muze-nl/metro/src/metro.mjs'
-import jsonmw from '@muze-nl/metro/mw/json.mjs'
+import json from '@muze-nl/metro/mw/json.mjs'
 ```
 
 Or you can use a CDN (Content Delivery Network), like this:
@@ -141,7 +141,7 @@ async function postData(data) {
 
 ## JSON middleware
 
-The jsonmw middleware automatically converts data to json, adds the correct headers, and parses responses.
+The json middleware automatically converts data to json, adds the correct headers, and parses responses.
 The response body, if parseable as json, is made available as `response.data`
 
 ```javascript

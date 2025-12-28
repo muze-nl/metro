@@ -28,7 +28,7 @@ If you are using a cdn, and need the assert library or one of the default middle
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro/dist/everything.js"></script>
 <script>
-  const client = metro.client(metro.mw.jsonmw())
+  const client = metro.client(metro.mw.json())
 </script>
 ```
 

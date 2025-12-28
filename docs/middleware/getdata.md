@@ -11,9 +11,9 @@ The `getdatamw()` middleware will automatically return response.data instead of 
 import metro from '@muze-nl/metro'
 
 const client = metro.client().with( 
-	metro.mw.jsonmw(),
-	metro.mw.throwermw(),
-	metro.mw.getdatamw() 
+	metro.mw.json(),
+	metro.mw.thrower(),
+	metro.mw.getdata() 
 )
 ```
 

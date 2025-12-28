@@ -14,7 +14,7 @@ const client = metro.client({
   headers: {
     'Authorization':'Bearer '+token
   }
-}).with(metro.mw.jsonmw())
+}).with(metro.mw.json())
 
 let response = await client.get('/repos/muze-nl/metro/commits')
 
