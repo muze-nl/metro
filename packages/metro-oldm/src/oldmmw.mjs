@@ -25,7 +25,7 @@ export default function oldmmw(options)
 		options.prefixes['ldp'] = 'http://www.w3.org/ns/ldp#'
 	}
 
-	const context = oldm(options)
+	const context = oldm.context(options)
 
 	return async function oldmmw(req, next) {
 		if (!req.headers.get('Accept')) {

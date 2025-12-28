@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-oldm",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "linked data middleware for @muze-nl/metro",
   "type": "module",
   "source": [
@@ -39,7 +39,7 @@
     "/dist"
   ],
   "dependencies": {
-    "@muze-nl/oldm": "^0.3.5",
+    "@muze-nl/oldm": "^0.3.6",
     "esbuild": "^0.27.2"
   },
   "targets": {
