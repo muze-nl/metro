@@ -8,7 +8,7 @@ const metro = Object.assign({}, m, {
 	mw: {
 		json,
 		thrower,
-		gedata
+		getdata
 	},
 	api,
 	jsonApi

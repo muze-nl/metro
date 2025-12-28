@@ -725,7 +725,7 @@
     mw: {
       json: jsonmw,
       thrower: throwermw,
-      gedata
+      getdata: getdatamw
     },
     api,
     jsonApi
