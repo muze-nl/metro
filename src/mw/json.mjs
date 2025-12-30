@@ -34,7 +34,7 @@ export default function jsonmw(options)
             }
         }
         let res = await next(req)
-        if (isJSON(res.headers.get('Content-Type'))) {
+        if (res && isJSON(res.headers?.get('Content-Type'))) {
             let tempRes = res.clone()
             let body = await tempRes.text()
             try {
