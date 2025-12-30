@@ -45,6 +45,8 @@
       for (let option of options) {
         if (typeof option == "string" || option instanceof String) {
           this.clientOptions.url = url(this.clientOptions.url.href, option);
+        } else if (option instanceof _Client) {
+          Object.assign(this.clientOptions, option.clientOptions);
         } else if (option instanceof Function) {
           this.#addMiddlewares([option]);
         } else if (option && typeof option == "object") {
@@ -632,7 +634,7 @@
         }
       }
       let res = await next(req);
-      if (isJSON(res.headers.get("Content-Type"))) {
+      if (res && isJSON(res.headers?.get("Content-Type"))) {
         let tempRes = res.clone();
         let body = await tempRes.text();
         try {
