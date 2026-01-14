@@ -42,8 +42,11 @@ The metro oidc middleware doesn't use the id_token, or verify any of its content
 ```javascript
 	import oidc from '@muze-nl/metro-oidc'
 
-	let id_token = oidc.idToken()
+	let id_token = oidc.idToken({issuer:"oidc issuer url"})
 ```
+
+`idToken()` expects either the store or the issuer option that you passed on to the `oidcmw()` function.
+
 
 [project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
 [project-stage-page]: https://blog.pother.ca/project-stages/
