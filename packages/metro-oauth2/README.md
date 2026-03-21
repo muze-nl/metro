@@ -102,19 +102,33 @@ Valid configuration options are:
 - `client` - sets the base metro client to use by the OAuth2 middleware. Default is a clean `metro.client()`.
 - `force_authorization` - if not set or `false`, the OAuth2 middleware will only use OAuth2 if a normal--unauthorized--fetch doesn't work. If set to `true`, all requests will use OAuth2. Default value is `false`.
 - `site` - URL of the identity provider, used to store token specific for that provider
-- `state` - How to store the state parameter, defaults to `localStorage`.
-- `tokens` - How to store tokens. Either a normal object, or a Map-like object. Default value is `localStorage`.
-- `oauth2_configuration` - OAuth2 standard parameters.
-	- `access_token` - if you've stored an OAuth2 access token, you can set it here.
-	- `authorization_code` - if you've retrieved an OAuth2 authorization code, set it here.
-	- `client_id` - the OAuth2 client id.
-	- `client_secret` - the OAuth2 client secret.
-	- `code_verifier` - the PKCE code verifier, code_challenge is automatically calculated.
-	- `grant_type` - currently only `authorization_code` is implemented, which is set as the default value.
-	- `redirect_uri` - The URL the OAuth2 authorization server will redirect back to. Default value is your `document.location.href`.
-	- `refresh_token` - sets the refresh token to use when the access token must be refreshed.
-	- `token_endpoint` - URL of the access and refresh token endpoint. Default value is `/token`.
-	- `authorize_endpoint` - URL of the authorize endpoint. Default value is `/authorize`.
+- `state` - How to store the state parameter, defaults to `localStorage`
+- `tokens` - How to store tokens. Either a normal object, or a Map-like object.
+- `oauth2_configuration` - OAuth2 standard parameters
+	- `access_token` - if you've stored an OAuth2 access token, you can set it here
+	- `authorization_code` - if you've retrieved an OAuth2 authorization code, set it here
+	- `client_id` - the OAuth2 client id
+	- `client_secret` - the OAuth2 client secret
+	- `code_verifier` - the PKCE code verifier, code_challenge is automatically calculated
+	- `grant_type` - currently only `authorization_code` is implemented
+	- `redirect_uri` - The URL the OAuth2 authorization server will redirect back to
+	- `refresh_token` - sets the refresh token to use when the access token must be refreshed
+	- `token_endpoint` - URL of the access and refresh token endpoint
+	- `authorization_endpoint` - URL of the authorize endpoint
+
+## Defaults
+
+Only the `client_id` and `client_secret` don't have valid defaults. The defaults are:
+
+- `grant_type`: `authorization_code`
+- `force_authorization`: false
+- `redirect_uri`: `document.location`
+- `state`:`localStorage`
+- `tokens`: `localStorage`
+- `client`: `metro.client().with(jsonmw())`
+- `authorize_callback`: `url => document.location = url`
+- `authorization_endpoint`: `/authorize`
+- `token_endpoint`: `/token`
 
 ## OAuth2 Mock-server Middleware
 
