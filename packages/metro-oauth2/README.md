@@ -19,9 +19,9 @@ function fetchSomething(url) {
 
 You pass the OAuth2 configuration options to the `oauth2mw()` function. This returns the middleware function for the metro client.
 
-The oauth2 protocol can redirect the browser page to the oauth2 servers login page. When logged in, the browser is then redirected back to your clients redirect_uri, with the authorization_code either in the URL's search query, or in its fragment or hash.
+The oauth2 protocol can redirect the browser page to the oauth2 servers login page. When logged in, the browser is then redirected back to your clients `redirect_uri`, with the `authorization_code` either in the URL's search query, or in its fragment or hash. The `redirect_uri` is set to your `document.location.href` by default, but you can override this if you want to.
 
-To handle this redirect, use the provided isRedirected function like this:
+To handle this redirect, use the provided `isRedirected` function like this:
 
 ```javascript
 import oauth2mw, {isRedirected} from '@muze-nl/metro-oauth2'
@@ -98,9 +98,9 @@ You can still use the same redirect page as for `authorizePopup`, it will automa
 ## Configuration
 
 Valid configuration options are:
-- `authorize_callback` - Allows you to set a callback function for the `authorize` step, e.g. by doing a full page redirect or using a new window. The callback function takes one parameter, the authorization URL to use and can optionally return a Promise with the `authorization_code`.
-- `client` - sets the base metro client to use by the OAuth2 middleware
-- `force_authorization` - if not set or `false`, the OAuth2 middleware will only use OAuth2 if a normal--unauthorized--fetch doesn't work. If set to `true`, all requests will use OAuth2.
+- `authorize_callback` - Allows you to set a callback function for the `authorize` step, e.g. by doing a full page redirect or using a new window. The callback function takes one parameter, the authorization URL to use and can optionally return a Promise with the `authorization_code`. By default this redirects the current page to the authorize URL.
+- `client` - sets the base metro client to use by the OAuth2 middleware. Default is a clean `metro.client()`.
+- `force_authorization` - if not set or `false`, the OAuth2 middleware will only use OAuth2 if a normal--unauthorized--fetch doesn't work. If set to `true`, all requests will use OAuth2. Default value is `false`.
 - `site` - URL of the identity provider, used to store token specific for that provider
 - `state` - How to store the state parameter, defaults to `localStorage`
 - `tokens` - How to store tokens. Either a normal object, or a Map-like object.
@@ -126,9 +126,9 @@ Only the `client_id` and `client_secret` don't have valid defaults. The defaults
 - `state`:`localStorage`
 - `tokens`: `localStorage`
 - `client`: `metro.client().with(jsonmw())`
-- `callbacks.authorize`: `url => document.location = url`
-- `endpoints.authorize`: `/authorize`
-- `endpoints.token`: `/token`
+- `authorize_callback`: `url => document.location = url`
+- `authorization_endpoint`: `/authorize`
+- `token_endpoint`: `/token`
 
 ## OAuth2 Mock-server Middleware
 
