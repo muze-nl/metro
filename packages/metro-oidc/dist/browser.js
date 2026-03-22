@@ -20,10 +20,10 @@
   });
   var metroURL = "https://metro.muze.nl/details/";
   if (!Symbol.metroProxy) {
-    Symbol.metroProxy = Symbol("isProxy");
+    Symbol.metroProxy = /* @__PURE__ */ Symbol("isProxy");
   }
   if (!Symbol.metroSource) {
-    Symbol.metroSource = Symbol("source");
+    Symbol.metroSource = /* @__PURE__ */ Symbol("source");
   }
   var Client = class _Client {
     clientOptions = {
@@ -111,7 +111,7 @@
       options = Object.assign({}, this.clientOptions, options);
       let next;
       for (let middleware of middlewares) {
-        next = /* @__PURE__ */ function(next2, middleware2) {
+        next = /* @__PURE__ */ (function(next2, middleware2) {
           return async function(req2) {
             let res;
             let tracers = Object.values(_Client.tracers);
@@ -128,7 +128,7 @@
             }
             return res;
           };
-        }(next, middleware);
+        })(next, middleware);
       }
       return next(req);
     }
