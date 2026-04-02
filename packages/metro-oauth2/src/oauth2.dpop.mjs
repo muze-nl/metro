@@ -1,5 +1,5 @@
 import metro from '@muze-nl/metro'
-import DPoP, {generateKeyPair} from 'dpop'
+import * as DPoP from 'dpop'
 import { assert, Required, Optional, validURL } from '@muze-nl/assert'
 import keysStore from './keysstore.mjs'
 
@@ -18,7 +18,7 @@ export default function dpopmw(options) {
 		if (!keyInfo) {
  			// FIXME fetch from dpop_signing_alg_values_supported
  			// which is unfortunately not available usually
- 			let keyPair = await generateKeyPair('ES256') // note: don't make them extractable! That potentially allows hackers to steal the privateKey
+ 			let keyPair = await DPoP.generateKeyPair('ES256') // note: don't make them extractable! That potentially allows hackers to steal the privateKey
 			keyInfo = { domain: options.site, keyPair }
 			await keys.set(keyInfo)
 		}
@@ -33,7 +33,7 @@ export default function dpopmw(options) {
 			}
 
 		} else if (req.url.startsWith(options.token_endpoint)) {
-			const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method)
+			const dpopHeader = await DPoP.generateProof(keyInfo.keyPair, req.url, req.method)
 			req = req.with({
 				headers: {
 					'DPoP': dpopHeader
@@ -44,7 +44,7 @@ export default function dpopmw(options) {
 			// note: don't use options.site here, nonce can differ
 			const nonce       = localStorage.getItem(url.host+':nonce') || undefined // null is not acceptible for DpOp()
 			const accessToken = req.headers.get('Authorization').split(' ')[1]
-			const dpopHeader  = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken)
+			const dpopHeader  = await DPoP.generateProof(keyInfo.keyPair, req.url, req.method, nonce, accessToken)
 			req = req.with({
 				headers: {
 					'Authorization': 'DPoP '+accessToken,
