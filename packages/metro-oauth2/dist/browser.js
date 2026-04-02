@@ -27,7 +27,7 @@
   }
   var Client = class _Client {
     clientOptions = {
-      url: typeof window != "undefined" ? window.location : "https://localhost",
+      url: typeof window != "undefined" ? url(window.location) : url("https://localhost"),
       verbs: ["get", "post", "put", "delete", "patch", "head", "options", "query"]
     };
     static tracers = {};
@@ -44,13 +44,17 @@
     constructor(...options) {
       for (let option of options) {
         if (typeof option == "string" || option instanceof String) {
-          this.clientOptions.url = "" + option;
+          this.clientOptions.url = url(this.clientOptions.url.href, option);
+        } else if (option instanceof _Client) {
+          Object.assign(this.clientOptions, option.clientOptions);
         } else if (option instanceof Function) {
           this.#addMiddlewares([option]);
         } else if (option && typeof option == "object") {
           for (let param in option) {
             if (param == "middlewares") {
               this.#addMiddlewares(option[param]);
+            } else if (param == "url") {
+              this.clientOptions.url = url(this.clientOptions.url.href, option[param]);
             } else if (typeof option[param] == "function") {
               this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions);
             } else {
@@ -135,14 +139,17 @@
     with(...options) {
       return new _Client(deepClone(this.clientOptions), ...options);
     }
+    get location() {
+      return this.clientOptions.url;
+    }
   };
   function client(...options) {
     return new Client(...deepClone(options));
   }
   function getRequestParams(req, current) {
-    let params2 = current || {};
-    if (!params2.url && current.url) {
-      params2.url = current.url;
+    let params = current || {};
+    if (!params.url && current.url) {
+      params.url = current.url;
     }
     for (let prop of [
       "method",
@@ -168,31 +175,31 @@
         value = value[Symbol.metroSource];
       }
       if (typeof value == "function") {
-        params2[prop] = value(params2[prop], params2);
+        params[prop] = value(params[prop], params);
       } else {
         if (prop == "url") {
-          params2.url = url(params2.url, value);
+          params.url = url(params.url, value);
         } else if (prop == "headers") {
-          params2.headers = new Headers(current.headers);
+          params.headers = new Headers(current.headers);
           if (!(value instanceof Headers)) {
             value = new Headers(req.headers);
           }
           for (let [key, val] of value.entries()) {
-            params2.headers.set(key, val);
+            params.headers.set(key, val);
           }
         } else {
-          params2[prop] = value;
+          params[prop] = value;
         }
       }
     }
     if (req instanceof Request && req.data) {
-      params2.body = req.data;
+      params.body = req.data;
     }
-    return params2;
+    return params;
   }
   function request(...options) {
     let requestParams = {
-      url: typeof window != "undefined" ? window.location : "https://localhost/",
+      url: typeof window != "undefined" ? url(window.location) : url("https://localhost/"),
       duplex: "half"
       // required when setting body to ReadableStream, just set it here by default already
     };
@@ -208,7 +215,7 @@
     let r = new Request(requestParams.url, requestParams);
     let data = requestParams.body;
     if (data) {
-      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof TypedArray == "undefined" || !(data instanceof TypedArray))) {
+      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof globalThis.TypedArray == "undefined" || !(data instanceof globalThis.TypedArray))) {
         if (typeof data.toString == "function") {
           requestParams.body = data.toString({ headers: r.headers });
           r = new Request(requestParams.url, requestParams);
@@ -217,16 +224,17 @@
     }
     Object.freeze(r);
     return new Proxy(r, {
-      get(target, prop, receiver) {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               if (data) {
                 options2.unshift({ body: data });
               }
@@ -234,22 +242,26 @@
             };
             break;
           case "data":
-            return data;
+            result = data;
+            break;
+          default:
+            if (target[prop] instanceof Function) {
+              if (prop === "clone") {
+              }
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (target[prop] instanceof Function) {
-          if (prop === "clone") {
-          }
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
   function getResponseParams(res, current) {
-    let params2 = current || {};
-    if (!params2.url && current.url) {
-      params2.url = current.url;
+    let params = current || {};
+    if (!params.url && current.url) {
+      params.url = current.url;
     }
     for (let prop of ["status", "statusText", "headers", "body", "url", "type", "redirected"]) {
       let value = res[prop];
@@ -260,19 +272,19 @@
         value = value[Symbol.metroSource];
       }
       if (typeof value == "function") {
-        params2[prop] = value(params2[prop], params2);
+        params[prop] = value(params[prop], params);
       } else {
         if (prop == "url") {
-          params2.url = new URL(value, params2.url || "https://localhost/");
+          params.url = new URL(value, params.url || "https://localhost/");
         } else {
-          params2[prop] = value;
+          params[prop] = value;
         }
       }
     }
     if (res instanceof Response && res.data) {
-      params2.body = res.data;
+      params.body = res.data;
     }
-    return params2;
+    return params;
   }
   function response(...options) {
     let responseParams = {};
@@ -282,7 +294,7 @@
       } else if (option instanceof Response) {
         Object.assign(responseParams, getResponseParams(option, responseParams));
       } else if (option && typeof option == "object") {
-        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof TypedArray != "undefined" && option instanceof TypedArray) {
+        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof globalThis.TypedArray != "undefined" && option instanceof globalThis.TypedArray) {
           responseParams.body = option;
         } else {
           Object.assign(responseParams, getResponseParams(option, responseParams));
@@ -299,39 +311,44 @@
     let r = new Response(responseParams.body, responseParams);
     Object.freeze(r);
     return new Proxy(r, {
-      get(target, prop, receiver) {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return response(target, ...options2);
             };
             break;
           case "data":
-            return data;
+            result = data;
             break;
           case "ok":
-            return target.status >= 200 && target.status < 400;
+            result = target.status >= 200 && target.status < 400;
+            break;
+          default:
+            if (typeof target[prop] == "function") {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (typeof target[prop] == "function") {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
-  function appendSearchParams(url2, params2) {
-    if (typeof params2 == "function") {
-      params2(url2.searchParams, url2);
+  function appendSearchParams(url2, params) {
+    if (typeof params == "function") {
+      params(url2.searchParams, url2);
     } else {
-      params2 = new URLSearchParams(params2);
-      params2.forEach((value, key) => {
+      params = new URLSearchParams(params);
+      params.forEach((value, key) => {
         url2.searchParams.append(key, value);
       });
     }
@@ -393,25 +410,25 @@
     }
     Object.freeze(u);
     return new Proxy(u, {
-      get(target, prop, receiver) {
+      get(target, prop) {
         let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return url(target, ...options2);
             };
             break;
           case "filename":
-            return target.pathname.split("/").pop();
+            result = target.pathname.split("/").pop();
             break;
           case "folderpath":
-            return target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
+            result = target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
             break;
           case "authority":
             result = target.username ?? "";
@@ -421,75 +438,86 @@
             result += target.port ? ":" + target.port : "";
             result += "/";
             result = target.protocol + "//" + result;
-            return result;
             break;
           case "origin":
             result = target.protocol + "//" + target.hostname;
             result += target.port ? ":" + target.port : "";
             result += "/";
-            return result;
             break;
           case "fragment":
-            return target.hash.substring(1);
+            result = target.hash.substring(1);
             break;
           case "scheme":
             if (target.protocol) {
-              return target.protocol.substring(0, target.protocol.length - 1);
+              result = target.protocol.substring(0, target.protocol.length - 1);
+            } else {
+              result = "";
             }
-            return "";
+            break;
+          default:
+            if (target[prop] instanceof Function) {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (target[prop] instanceof Function) {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
   function formdata(...options) {
-    var params2 = new FormData();
+    var params = new FormData();
     for (let option of options) {
       if (option instanceof HTMLFormElement) {
         option = new FormData(option);
       }
       if (option instanceof FormData) {
         for (let entry of option.entries()) {
-          params2.append(entry[0], entry[1]);
+          params.append(entry[0], entry[1]);
         }
       } else if (option && typeof option == "object") {
         for (let entry of Object.entries(option)) {
           if (Array.isArray(entry[1])) {
             for (let value of entry[1]) {
-              params2.append(entry[0], value);
+              params.append(entry[0], value);
             }
           } else {
-            params2.append(entry[0], entry[1]);
+            params.append(entry[0], entry[1]);
           }
         }
       } else {
         throw new metroError("metro.formdata: unknown option type " + metroURL + "formdata/unknown-option-value/", option);
       }
     }
-    Object.freeze(params2);
-    return new Proxy(params2, {
-      get: (target, prop, receiver) => {
+    Object.freeze(params);
+    return new Proxy(params, {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
+          //TODO: add toString() that can check
+          //headers param: toString({headers:request.headers})
+          //for the content-type
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return formdata(target, ...options2);
             };
             break;
+          default:
+            if (target[prop] instanceof Function) {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
+            break;
         }
-        if (target[prop] instanceof Function) {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -575,35 +603,38 @@
   // node_modules/@muze-nl/metro/src/mw/json.mjs
   function jsonmw(options) {
     options = Object.assign({
-      mimetype: "application/json",
+      contentType: "application/json",
       reviver: null,
       replacer: null,
       space: ""
     }, options);
     return async function json(req, next) {
-      if (!isJSON(req.headers.get("Accept"))) {
+      if (!req.headers.get("Accept")) {
         req = req.with({
           headers: {
-            "Accept": options.mimetype
+            "Accept": options.accept ?? options.contentType
           }
         });
       }
-      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
         if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
-          if (!isJSON(req.headers.get("content-type"))) {
+          const contentType = req.headers.get("Content-Type");
+          if (!contentType || isPlainText(contentType)) {
             req = req.with({
               headers: {
-                "Content-Type": options.mimetype
+                "Content-Type": options.contentType
               }
             });
           }
-          req = req.with({
-            body: JSON.stringify(req.data, options.replacer, options.space)
-          });
+          if (isJSON(req.headers.get("Content-Type"))) {
+            req = req.with({
+              body: JSON.stringify(req.data, options.replacer, options.space)
+            });
+          }
         }
       }
       let res = await next(req);
-      if (isJSON(res.headers.get("content-type"))) {
+      if (res && isJSON(res.headers?.get("Content-Type"))) {
         let tempRes = res.clone();
         let body = await tempRes.text();
         try {
@@ -620,6 +651,9 @@
   var jsonRE = /^application\/([a-zA-Z0-9\-_]+\+)?json\b/;
   function isJSON(contentType) {
     return jsonRE.exec(contentType);
+  }
+  function isPlainText(contentType) {
+    return /^text\/plain\b/.exec(contentType);
   }
 
   // node_modules/@muze-nl/metro/src/mw/thrower.mjs
@@ -639,12 +673,64 @@
     };
   }
 
+  // node_modules/@muze-nl/metro/src/mw/getdata.mjs
+  function getdatamw() {
+    return async function getdata(req, next) {
+      let res = await next(req);
+      if (res.ok && res.data) {
+        return res.data;
+      }
+      return res;
+    };
+  }
+
+  // node_modules/@muze-nl/metro/src/api.mjs
+  var API = class extends Client {
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.clientOptions, throwermw(), getdatamw());
+      } else {
+        super(base, throwermw(), getdatamw());
+      }
+      if (!bind) {
+        bind = this;
+      }
+      for (const methodName in methods) {
+        if (typeof methods[methodName] == "function") {
+          this[methodName] = methods[methodName].bind(bind);
+        } else if (methods[methodName] && typeof methods[methodName] == "object") {
+          this[methodName] = new this.constructor(base, methods[methodName], bind);
+        } else {
+          this[methodName] = methods[methodName];
+        }
+      }
+    }
+  };
+  var JsonAPI = class extends API {
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.with(jsonmw()), methods, bind);
+      } else {
+        super(client(base, jsonmw()), methods, bind);
+      }
+    }
+  };
+  function api(...options) {
+    return new API(...deepClone(options));
+  }
+  function jsonApi(...options) {
+    return new JsonAPI(...deepClone(options));
+  }
+
   // node_modules/@muze-nl/metro/src/everything.mjs
   var metro = Object.assign({}, metro_exports, {
     mw: {
-      jsonmw,
-      thrower: throwermw
-    }
+      json: jsonmw,
+      thrower: throwermw,
+      getdata: getdatamw
+    },
+    api,
+    jsonApi
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
@@ -667,6 +753,12 @@
 
   // node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
+  function enable() {
+    globalThis.assertEnabled = true;
+  }
+  function disable() {
+    globalThis.assertEnabled = false;
+  }
   function assert(source, test) {
     if (globalThis.assertEnabled) {
       let problems = fails(source, test);
@@ -688,7 +780,7 @@
   function Required(pattern) {
     return function _Required(data, root, path) {
       if (data == null || typeof data == "undefined") {
-        return error2("data is required", data, pattern || "any value", path);
+        return error("data is required", data, pattern || "any value", path);
       } else if (typeof pattern != "undefined") {
         return fails(data, pattern, root, path);
       } else {
@@ -713,20 +805,32 @@
           return false;
         }
       }
-      return error2("data does not match oneOf patterns", data, patterns, path);
+      return error("data does not match oneOf patterns", data, patterns, path);
     };
   }
   function anyOf(...patterns) {
     return function _anyOf(data, root, path) {
       if (!Array.isArray(data)) {
-        return error2("data is not an array", data, "anyOf", path);
+        return error("data is not an array", data, "anyOf", path);
       }
       for (let value of data) {
         if (oneOf(...patterns)(value)) {
-          return error2("data does not match anyOf patterns", value, patterns, path);
+          return error("data does not match anyOf patterns", value, patterns, path);
         }
       }
       return false;
+    };
+  }
+  function allOf(...patterns) {
+    return function _allOf(data, root, path) {
+      let problems = [];
+      for (let pattern of patterns) {
+        problems = problems.concat(fails(data, pattern, root, path));
+      }
+      problems = problems.filter(Boolean);
+      if (problems.length) {
+        return error("data does not match all given patterns", data, patterns, path, problems);
+      }
     };
   }
   function validURL(data, root, path) {
@@ -737,12 +841,31 @@
       let url2 = new URL(data);
       if (url2.href != data) {
         if (!(url2.href + "/" == data || url2.href == data + "/")) {
-          return error2("data is not a valid url", data, "validURL", path);
+          return error("data is not a valid url", data, "validURL", path);
         }
       }
     } catch (e) {
-      return error2("data is not a valid url", data, "validURL", path);
+      return error("data is not a valid url", data, "validURL", path);
     }
+  }
+  function validEmail(data, root, path) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
+      return error("data is not a valid email", data, "validEmail", path);
+    }
+  }
+  function instanceOf(constructor) {
+    return function _instanceOf(data, root, path) {
+      if (!(data instanceof constructor)) {
+        return error("data is not an instanceof pattern", data, constructor, path);
+      }
+    };
+  }
+  function not(pattern) {
+    return function _not(data, root, path) {
+      if (!fails(data, pattern, root, path)) {
+        return error("data matches pattern, when required not to", data, pattern, path);
+      }
+    };
   }
   function fails(data, pattern, root, path = "") {
     if (!root) {
@@ -751,29 +874,29 @@
     let problems = [];
     if (pattern === Boolean) {
       if (typeof data != "boolean" && !(data instanceof Boolean)) {
-        problems.push(error2("data is not a boolean", data, pattern, path));
+        problems.push(error("data is not a boolean", data, pattern, path));
       }
     } else if (pattern === Number) {
       if (typeof data != "number" && !(data instanceof Number)) {
-        problems.push(error2("data is not a number", data, pattern, path));
+        problems.push(error("data is not a number", data, pattern, path));
       }
     } else if (pattern === String) {
       if (typeof data != "string" && !(data instanceof String)) {
-        problems.push(error2("data is not a string", data, pattern, path));
+        problems.push(error("data is not a string", data, pattern, path));
       }
       if (data == "") {
-        problems.push(error2("data is an empty string, which is not allowed", data, pattern, path));
+        problems.push(error("data is an empty string, which is not allowed", data, pattern, path));
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
         let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
       } else if (typeof data == "undefined") {
-        problems.push(error2("data is undefined, should match pattern", data, pattern, path));
+        problems.push(error("data is undefined, should match pattern", data, pattern, path));
       } else if (!pattern.test(data)) {
-        problems.push(error2("data does not match pattern", data, pattern, path));
+        problems.push(error("data does not match pattern", data, pattern, path));
       }
     } else if (pattern instanceof Function) {
       let problem = pattern(data, root, path);
@@ -786,7 +909,7 @@
       }
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
-        problems.push(error2("data is not an array", data, [], path));
+        problems.push(error("data is not an array", data, [], path));
       }
       for (let p of pattern) {
         for (let index of data.keys()) {
@@ -802,10 +925,10 @@
       if (Array.isArray(data)) {
         let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
         if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
         }
       } else if (!data || typeof data != "object") {
-        problems.push(error2("data is not an object, pattern is", data, pattern, path));
+        problems.push(error("data is not an object, pattern is", data, pattern, path));
       } else {
         if (data instanceof URLSearchParams) {
           data = Object.fromEntries(data);
@@ -826,7 +949,7 @@
       }
     } else {
       if (pattern != data) {
-        problems.push(error2("data and pattern are not equal", data, pattern, path));
+        problems.push(error("data and pattern are not equal", data, pattern, path));
       }
     }
     if (problems.length) {
@@ -834,7 +957,7 @@
     }
     return false;
   }
-  function error2(message, found, expected, path, problems) {
+  function error(message, found, expected, path, problems) {
     let result = {
       path,
       message,
@@ -849,6 +972,24 @@
   function warn(message, data, pattern, path) {
     console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
   }
+  globalThis.assert = {
+    warn,
+    error,
+    assert,
+    enable,
+    disable,
+    Required,
+    Recommended,
+    Optional,
+    oneOf,
+    anyOf,
+    allOf,
+    validURL,
+    validEmail,
+    instanceOf,
+    not,
+    fails
+  };
 
   // src/tokenstore.mjs
   function tokenStore(site) {
@@ -944,6 +1085,7 @@
       } catch (err) {
         switch (res?.status) {
           case 400:
+          // Oauth2.1 RFC 3.2.4
           case 401:
             return oauth2authorized(req, next);
             break;
@@ -953,6 +1095,7 @@
       if (!res.ok) {
         switch (res.status) {
           case 400:
+          // Oauth2.1 RFC 3.2.4
           case 401:
             return oauth2authorized(req, next);
             break;
@@ -997,20 +1140,20 @@
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {
         let url2 = url(window.location);
-        let code, state, params2;
+        let code, state, params;
         if (url2.searchParams.has("code")) {
-          params2 = url2.searchParams;
+          params = url2.searchParams;
           url2 = url2.with({ search: "" });
           history.pushState({}, "", url2.href);
         } else if (url2.hash) {
           let query = url2.hash.substr(1);
-          params2 = new URLSearchParams("?" + query);
+          params = new URLSearchParams("?" + query);
           url2 = url2.with({ hash: "" });
           history.pushState({}, "", url2.href);
         }
-        if (params2) {
-          code = params2.get("code");
-          state = params2.get("state");
+        if (params) {
+          code = params.get("code");
+          state = params.get("state");
           let storedState = options.state.get("metro/state");
           if (!state || state !== storedState) {
             return;
@@ -1038,7 +1181,7 @@
       let response2 = await options.client.post(tokenReq);
       if (!response2.ok) {
         let msg = await response2.text();
-        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
+        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText + " (" + msg + ")", { cause: tokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -1129,36 +1272,35 @@
         throw metroError("oauth2mw: Missing options.endpoints.token url");
       }
       let url2 = url(oauth22.token_endpoint, { hash: "" });
-      let params2 = {
+      let params = {
         grant_type: grant_type || oauth22.grant_type,
         client_id: oauth22.client_id
       };
       if (oauth22.client_secret) {
-        params2.client_secret = oauth22.client_secret;
+        params.client_secret = oauth22.client_secret;
       }
       if (oauth22.scope) {
-        params2.scope = oauth22.scope;
+        params.scope = oauth22.scope;
       }
-      switch (params2.grant_type) {
+      switch (params.grant_type) {
         case "authorization_code":
-          params2.redirect_uri = oauth22.redirect_uri;
-          params2.code = options.tokens.get("authorization_code");
+          params.redirect_uri = oauth22.redirect_uri;
+          params.code = options.tokens.get("authorization_code");
           const code_verifier = options.tokens.get("code_verifier");
           if (code_verifier) {
-            params2.code_verifier = code_verifier;
+            params.code_verifier = code_verifier;
           }
           break;
         case "client_credentials":
           break;
         case "refresh_token":
-          const refreshToken = options.tokens.get("refresh_token");
-          params2.refresh_token = refreshToken.value;
+          params.refresh_token = options.tokens.get("refresh_token");
           break;
         default:
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
           break;
       }
-      return request(url2, { method: "POST", body: new URLSearchParams(params2) });
+      return request(url2, { method: "POST", body: new URLSearchParams(params) });
     }
   }
   function isExpired(token) {
@@ -1210,7 +1352,7 @@
     if (!url2.searchParams.has("code")) {
       if (url2.hash) {
         let query = url2.hash.substr(1);
-        params = new URLSearchParams("?" + query);
+        const params = new URLSearchParams("?" + query);
         if (params.has("code")) {
           return true;
         }
@@ -1246,7 +1388,7 @@
       "Content-Type": "application/json"
     }
   };
-  var badRequest = (error4) => {
+  var badRequest = (error3) => {
     return {
       status: 400,
       statusText: "Bad Request",
@@ -1255,11 +1397,11 @@
       },
       body: JSON.stringify({
         error: "invalid_request",
-        error_description: error4
+        error_description: error3
       })
     };
   };
-  var error3;
+  var error2;
   var pkce = {};
   function oauth2mockserver(options = {}) {
     const defaultOptions = {
@@ -1271,12 +1413,12 @@
       let url2 = everything_default.url(req.url);
       switch (url2.pathname) {
         case "/authorize/":
-          if (error3 = fails(url2.searchParams, {
+          if (error2 = fails(url2.searchParams, {
             response_type: "code",
             client_id: "mockClientId",
             state: Optional(/.*/)
           })) {
-            return everything_default.response(badRequest(error3));
+            return everything_default.response(badRequest(error2));
           }
           if (url2.searchParams.has("code_challenge")) {
             if (!url2.searchParams.has("code_challenge_method")) {
@@ -1298,17 +1440,17 @@
             req.data.forEach((value, key) => body[key] = value);
             req = req.with({ body });
           }
-          if (error3 = fails(req, {
+          if (error2 = fails(req, {
             method: "POST",
             data: {
               grant_type: oneOf("refresh_token", "authorization_code")
             }
           })) {
-            return everything_default.response(badRequest(error3));
+            return everything_default.response(badRequest(error2));
           }
           switch (req.data.grant_type) {
             case "refresh_token":
-              if (error3 = fails(req.data, oneOf({
+              if (error2 = fails(req.data, oneOf({
                 refresh_token: "mockRefreshToken",
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
@@ -1317,11 +1459,11 @@
                 client_id: "mockClientId",
                 code_verifier: /.+/
               }))) {
-                return everything_default.response(badRequest(error3));
+                return everything_default.response(badRequest(error2));
               }
               break;
             case "access_token":
-              if (error3 = fails(req.data, oneOf({
+              if (error2 = fails(req.data, oneOf({
                 client_id: "mockClientId",
                 client_secret: "mockClientSecret"
               }, {
@@ -1330,7 +1472,7 @@
                 //FIXME: check that this matches code_verifier
                 code_challenge_method: "S256"
               }))) {
-                return everything_default.response(badRequest(error3));
+                return everything_default.response(badRequest(error2));
               }
               break;
           }
@@ -1433,7 +1575,7 @@
       issuer: Required(validURL)
     });
     const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer);
-    let client2 = options.client.with(options.issuer);
+    return options.client.with(options.issuer);
   }
   async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
     let res = client2.get(everything_default.url(issuer, ".wellknown/oauth_authorization_server"));
@@ -1448,19 +1590,19 @@
 
   // src/oauth2.popup.mjs
   function handleRedirect() {
-    let params2 = new URLSearchParams(window.location.search);
-    if (!params2.has("code") && window.location.hash) {
+    let params = new URLSearchParams(window.location.search);
+    if (!params.has("code") && window.location.hash) {
       let query = window.location.hash.substr(1);
-      params2 = new URLSearchParams("?" + query);
+      params = new URLSearchParams("?" + query);
     }
     let parent = window.parent ? window.parent : window.opener;
-    if (params2.has("code")) {
+    if (params.has("code")) {
       parent.postMessage({
-        authorization_code: params2.get("code")
+        authorization_code: params.get("code")
       }, window.location.origin);
-    } else if (params2.has("error")) {
+    } else if (params.has("error")) {
       parent.postMessage({
-        error
+        error: params.get("error")
       }, window.location.origin);
     } else {
       parent.postMessage({
@@ -1470,7 +1612,7 @@
   }
   function authorizePopup(authorizationCodeURL) {
     return new Promise((resolve, reject) => {
-      addEventListener("message", (evt) => {
+      addEventListener("message", (event) => {
         if (event.data.authorization_code) {
           resolve(event.data.authorization_code);
         } else if (event.data.error) {
@@ -1488,11 +1630,11 @@
     return new Promise((resolve, reject) => {
       const request2 = globalThis.indexedDB.open("metro", 1);
       request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
-      request2.onerror = (event2) => {
-        reject(event2);
+      request2.onerror = (event) => {
+        reject(event);
       };
-      request2.onsuccess = (event2) => {
-        const db = event2.target.result;
+      request2.onsuccess = (event) => {
+        const db = event.target.result;
         resolve({
           set: function(value, key) {
             return new Promise((resolve2, reject2) => {
@@ -1574,35 +1716,44 @@
     const signature = b64u(await crypto.subtle.sign(subtleAlgorithm(key), key, buf(input)));
     return `${input}.${signature}`;
   }
-  var CHUNK_SIZE = 32768;
-  function encodeBase64Url(input) {
-    if (input instanceof ArrayBuffer) {
-      input = new Uint8Array(input);
-    }
-    const arr = [];
-    for (let i = 0; i < input.byteLength; i += CHUNK_SIZE) {
-      arr.push(String.fromCharCode.apply(null, input.subarray(i, i + CHUNK_SIZE)));
-    }
-    return btoa(arr.join("")).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  var encodeBase64Url;
+  if (Uint8Array.prototype.toBase64) {
+    encodeBase64Url = (input) => {
+      if (input instanceof ArrayBuffer) {
+        input = new Uint8Array(input);
+      }
+      return input.toBase64({ alphabet: "base64url", omitPadding: true });
+    };
+  } else {
+    const CHUNK_SIZE = 32768;
+    encodeBase64Url = (input) => {
+      if (input instanceof ArrayBuffer) {
+        input = new Uint8Array(input);
+      }
+      const arr = [];
+      for (let i = 0; i < input.byteLength; i += CHUNK_SIZE) {
+        arr.push(String.fromCharCode.apply(null, input.subarray(i, i + CHUNK_SIZE)));
+      }
+      return btoa(arr.join("")).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    };
   }
   function b64u(input) {
     return encodeBase64Url(input);
   }
-  function randomBytes() {
-    return b64u(crypto.getRandomValues(new Uint8Array(32)));
-  }
   var UnsupportedOperationError = class extends Error {
     constructor(message) {
-      super(message ?? "operation not supported");
+      var _a;
+      super(message !== null && message !== void 0 ? message : "operation not supported");
       this.name = this.constructor.name;
-      Error.captureStackTrace?.(this, this.constructor);
+      (_a = Error.captureStackTrace) === null || _a === void 0 ? void 0 : _a.call(Error, this, this.constructor);
     }
   };
   var OperationProcessingError = class extends Error {
     constructor(message) {
+      var _a;
       super(message);
       this.name = this.constructor.name;
-      Error.captureStackTrace?.(this, this.constructor);
+      (_a = Error.captureStackTrace) === null || _a === void 0 ? void 0 : _a.call(Error, this, this.constructor);
     }
   };
   function psAlg(key) {
@@ -1638,7 +1789,7 @@
       case "ECDSA":
         return esAlg(key);
       case "Ed25519":
-        return "EdDSA";
+        return "Ed25519";
       default:
         throw new UnsupportedOperationError("unsupported CryptoKey algorithm name");
     }
@@ -1655,9 +1806,9 @@
   function epochTime() {
     return Math.floor(Date.now() / 1e3);
   }
-  async function DPoP(keypair, htu, htm, nonce, accessToken, additional) {
-    const privateKey = keypair?.privateKey;
-    const publicKey = keypair?.publicKey;
+  async function generateProof(keypair, htu, htm, nonce, accessToken, additional) {
+    const privateKey = keypair === null || keypair === void 0 ? void 0 : keypair.privateKey;
+    const publicKey = keypair === null || keypair === void 0 ? void 0 : keypair.publicKey;
     if (!isPrivateKey(privateKey)) {
       throw new TypeError('"keypair.privateKey" must be a private CryptoKey');
     }
@@ -1686,21 +1837,21 @@
       alg: determineJWSAlgorithm(privateKey),
       typ: "dpop+jwt",
       jwk: await publicJwk(publicKey)
-    }, {
-      ...additional,
+    }, Object.assign(Object.assign({}, additional), {
       iat: epochTime(),
-      jti: randomBytes(),
+      jti: crypto.randomUUID(),
       htm,
       nonce,
       htu,
       ath: accessToken ? b64u(await crypto.subtle.digest("SHA-256", buf(accessToken))) : void 0
-    }, privateKey);
+    }), privateKey);
   }
   async function publicJwk(key) {
     const { kty, e, n, x, y, crv } = await crypto.subtle.exportKey("jwk", key);
     return { kty, crv, e, n, x, y };
   }
   async function generateKeyPair(alg, options) {
+    var _a;
     let algorithm;
     if (typeof alg !== "string" || alg.length === 0) {
       throw new TypeError('"alg" must be a non-empty string');
@@ -1710,7 +1861,7 @@
         algorithm = {
           name: "RSA-PSS",
           hash: "SHA-256",
-          modulusLength: options?.modulusLength ?? 2048,
+          modulusLength: 2048,
           publicExponent: new Uint8Array([1, 0, 1])
         };
         break;
@@ -1718,20 +1869,20 @@
         algorithm = {
           name: "RSASSA-PKCS1-v1_5",
           hash: "SHA-256",
-          modulusLength: options?.modulusLength ?? 2048,
+          modulusLength: 2048,
           publicExponent: new Uint8Array([1, 0, 1])
         };
         break;
       case "ES256":
         algorithm = { name: "ECDSA", namedCurve: "P-256" };
         break;
-      case "EdDSA":
+      case "Ed25519":
         algorithm = { name: "Ed25519" };
         break;
       default:
         throw new UnsupportedOperationError();
     }
-    return crypto.subtle.generateKey(algorithm, options?.extractable ?? false, ["sign", "verify"]);
+    return crypto.subtle.generateKey(algorithm, (_a = options === null || options === void 0 ? void 0 : options.extractable) !== null && _a !== void 0 ? _a : false, ["sign", "verify"]);
   }
 
   // src/oauth2.dpop.mjs
@@ -1753,14 +1904,14 @@
       }
       const url2 = everything_default.url(req.url);
       if (req.url.startsWith(options.authorization_endpoint)) {
-        let params2 = req.body;
-        if (params2 instanceof URLSearchParams || params2 instanceof FormData) {
-          params2.set("dpop_jkt", keyInfo.keyPair.publicKey);
+        let params = req.body;
+        if (params instanceof URLSearchParams || params instanceof FormData) {
+          params.set("dpop_jkt", keyInfo.keyPair.publicKey);
         } else {
-          params2.dpop_jkt = keyInfo.keyPair.publicKey;
+          params.dpop_jkt = keyInfo.keyPair.publicKey;
         }
       } else if (req.url.startsWith(options.token_endpoint)) {
-        const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method);
+        const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method);
         req = req.with({
           headers: {
             "DPoP": dpopHeader
@@ -1769,7 +1920,7 @@
       } else if (req.headers.has("Authorization")) {
         const nonce = localStorage.getItem(url2.host + ":nonce") || void 0;
         const accessToken = req.headers.get("Authorization").split(" ")[1];
-        const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
+        const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
         req = req.with({
           headers: {
             "Authorization": "DPoP " + accessToken,
