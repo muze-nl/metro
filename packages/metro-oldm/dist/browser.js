@@ -9173,8 +9173,9 @@
     // ### The direction of this literal
     get direction() {
       const id = this.id;
-      const atPos = id.lastIndexOf("--") + 2;
-      return atPos > 1 && atPos < id.length ? id.substr(atPos).toLowerCase() : "";
+      const endPos = id.lastIndexOf('"');
+      const dirPos = id.lastIndexOf("--");
+      return dirPos > endPos && dirPos + 2 < id.length ? id.substr(dirPos + 2).toLowerCase() : "";
     }
     // ### The datatype IRI of this literal
     get datatype() {
@@ -9917,8 +9918,8 @@
           token = null;
           break;
         case "langcode":
-          if (token.value.length > 8)
-            return this._error("Detected language tag of length larger than 8", token);
+          if (token.value.split("-").some((t) => t.length > 8))
+            return this._error("Detected language tag with subtag longer than 8 characters", token);
           literal2 = this._factory.literal(this._literalValue, token.value);
           this._literalLanguage = token.value;
           token = null;
@@ -12258,6 +12259,7 @@
   // node_modules/@muze-nl/oldm/src/oldm-n3.mjs
   var n3Parser = (input, uri, type) => {
     const parser = new src_default.Parser({
+      baseIRI: uri,
       blankNodePrefix: "",
       format: type
     });
