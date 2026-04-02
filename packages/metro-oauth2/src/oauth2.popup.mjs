@@ -20,7 +20,7 @@ export function handleRedirect() {
 		}, window.location.origin)
 	} else if (params.has('error')) {
 		parent.postMessage({
-			error
+			error: params.get('error')
 		}, window.location.origin)
 	} else {
 		parent.postMessage({
@@ -36,7 +36,7 @@ export function handleRedirect() {
  */
 export function authorizePopup(authorizationCodeURL) {
 	return new Promise((resolve, reject) => {
-		addEventListener('message', (evt) => {
+		addEventListener('message', (event) => {
 			if (event.data.authorization_code) {
 				resolve(event.data.authorization_code)
 			} else if (event.data.error) {
