@@ -47,8 +47,8 @@
     "/README.md"
   ],
   "dependencies": {
-    "@muze-nl/assert": "^0.4.2",
-    "@muze-nl/metro": "^0.6.9",
-    "@muze-nl/metro-oauth2": "^0.7.2"
+    "@muze-nl/assert": "^0.5.1",
+    "@muze-nl/metro": "^0.6.20",
+    "@muze-nl/metro-oauth2": "^0.7.4"
   }
 }

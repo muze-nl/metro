@@ -27,7 +27,7 @@
   }
   var Client = class _Client {
     clientOptions = {
-      url: typeof window != "undefined" ? window.location : "https://localhost",
+      url: typeof window != "undefined" ? url(window.location) : url("https://localhost"),
       verbs: ["get", "post", "put", "delete", "patch", "head", "options", "query"]
     };
     static tracers = {};
@@ -44,13 +44,17 @@
     constructor(...options) {
       for (let option of options) {
         if (typeof option == "string" || option instanceof String) {
-          this.clientOptions.url = "" + option;
+          this.clientOptions.url = url(this.clientOptions.url.href, option);
+        } else if (option instanceof _Client) {
+          Object.assign(this.clientOptions, option.clientOptions);
         } else if (option instanceof Function) {
           this.#addMiddlewares([option]);
         } else if (option && typeof option == "object") {
           for (let param in option) {
             if (param == "middlewares") {
               this.#addMiddlewares(option[param]);
+            } else if (param == "url") {
+              this.clientOptions.url = url(this.clientOptions.url.href, option[param]);
             } else if (typeof option[param] == "function") {
               this.clientOptions[param] = option[param](this.clientOptions[param], this.clientOptions);
             } else {
@@ -135,6 +139,9 @@
     with(...options) {
       return new _Client(deepClone(this.clientOptions), ...options);
     }
+    get location() {
+      return this.clientOptions.url;
+    }
   };
   function client(...options) {
     return new Client(...deepClone(options));
@@ -192,7 +199,7 @@
   }
   function request(...options) {
     let requestParams = {
-      url: typeof window != "undefined" ? window.location : "https://localhost/",
+      url: typeof window != "undefined" ? url(window.location) : url("https://localhost/"),
       duplex: "half"
       // required when setting body to ReadableStream, just set it here by default already
     };
@@ -208,7 +215,7 @@
     let r = new Request(requestParams.url, requestParams);
     let data = requestParams.body;
     if (data) {
-      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof TypedArray == "undefined" || !(data instanceof TypedArray))) {
+      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof globalThis.TypedArray == "undefined" || !(data instanceof globalThis.TypedArray))) {
         if (typeof data.toString == "function") {
           requestParams.body = data.toString({ headers: r.headers });
           r = new Request(requestParams.url, requestParams);
@@ -217,16 +224,17 @@
     }
     Object.freeze(r);
     return new Proxy(r, {
-      get(target, prop, receiver) {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               if (data) {
                 options2.unshift({ body: data });
               }
@@ -234,15 +242,19 @@
             };
             break;
           case "data":
-            return data;
+            result = data;
+            break;
+          default:
+            if (target[prop] instanceof Function) {
+              if (prop === "clone") {
+              }
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (target[prop] instanceof Function) {
-          if (prop === "clone") {
-          }
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -282,7 +294,7 @@
       } else if (option instanceof Response) {
         Object.assign(responseParams, getResponseParams(option, responseParams));
       } else if (option && typeof option == "object") {
-        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof TypedArray != "undefined" && option instanceof TypedArray) {
+        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof globalThis.TypedArray != "undefined" && option instanceof globalThis.TypedArray) {
           responseParams.body = option;
         } else {
           Object.assign(responseParams, getResponseParams(option, responseParams));
@@ -299,30 +311,35 @@
     let r = new Response(responseParams.body, responseParams);
     Object.freeze(r);
     return new Proxy(r, {
-      get(target, prop, receiver) {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return response(target, ...options2);
             };
             break;
           case "data":
-            return data;
+            result = data;
             break;
           case "ok":
-            return target.status >= 200 && target.status < 400;
+            result = target.status >= 200 && target.status < 400;
+            break;
+          default:
+            if (typeof target[prop] == "function") {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (typeof target[prop] == "function") {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -393,25 +410,25 @@
     }
     Object.freeze(u);
     return new Proxy(u, {
-      get(target, prop, receiver) {
+      get(target, prop) {
         let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return url(target, ...options2);
             };
             break;
           case "filename":
-            return target.pathname.split("/").pop();
+            result = target.pathname.split("/").pop();
             break;
           case "folderpath":
-            return target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
+            result = target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
             break;
           case "authority":
             result = target.username ?? "";
@@ -421,28 +438,31 @@
             result += target.port ? ":" + target.port : "";
             result += "/";
             result = target.protocol + "//" + result;
-            return result;
             break;
           case "origin":
             result = target.protocol + "//" + target.hostname;
             result += target.port ? ":" + target.port : "";
             result += "/";
-            return result;
             break;
           case "fragment":
-            return target.hash.substring(1);
+            result = target.hash.substring(1);
             break;
           case "scheme":
             if (target.protocol) {
-              return target.protocol.substring(0, target.protocol.length - 1);
+              result = target.protocol.substring(0, target.protocol.length - 1);
+            } else {
+              result = "";
             }
-            return "";
+            break;
+          default:
+            if (target[prop] instanceof Function) {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
             break;
         }
-        if (target[prop] instanceof Function) {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -472,27 +492,32 @@
     }
     Object.freeze(params2);
     return new Proxy(params2, {
-      get: (target, prop, receiver) => {
+      get(target, prop) {
+        let result;
         switch (prop) {
           case Symbol.metroProxy:
-            return true;
+            result = true;
             break;
           case Symbol.metroSource:
-            return target;
+            result = target;
             break;
           //TODO: add toString() that can check
           //headers param: toString({headers:request.headers})
           //for the content-type
           case "with":
-            return function(...options2) {
+            result = function(...options2) {
               return formdata(target, ...options2);
             };
             break;
+          default:
+            if (target[prop] instanceof Function) {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
+            break;
         }
-        if (target[prop] instanceof Function) {
-          return target[prop].bind(target);
-        }
-        return target[prop];
+        return result;
       }
     });
   }
@@ -578,35 +603,38 @@
   // node_modules/@muze-nl/metro/src/mw/json.mjs
   function jsonmw(options) {
     options = Object.assign({
-      mimetype: "application/json",
+      contentType: "application/json",
       reviver: null,
       replacer: null,
       space: ""
     }, options);
     return async function json(req, next) {
-      if (!isJSON(req.headers.get("Accept"))) {
+      if (!req.headers.get("Accept")) {
         req = req.with({
           headers: {
-            "Accept": options.mimetype
+            "Accept": options.accept ?? options.contentType
           }
         });
       }
-      if (["POST", "PUT", "PATCH", "QUERY"].includes(req.method)) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
         if (req.data && typeof req.data == "object" && !(req.data instanceof ReadableStream)) {
-          if (!isJSON(req.headers.get("content-type"))) {
+          const contentType = req.headers.get("Content-Type");
+          if (!contentType || isPlainText(contentType)) {
             req = req.with({
               headers: {
-                "Content-Type": options.mimetype
+                "Content-Type": options.contentType
               }
             });
           }
-          req = req.with({
-            body: JSON.stringify(req.data, options.replacer, options.space)
-          });
+          if (isJSON(req.headers.get("Content-Type"))) {
+            req = req.with({
+              body: JSON.stringify(req.data, options.replacer, options.space)
+            });
+          }
         }
       }
       let res = await next(req);
-      if (isJSON(res.headers.get("content-type"))) {
+      if (res && isJSON(res.headers?.get("Content-Type"))) {
         let tempRes = res.clone();
         let body = await tempRes.text();
         try {
@@ -623,6 +651,9 @@
   var jsonRE = /^application\/([a-zA-Z0-9\-_]+\+)?json\b/;
   function isJSON(contentType) {
     return jsonRE.exec(contentType);
+  }
+  function isPlainText(contentType) {
+    return /^text\/plain\b/.exec(contentType);
   }
 
   // node_modules/@muze-nl/metro/src/mw/thrower.mjs
@@ -642,19 +673,71 @@
     };
   }
 
+  // node_modules/@muze-nl/metro/src/mw/getdata.mjs
+  function getdatamw() {
+    return async function getdata(req, next) {
+      let res = await next(req);
+      if (res.ok && res.data) {
+        return res.data;
+      }
+      return res;
+    };
+  }
+
+  // node_modules/@muze-nl/metro/src/api.mjs
+  var API = class extends Client {
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.clientOptions, throwermw(), getdatamw());
+      } else {
+        super(base, throwermw(), getdatamw());
+      }
+      if (!bind) {
+        bind = this;
+      }
+      for (const methodName in methods) {
+        if (typeof methods[methodName] == "function") {
+          this[methodName] = methods[methodName].bind(bind);
+        } else if (methods[methodName] && typeof methods[methodName] == "object") {
+          this[methodName] = new this.constructor(base, methods[methodName], bind);
+        } else {
+          this[methodName] = methods[methodName];
+        }
+      }
+    }
+  };
+  var JsonAPI = class extends API {
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.with(jsonmw()), methods, bind);
+      } else {
+        super(client(base, jsonmw()), methods, bind);
+      }
+    }
+  };
+  function api(...options) {
+    return new API(...deepClone(options));
+  }
+  function jsonApi(...options) {
+    return new JsonAPI(...deepClone(options));
+  }
+
   // node_modules/@muze-nl/metro/src/everything.mjs
   var metro = Object.assign({}, metro_exports, {
     mw: {
-      jsonmw,
-      thrower: throwermw
-    }
+      json: jsonmw,
+      thrower: throwermw,
+      getdata: getdatamw
+    },
+    api,
+    jsonApi
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
   }
   var everything_default = metro;
 
-  // node_modules/@muze-nl/assert/src/assert.mjs
+  // node_modules/@muze-nl/metro-oauth2/node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
   function assert(source, test) {
     if (globalThis.assertEnabled) {
@@ -685,51 +768,6 @@
       }
     };
   }
-  function Recommended(pattern) {
-    return function _Recommended(data, root, path) {
-      if (data == null || typeof data == "undefined") {
-        warn("data does not contain recommended value", data, pattern, path);
-        return false;
-      } else {
-        return fails(data, pattern, root, path);
-      }
-    };
-  }
-  function oneOf(...patterns) {
-    return function _oneOf(data, root, path) {
-      for (let pattern of patterns) {
-        if (!fails(data, pattern, root, path)) {
-          return false;
-        }
-      }
-      return error("data does not match oneOf patterns", data, patterns, path);
-    };
-  }
-  function anyOf(...patterns) {
-    return function _anyOf(data, root, path) {
-      if (!Array.isArray(data)) {
-        return error("data is not an array", data, "anyOf", path);
-      }
-      for (let value of data) {
-        if (oneOf(...patterns)(value)) {
-          return error("data does not match anyOf patterns", value, patterns, path);
-        }
-      }
-      return false;
-    };
-  }
-  function allOf(...patterns) {
-    return function _allOf(data, root, path) {
-      let problems = [];
-      for (let pattern of patterns) {
-        problems = problems.concat(fails(data, pattern, root, path));
-      }
-      problems = problems.filter(Boolean);
-      if (problems.length) {
-        return error("data does not match all given patterns", data, patterns, path, problems);
-      }
-    };
-  }
   function validURL(data, root, path) {
     try {
       if (data instanceof URL) {
@@ -744,25 +782,6 @@
     } catch (e) {
       return error("data is not a valid url", data, "validURL", path);
     }
-  }
-  function validEmail(data, root, path) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
-      return error("data is not a valid email", data, "validEmail", path);
-    }
-  }
-  function instanceOf(constructor) {
-    return function _instanceOf(data, root, path) {
-      if (!(data instanceof constructor)) {
-        return error("data is not an instanceof pattern", data, constructor, path);
-      }
-    };
-  }
-  function not(pattern) {
-    return function _not(data, root, path) {
-      if (!fails(data, pattern, root, path)) {
-        return error("data matches pattern, when required not to", data, pattern, path);
-      }
-    };
   }
   function fails(data, pattern, root, path = "") {
     if (!root) {
@@ -866,9 +885,6 @@
     }
     return result;
   }
-  function warn(message, data, pattern, path) {
-    console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
-  }
 
   // node_modules/@muze-nl/metro-oauth2/src/tokenstore.mjs
   function tokenStore(site) {
@@ -962,7 +978,7 @@
           return res;
         }
       } catch (err) {
-        switch (res.status) {
+        switch (res?.status) {
           case 400:
           // Oauth2.1 RFC 3.2.4
           case 401:
@@ -1544,18 +1560,258 @@
     };
   }
 
+  // node_modules/@muze-nl/assert/src/assert.mjs
+  globalThis.assertEnabled = false;
+  function enable() {
+    globalThis.assertEnabled = true;
+  }
+  function disable() {
+    globalThis.assertEnabled = false;
+  }
+  function assert2(source, test) {
+    if (globalThis.assertEnabled) {
+      let problems = fails2(source, test);
+      if (problems) {
+        console.error("\u{1F170}\uFE0F  Assertions failed because of:", problems, "in this source:", source);
+        throw new Error("Assertions failed", {
+          cause: { problems, source }
+        });
+      }
+    }
+  }
+  function Optional2(pattern) {
+    return function _Optional(data, root, path) {
+      if (typeof data != "undefined" && data != null && typeof pattern != "undefined") {
+        return fails2(data, pattern, root, path);
+      }
+    };
+  }
+  function Required2(pattern) {
+    return function _Required(data, root, path) {
+      if (data == null || typeof data == "undefined") {
+        return error2("data is required", data, pattern || "any value", path);
+      } else if (typeof pattern != "undefined") {
+        return fails2(data, pattern, root, path);
+      } else {
+        return false;
+      }
+    };
+  }
+  function Recommended(pattern) {
+    return function _Recommended(data, root, path) {
+      if (data == null || typeof data == "undefined") {
+        warn("data does not contain recommended value", data, pattern, path);
+        return false;
+      } else {
+        return fails2(data, pattern, root, path);
+      }
+    };
+  }
+  function oneOf(...patterns) {
+    return function _oneOf(data, root, path) {
+      for (let pattern of patterns) {
+        if (!fails2(data, pattern, root, path)) {
+          return false;
+        }
+      }
+      return error2("data does not match oneOf patterns", data, patterns, path);
+    };
+  }
+  function anyOf(...patterns) {
+    return function _anyOf(data, root, path) {
+      if (!Array.isArray(data)) {
+        return error2("data is not an array", data, "anyOf", path);
+      }
+      for (let value of data) {
+        if (oneOf(...patterns)(value)) {
+          return error2("data does not match anyOf patterns", value, patterns, path);
+        }
+      }
+      return false;
+    };
+  }
+  function allOf(...patterns) {
+    return function _allOf(data, root, path) {
+      let problems = [];
+      for (let pattern of patterns) {
+        problems = problems.concat(fails2(data, pattern, root, path));
+      }
+      problems = problems.filter(Boolean);
+      if (problems.length) {
+        return error2("data does not match all given patterns", data, patterns, path, problems);
+      }
+    };
+  }
+  function validURL2(data, root, path) {
+    try {
+      if (data instanceof URL) {
+        data = data.href;
+      }
+      let url2 = new URL(data);
+      if (url2.href != data) {
+        if (!(url2.href + "/" == data || url2.href == data + "/")) {
+          return error2("data is not a valid url", data, "validURL", path);
+        }
+      }
+    } catch (e) {
+      return error2("data is not a valid url", data, "validURL", path);
+    }
+  }
+  function validEmail(data, root, path) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
+      return error2("data is not a valid email", data, "validEmail", path);
+    }
+  }
+  function instanceOf(constructor) {
+    return function _instanceOf(data, root, path) {
+      if (!(data instanceof constructor)) {
+        return error2("data is not an instanceof pattern", data, constructor, path);
+      }
+    };
+  }
+  function not(pattern) {
+    return function _not(data, root, path) {
+      if (!fails2(data, pattern, root, path)) {
+        return error2("data matches pattern, when required not to", data, pattern, path);
+      }
+    };
+  }
+  function fails2(data, pattern, root, path = "") {
+    if (!root) {
+      root = data;
+    }
+    let problems = [];
+    if (pattern === Boolean) {
+      if (typeof data != "boolean" && !(data instanceof Boolean)) {
+        problems.push(error2("data is not a boolean", data, pattern, path));
+      }
+    } else if (pattern === Number) {
+      if (typeof data != "number" && !(data instanceof Number)) {
+        problems.push(error2("data is not a number", data, pattern, path));
+      }
+    } else if (pattern === String) {
+      if (typeof data != "string" && !(data instanceof String)) {
+        problems.push(error2("data is not a string", data, pattern, path));
+      }
+      if (data == "") {
+        problems.push(error2("data is an empty string, which is not allowed", data, pattern, path));
+      }
+    } else if (pattern instanceof RegExp) {
+      if (Array.isArray(data)) {
+        let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
+        if (index > -1) {
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+        }
+      } else if (typeof data == "undefined") {
+        problems.push(error2("data is undefined, should match pattern", data, pattern, path));
+      } else if (!pattern.test(data)) {
+        problems.push(error2("data does not match pattern", data, pattern, path));
+      }
+    } else if (pattern instanceof Function) {
+      let problem = pattern(data, root, path);
+      if (problem) {
+        if (Array.isArray(problem)) {
+          problems = problems.concat(problem);
+        } else {
+          problems.push(problem);
+        }
+      }
+    } else if (Array.isArray(pattern)) {
+      if (!Array.isArray(data)) {
+        problems.push(error2("data is not an array", data, [], path));
+      }
+      for (let p of pattern) {
+        for (let index of data.keys()) {
+          let problem = fails2(data[index], p, root, path + "[" + index + "]");
+          if (Array.isArray(problem)) {
+            problems = problems.concat(problem);
+          } else if (problem) {
+            problems.push(problem);
+          }
+        }
+      }
+    } else if (pattern && typeof pattern == "object") {
+      if (Array.isArray(data)) {
+        let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
+        if (index > -1) {
+          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+        }
+      } else if (!data || typeof data != "object") {
+        problems.push(error2("data is not an object, pattern is", data, pattern, path));
+      } else {
+        if (data instanceof URLSearchParams) {
+          data = Object.fromEntries(data);
+        }
+        if (pattern instanceof Function) {
+          let result = fails2(data, pattern, root, path);
+          if (result) {
+            problems = problems.concat(result);
+          }
+        } else {
+          for (const [patternKey, subpattern] of Object.entries(pattern)) {
+            let result = fails2(data[patternKey], subpattern, root, path + "." + patternKey);
+            if (result) {
+              problems = problems.concat(result);
+            }
+          }
+        }
+      }
+    } else {
+      if (pattern != data) {
+        problems.push(error2("data and pattern are not equal", data, pattern, path));
+      }
+    }
+    if (problems.length) {
+      return problems;
+    }
+    return false;
+  }
+  function error2(message, found, expected, path, problems) {
+    let result = {
+      path,
+      message,
+      found,
+      expected
+    };
+    if (problems) {
+      result.problems = problems;
+    }
+    return result;
+  }
+  function warn(message, data, pattern, path) {
+    console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
+  }
+  globalThis.assert = {
+    warn,
+    error: error2,
+    assert: assert2,
+    enable,
+    disable,
+    Required: Required2,
+    Recommended,
+    Optional: Optional2,
+    oneOf,
+    anyOf,
+    allOf,
+    validURL: validURL2,
+    validEmail,
+    instanceOf,
+    not,
+    fails: fails2
+  };
+
   // src/oidc.util.mjs
   var MustHave = (...options) => (value, root) => {
     if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
       return false;
     }
-    return error("root data must have all of", root, options);
+    return error2("root data must have all of", root, options);
   };
   var MustInclude = (...options) => (value) => {
     if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
       return false;
     } else {
-      return error("data must be an array which includes", value, options);
+      return error2("data must be an array which includes", value, options);
     }
   };
   var validJWA = [
@@ -1578,9 +1834,9 @@
 
   // src/oidc.discovery.mjs
   async function oidcDiscovery(options = {}) {
-    assert(options, {
-      client: Optional(instanceOf(everything_default.client().constructor)),
-      issuer: Required(validURL)
+    assert2(options, {
+      client: Optional2(instanceOf(everything_default.client().constructor)),
+      issuer: Required2(validURL2)
     });
     const defaultOptions = {
       client: everything_default.client().with(throwermw()).with(jsonmw()),
@@ -1592,42 +1848,42 @@
       return TestSucceeded;
     }
     const openid_provider_metadata = {
-      issuer: Required(allOf(options.issuer, MustUseHTTPS)),
-      authorization_endpoint: Required(validURL),
-      token_endpoint: Required(validURL),
-      userinfo_endpoint: Recommended(validURL),
+      issuer: Required2(allOf(options.issuer, MustUseHTTPS)),
+      authorization_endpoint: Required2(validURL2),
+      token_endpoint: Required2(validURL2),
+      userinfo_endpoint: Recommended(validURL2),
       // todo: test for https protocol
-      jwks_uri: Required(validURL),
-      registration_endpoint: options.requireDynamicRegistration ? Required(validURL) : Recommended(validURL),
+      jwks_uri: Required2(validURL2),
+      registration_endpoint: options.requireDynamicRegistration ? Required2(validURL2) : Recommended(validURL2),
       scopes_supported: Recommended(MustInclude("openid")),
-      response_types_supported: options.requireDynamicRegistration ? Required(MustInclude("code", "id_token", "id_token token")) : Required([]),
-      response_modes_supported: Optional([]),
-      grant_types_supported: options.requireDynamicRegistration ? Optional(MustInclude("authorization_code")) : Optional([]),
-      acr_values_supported: Optional([]),
-      subject_types_supported: Required([]),
-      id_token_signing_alg_values_supported: Required(MustInclude("RS256")),
-      id_token_encryption_alg_values_supported: Optional([]),
-      id_token_encryption_enc_values_supported: Optional([]),
-      userinfo_signing_alg_values_supported: Optional([]),
-      userinfo_encryption_alg_values_supported: Optional([]),
-      userinfo_encryption_enc_values_supported: Optional([]),
-      request_object_signing_alg_values_supported: Optional(MustInclude("RS256")),
+      response_types_supported: options.requireDynamicRegistration ? Required2(MustInclude("code", "id_token", "id_token token")) : Required2([]),
+      response_modes_supported: Optional2([]),
+      grant_types_supported: options.requireDynamicRegistration ? Optional2(MustInclude("authorization_code")) : Optional2([]),
+      acr_values_supported: Optional2([]),
+      subject_types_supported: Required2([]),
+      id_token_signing_alg_values_supported: Required2(MustInclude("RS256")),
+      id_token_encryption_alg_values_supported: Optional2([]),
+      id_token_encryption_enc_values_supported: Optional2([]),
+      userinfo_signing_alg_values_supported: Optional2([]),
+      userinfo_encryption_alg_values_supported: Optional2([]),
+      userinfo_encryption_enc_values_supported: Optional2([]),
+      request_object_signing_alg_values_supported: Optional2(MustInclude("RS256")),
       // not testing for 'none'
-      request_object_encryption_alg_values_supported: Optional([]),
-      request_object_encryption_enc_values_supported: Optional([]),
-      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods)),
-      token_endpoint_auth_signing_alg_values_supported: Optional(MustInclude("RS256"), not(MustInclude("none"))),
-      display_values_supported: Optional(anyOf("page", "popup", "touch", "wap")),
-      claim_types_supported: Optional(anyOf("normal", "aggregated", "distributed")),
+      request_object_encryption_alg_values_supported: Optional2([]),
+      request_object_encryption_enc_values_supported: Optional2([]),
+      token_endpoint_auth_methods_supported: Optional2(anyOf(...validAuthMethods)),
+      token_endpoint_auth_signing_alg_values_supported: Optional2(MustInclude("RS256"), not(MustInclude("none"))),
+      display_values_supported: Optional2(anyOf("page", "popup", "touch", "wap")),
+      claim_types_supported: Optional2(anyOf("normal", "aggregated", "distributed")),
       claims_supported: Recommended([]),
-      service_documentation: Optional(validURL),
-      claims_locales_supported: Optional([]),
-      ui_locales_supported: Optional([]),
-      claims_parameter_supported: Optional(Boolean),
-      request_parameter_supported: Optional(Boolean),
-      request_uri_parameter_supported: Optional(Boolean),
-      op_policy_uri: Optional(validURL),
-      op_tos_uri: Optional(validURL)
+      service_documentation: Optional2(validURL2),
+      claims_locales_supported: Optional2([]),
+      ui_locales_supported: Optional2([]),
+      claims_parameter_supported: Optional2(Boolean),
+      request_parameter_supported: Optional2(Boolean),
+      request_uri_parameter_supported: Optional2(Boolean),
+      op_policy_uri: Optional2(validURL2),
+      op_tos_uri: Optional2(validURL2)
     };
     const configURL = everything_default.url(options.issuer, ".well-known/openid-configuration");
     const response2 = await options.client.get(
@@ -1636,49 +1892,49 @@
       configURL
     );
     const openid_config = response2.data;
-    assert(openid_config, openid_provider_metadata);
-    assert(openid_config.issuer, options.issuer);
+    assert2(openid_config, openid_provider_metadata);
+    assert2(openid_config.issuer, options.issuer);
     return openid_config;
   }
 
   // src/oidc.register.mjs
   async function register(options) {
     const openid_client_metadata = {
-      redirect_uris: Required([validURL]),
-      response_types: Optional([]),
-      grant_types: Optional(anyOf("authorization_code", "refresh_token")),
+      redirect_uris: Required2([validURL2]),
+      response_types: Optional2([]),
+      grant_types: Optional2(anyOf("authorization_code", "refresh_token")),
       //TODO: match response_types with grant_types
-      application_type: Optional(oneOf("native", "web")),
-      contacts: Optional([validEmail]),
-      client_name: Optional(String),
-      logo_uri: Optional(validURL),
-      client_uri: Optional(validURL),
-      policy_uri: Optional(validURL),
-      tos_uri: Optional(validURL),
-      jwks_uri: Optional(validURL, not(MustHave("jwks"))),
-      jwks: Optional(validURL, not(MustHave("jwks_uri"))),
-      sector_identifier_uri: Optional(validURL),
-      subject_type: Optional(String),
-      id_token_signed_response_alg: Optional(oneOf(...validJWA)),
-      id_token_encrypted_response_alg: Optional(oneOf(...validJWA)),
-      id_token_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("id_token_encrypted_response_alg")),
-      userinfo_signed_response_alg: Optional(oneOf(...validJWA)),
-      userinfo_encrypted_response_alg: Optional(oneOf(...validJWA)),
-      userinfo_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("userinfo_encrypted_response_alg")),
-      request_object_signing_alg: Optional(oneOf(...validJWA)),
-      request_object_encryption_alg: Optional(oneOf(...validJWA)),
-      request_object_encryption_enc: Optional(oneOf(...validJWA)),
-      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods)),
-      token_endpoint_auth_signing_alg: Optional(oneOf(...validJWA)),
-      default_max_age: Optional(Number),
-      require_auth_time: Optional(Boolean),
-      default_acr_values: Optional([String]),
-      initiate_login_uri: Optional([validURL]),
-      request_uris: Optional([validURL])
+      application_type: Optional2(oneOf("native", "web")),
+      contacts: Optional2([validEmail]),
+      client_name: Optional2(String),
+      logo_uri: Optional2(validURL2),
+      client_uri: Optional2(validURL2),
+      policy_uri: Optional2(validURL2),
+      tos_uri: Optional2(validURL2),
+      jwks_uri: Optional2(validURL2, not(MustHave("jwks"))),
+      jwks: Optional2(validURL2, not(MustHave("jwks_uri"))),
+      sector_identifier_uri: Optional2(validURL2),
+      subject_type: Optional2(String),
+      id_token_signed_response_alg: Optional2(oneOf(...validJWA)),
+      id_token_encrypted_response_alg: Optional2(oneOf(...validJWA)),
+      id_token_encrypted_response_enc: Optional2(oneOf(...validJWA), MustHave("id_token_encrypted_response_alg")),
+      userinfo_signed_response_alg: Optional2(oneOf(...validJWA)),
+      userinfo_encrypted_response_alg: Optional2(oneOf(...validJWA)),
+      userinfo_encrypted_response_enc: Optional2(oneOf(...validJWA), MustHave("userinfo_encrypted_response_alg")),
+      request_object_signing_alg: Optional2(oneOf(...validJWA)),
+      request_object_encryption_alg: Optional2(oneOf(...validJWA)),
+      request_object_encryption_enc: Optional2(oneOf(...validJWA)),
+      token_endpoint_auth_method: Optional2(oneOf(...validAuthMethods)),
+      token_endpoint_auth_signing_alg: Optional2(oneOf(...validJWA)),
+      default_max_age: Optional2(Number),
+      require_auth_time: Optional2(Boolean),
+      default_acr_values: Optional2([String]),
+      initiate_login_uri: Optional2([validURL2]),
+      request_uris: Optional2([validURL2])
     };
-    assert(options, {
-      client: Optional(instanceOf(everything_default.client().constructor)),
-      registration_endpoint: validURL,
+    assert2(options, {
+      client: Optional2(instanceOf(everything_default.client().constructor)),
+      registration_endpoint: validURL2,
       client_info: openid_client_metadata
     });
     const defaultOptions = {
@@ -1739,13 +1995,13 @@
       }
     };
     options = Object.assign({}, defaultOptions, options);
-    assert(options, {
-      client: Required(instanceOf(client().constructor)),
+    assert2(options, {
+      client: Required2(instanceOf(client().constructor)),
       // required because it is set in defaultOptions
-      client_info: Required(),
-      issuer: Required(validURL),
-      oauth2: Optional({}),
-      openid_configuration: Optional()
+      client_info: Required2(),
+      issuer: Required2(validURL2),
+      oauth2: Optional2({}),
+      openid_configuration: Optional2()
     });
     if (!options.store) {
       options.store = oidcStore(options.issuer);
