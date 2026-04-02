@@ -54,7 +54,8 @@ export default function makeClient(options={}) {
 
 	// start discovery
 	const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer)
-	let client = options.client.with(options.issuer)
+	// TODO: pass configuration on to the client / oauth2 middleware
+	return options.client.with(options.issuer)
 }
 
 async function fetchWellknownOauthAuthorizationServer(issuer, client)
