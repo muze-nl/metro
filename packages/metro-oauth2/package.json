@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-oauth2",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "oauth2 middleware for @muze-nl/metro",
   "type": "module",
   "sideEffects": false,
@@ -30,9 +30,9 @@
     "tap": "^16.0.1"
   },
   "dependencies": {
-    "@muze-nl/assert": "^0.4.2",
-    "@muze-nl/metro": "^0.6.9",
-    "dpop": "^1.4.1"
+    "@muze-nl/assert": "^0.5.1",
+    "@muze-nl/metro": "^0.6.20",
+    "dpop": "^2.1.1"
   },
   "engines": {
     "node": ">=20.0.0"
