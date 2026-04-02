@@ -203,7 +203,7 @@ export default function oauth2mw(options)
 		let response = await options.client.post(tokenReq) //OAuth2.1 RFC 3.2
 		if (!response.ok) {
 			let msg = await response.text()
-			throw metro.metroError('OAuth2mw: fetch access_token: '+response.status+': '+response.statusText, {cause: tokenReq} )
+			throw metro.metroError('OAuth2mw: fetch access_token: '+response.status+': '+response.statusText+' ('+msg+')', {cause: tokenReq} )
 		}
 		let data = await response.json()
 		// OAuth2.1 RFC 3.2.3
@@ -337,8 +337,7 @@ export default function oauth2mw(options)
 				// nothing to add
 			break
 			case 'refresh_token':
-				const refreshToken = options.tokens.get('refresh_token')
-				params.refresh_token = refreshToken.value
+				params.refresh_token = options.tokens.get('refresh_token')
 			break
 			default:
 				throw new Error('Unknown grant_type: '.oauth2.grant_type)
@@ -441,7 +440,7 @@ export function isRedirected() {
 	if (!url.searchParams.has('code')) {
 		if (url.hash) {
 			let query = url.hash.substr(1)
-			params = new URLSearchParams('?'+query)
+			const params = new URLSearchParams('?'+query)
 			if (params.has('code')) {
 				return true
 			}
