@@ -38,7 +38,7 @@ tap.test('authorize', async t => {
 			client_id: 'mockClientId',
 			client_secret: 'mockClientSecret',
 			grant_type: 'authorization_code',
-			authorize_endpoint: '/authorize/',
+      authorization_endpoint: '/authorize/',
 			token_endpoint: '/token/'
 		},
 		authorize_callback: async (url) => 'mockAuthorizeToken',
