@@ -147,9 +147,9 @@
     return new Client(...deepClone(options));
   }
   function getRequestParams(req, current) {
-    let params2 = current || {};
-    if (!params2.url && current.url) {
-      params2.url = current.url;
+    let params = current || {};
+    if (!params.url && current.url) {
+      params.url = current.url;
     }
     for (let prop of [
       "method",
@@ -175,27 +175,27 @@
         value = value[Symbol.metroSource];
       }
       if (typeof value == "function") {
-        params2[prop] = value(params2[prop], params2);
+        params[prop] = value(params[prop], params);
       } else {
         if (prop == "url") {
-          params2.url = url(params2.url, value);
+          params.url = url(params.url, value);
         } else if (prop == "headers") {
-          params2.headers = new Headers(current.headers);
+          params.headers = new Headers(current.headers);
           if (!(value instanceof Headers)) {
             value = new Headers(req.headers);
           }
           for (let [key, val] of value.entries()) {
-            params2.headers.set(key, val);
+            params.headers.set(key, val);
           }
         } else {
-          params2[prop] = value;
+          params[prop] = value;
         }
       }
     }
     if (req instanceof Request && req.data) {
-      params2.body = req.data;
+      params.body = req.data;
     }
-    return params2;
+    return params;
   }
   function request(...options) {
     let requestParams = {
@@ -259,9 +259,9 @@
     });
   }
   function getResponseParams(res, current) {
-    let params2 = current || {};
-    if (!params2.url && current.url) {
-      params2.url = current.url;
+    let params = current || {};
+    if (!params.url && current.url) {
+      params.url = current.url;
     }
     for (let prop of ["status", "statusText", "headers", "body", "url", "type", "redirected"]) {
       let value = res[prop];
@@ -272,19 +272,19 @@
         value = value[Symbol.metroSource];
       }
       if (typeof value == "function") {
-        params2[prop] = value(params2[prop], params2);
+        params[prop] = value(params[prop], params);
       } else {
         if (prop == "url") {
-          params2.url = new URL(value, params2.url || "https://localhost/");
+          params.url = new URL(value, params.url || "https://localhost/");
         } else {
-          params2[prop] = value;
+          params[prop] = value;
         }
       }
     }
     if (res instanceof Response && res.data) {
-      params2.body = res.data;
+      params.body = res.data;
     }
-    return params2;
+    return params;
   }
   function response(...options) {
     let responseParams = {};
@@ -343,12 +343,12 @@
       }
     });
   }
-  function appendSearchParams(url2, params2) {
-    if (typeof params2 == "function") {
-      params2(url2.searchParams, url2);
+  function appendSearchParams(url2, params) {
+    if (typeof params == "function") {
+      params(url2.searchParams, url2);
     } else {
-      params2 = new URLSearchParams(params2);
-      params2.forEach((value, key) => {
+      params = new URLSearchParams(params);
+      params.forEach((value, key) => {
         url2.searchParams.append(key, value);
       });
     }
@@ -467,31 +467,31 @@
     });
   }
   function formdata(...options) {
-    var params2 = new FormData();
+    var params = new FormData();
     for (let option of options) {
       if (option instanceof HTMLFormElement) {
         option = new FormData(option);
       }
       if (option instanceof FormData) {
         for (let entry of option.entries()) {
-          params2.append(entry[0], entry[1]);
+          params.append(entry[0], entry[1]);
         }
       } else if (option && typeof option == "object") {
         for (let entry of Object.entries(option)) {
           if (Array.isArray(entry[1])) {
             for (let value of entry[1]) {
-              params2.append(entry[0], value);
+              params.append(entry[0], value);
             }
           } else {
-            params2.append(entry[0], entry[1]);
+            params.append(entry[0], entry[1]);
           }
         }
       } else {
         throw new metroError("metro.formdata: unknown option type " + metroURL + "formdata/unknown-option-value/", option);
       }
     }
-    Object.freeze(params2);
-    return new Proxy(params2, {
+    Object.freeze(params);
+    return new Proxy(params, {
       get(target, prop) {
         let result;
         switch (prop) {
@@ -737,8 +737,14 @@
   }
   var everything_default = metro;
 
-  // node_modules/@muze-nl/metro-oauth2/node_modules/@muze-nl/assert/src/assert.mjs
+  // node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
+  function enable() {
+    globalThis.assertEnabled = true;
+  }
+  function disable() {
+    globalThis.assertEnabled = false;
+  }
   function assert(source, test) {
     if (globalThis.assertEnabled) {
       let problems = fails(source, test);
@@ -768,6 +774,51 @@
       }
     };
   }
+  function Recommended(pattern) {
+    return function _Recommended(data, root, path) {
+      if (data == null || typeof data == "undefined") {
+        warn("data does not contain recommended value", data, pattern, path);
+        return false;
+      } else {
+        return fails(data, pattern, root, path);
+      }
+    };
+  }
+  function oneOf(...patterns) {
+    return function _oneOf(data, root, path) {
+      for (let pattern of patterns) {
+        if (!fails(data, pattern, root, path)) {
+          return false;
+        }
+      }
+      return error("data does not match oneOf patterns", data, patterns, path);
+    };
+  }
+  function anyOf(...patterns) {
+    return function _anyOf(data, root, path) {
+      if (!Array.isArray(data)) {
+        return error("data is not an array", data, "anyOf", path);
+      }
+      for (let value of data) {
+        if (oneOf(...patterns)(value)) {
+          return error("data does not match anyOf patterns", value, patterns, path);
+        }
+      }
+      return false;
+    };
+  }
+  function allOf(...patterns) {
+    return function _allOf(data, root, path) {
+      let problems = [];
+      for (let pattern of patterns) {
+        problems = problems.concat(fails(data, pattern, root, path));
+      }
+      problems = problems.filter(Boolean);
+      if (problems.length) {
+        return error("data does not match all given patterns", data, patterns, path, problems);
+      }
+    };
+  }
   function validURL(data, root, path) {
     try {
       if (data instanceof URL) {
@@ -782,6 +833,25 @@
     } catch (e) {
       return error("data is not a valid url", data, "validURL", path);
     }
+  }
+  function validEmail(data, root, path) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
+      return error("data is not a valid email", data, "validEmail", path);
+    }
+  }
+  function instanceOf(constructor) {
+    return function _instanceOf(data, root, path) {
+      if (!(data instanceof constructor)) {
+        return error("data is not an instanceof pattern", data, constructor, path);
+      }
+    };
+  }
+  function not(pattern) {
+    return function _not(data, root, path) {
+      if (!fails(data, pattern, root, path)) {
+        return error("data matches pattern, when required not to", data, pattern, path);
+      }
+    };
   }
   function fails(data, pattern, root, path = "") {
     if (!root) {
@@ -885,6 +955,27 @@
     }
     return result;
   }
+  function warn(message, data, pattern, path) {
+    console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
+  }
+  globalThis.assert = {
+    warn,
+    error,
+    assert,
+    enable,
+    disable,
+    Required,
+    Recommended,
+    Optional,
+    oneOf,
+    anyOf,
+    allOf,
+    validURL,
+    validEmail,
+    instanceOf,
+    not,
+    fails
+  };
 
   // node_modules/@muze-nl/metro-oauth2/src/tokenstore.mjs
   function tokenStore(site) {
@@ -1035,20 +1126,20 @@
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {
         let url2 = url(window.location);
-        let code, state, params2;
+        let code, state, params;
         if (url2.searchParams.has("code")) {
-          params2 = url2.searchParams;
+          params = url2.searchParams;
           url2 = url2.with({ search: "" });
           history.pushState({}, "", url2.href);
         } else if (url2.hash) {
           let query = url2.hash.substr(1);
-          params2 = new URLSearchParams("?" + query);
+          params = new URLSearchParams("?" + query);
           url2 = url2.with({ hash: "" });
           history.pushState({}, "", url2.href);
         }
-        if (params2) {
-          code = params2.get("code");
-          state = params2.get("state");
+        if (params) {
+          code = params.get("code");
+          state = params.get("state");
           let storedState = options.state.get("metro/state");
           if (!state || state !== storedState) {
             return;
@@ -1076,7 +1167,7 @@
       let response2 = await options.client.post(tokenReq);
       if (!response2.ok) {
         let msg = await response2.text();
-        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText, { cause: tokenReq });
+        throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText + " (" + msg + ")", { cause: tokenReq });
       }
       let data = await response2.json();
       options.tokens.set("access_token", {
@@ -1167,36 +1258,35 @@
         throw metroError("oauth2mw: Missing options.endpoints.token url");
       }
       let url2 = url(oauth2.token_endpoint, { hash: "" });
-      let params2 = {
+      let params = {
         grant_type: grant_type || oauth2.grant_type,
         client_id: oauth2.client_id
       };
       if (oauth2.client_secret) {
-        params2.client_secret = oauth2.client_secret;
+        params.client_secret = oauth2.client_secret;
       }
       if (oauth2.scope) {
-        params2.scope = oauth2.scope;
+        params.scope = oauth2.scope;
       }
-      switch (params2.grant_type) {
+      switch (params.grant_type) {
         case "authorization_code":
-          params2.redirect_uri = oauth2.redirect_uri;
-          params2.code = options.tokens.get("authorization_code");
+          params.redirect_uri = oauth2.redirect_uri;
+          params.code = options.tokens.get("authorization_code");
           const code_verifier = options.tokens.get("code_verifier");
           if (code_verifier) {
-            params2.code_verifier = code_verifier;
+            params.code_verifier = code_verifier;
           }
           break;
         case "client_credentials":
           break;
         case "refresh_token":
-          const refreshToken = options.tokens.get("refresh_token");
-          params2.refresh_token = refreshToken.value;
+          params.refresh_token = options.tokens.get("refresh_token");
           break;
         default:
           throw new Error("Unknown grant_type: ".oauth2.grant_type);
           break;
       }
-      return request(url2, { method: "POST", body: new URLSearchParams(params2) });
+      return request(url2, { method: "POST", body: new URLSearchParams(params) });
     }
   }
   function isExpired(token) {
@@ -1248,7 +1338,7 @@
     if (!url2.searchParams.has("code")) {
       if (url2.hash) {
         let query = url2.hash.substr(1);
-        params = new URLSearchParams("?" + query);
+        const params = new URLSearchParams("?" + query);
         if (params.has("code")) {
           return true;
         }
@@ -1349,35 +1439,44 @@
     const signature = b64u(await crypto.subtle.sign(subtleAlgorithm(key), key, buf(input)));
     return `${input}.${signature}`;
   }
-  var CHUNK_SIZE = 32768;
-  function encodeBase64Url(input) {
-    if (input instanceof ArrayBuffer) {
-      input = new Uint8Array(input);
-    }
-    const arr = [];
-    for (let i = 0; i < input.byteLength; i += CHUNK_SIZE) {
-      arr.push(String.fromCharCode.apply(null, input.subarray(i, i + CHUNK_SIZE)));
-    }
-    return btoa(arr.join("")).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  var encodeBase64Url;
+  if (Uint8Array.prototype.toBase64) {
+    encodeBase64Url = (input) => {
+      if (input instanceof ArrayBuffer) {
+        input = new Uint8Array(input);
+      }
+      return input.toBase64({ alphabet: "base64url", omitPadding: true });
+    };
+  } else {
+    const CHUNK_SIZE = 32768;
+    encodeBase64Url = (input) => {
+      if (input instanceof ArrayBuffer) {
+        input = new Uint8Array(input);
+      }
+      const arr = [];
+      for (let i = 0; i < input.byteLength; i += CHUNK_SIZE) {
+        arr.push(String.fromCharCode.apply(null, input.subarray(i, i + CHUNK_SIZE)));
+      }
+      return btoa(arr.join("")).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    };
   }
   function b64u(input) {
     return encodeBase64Url(input);
   }
-  function randomBytes() {
-    return b64u(crypto.getRandomValues(new Uint8Array(32)));
-  }
   var UnsupportedOperationError = class extends Error {
     constructor(message) {
-      super(message ?? "operation not supported");
+      var _a;
+      super(message !== null && message !== void 0 ? message : "operation not supported");
       this.name = this.constructor.name;
-      Error.captureStackTrace?.(this, this.constructor);
+      (_a = Error.captureStackTrace) === null || _a === void 0 ? void 0 : _a.call(Error, this, this.constructor);
     }
   };
   var OperationProcessingError = class extends Error {
     constructor(message) {
+      var _a;
       super(message);
       this.name = this.constructor.name;
-      Error.captureStackTrace?.(this, this.constructor);
+      (_a = Error.captureStackTrace) === null || _a === void 0 ? void 0 : _a.call(Error, this, this.constructor);
     }
   };
   function psAlg(key) {
@@ -1413,7 +1512,7 @@
       case "ECDSA":
         return esAlg(key);
       case "Ed25519":
-        return "EdDSA";
+        return "Ed25519";
       default:
         throw new UnsupportedOperationError("unsupported CryptoKey algorithm name");
     }
@@ -1430,9 +1529,9 @@
   function epochTime() {
     return Math.floor(Date.now() / 1e3);
   }
-  async function DPoP(keypair, htu, htm, nonce, accessToken, additional) {
-    const privateKey = keypair?.privateKey;
-    const publicKey = keypair?.publicKey;
+  async function generateProof(keypair, htu, htm, nonce, accessToken, additional) {
+    const privateKey = keypair === null || keypair === void 0 ? void 0 : keypair.privateKey;
+    const publicKey = keypair === null || keypair === void 0 ? void 0 : keypair.publicKey;
     if (!isPrivateKey(privateKey)) {
       throw new TypeError('"keypair.privateKey" must be a private CryptoKey');
     }
@@ -1461,21 +1560,21 @@
       alg: determineJWSAlgorithm(privateKey),
       typ: "dpop+jwt",
       jwk: await publicJwk(publicKey)
-    }, {
-      ...additional,
+    }, Object.assign(Object.assign({}, additional), {
       iat: epochTime(),
-      jti: randomBytes(),
+      jti: crypto.randomUUID(),
       htm,
       nonce,
       htu,
       ath: accessToken ? b64u(await crypto.subtle.digest("SHA-256", buf(accessToken))) : void 0
-    }, privateKey);
+    }), privateKey);
   }
   async function publicJwk(key) {
     const { kty, e, n, x, y, crv } = await crypto.subtle.exportKey("jwk", key);
     return { kty, crv, e, n, x, y };
   }
   async function generateKeyPair(alg, options) {
+    var _a;
     let algorithm;
     if (typeof alg !== "string" || alg.length === 0) {
       throw new TypeError('"alg" must be a non-empty string');
@@ -1485,7 +1584,7 @@
         algorithm = {
           name: "RSA-PSS",
           hash: "SHA-256",
-          modulusLength: options?.modulusLength ?? 2048,
+          modulusLength: 2048,
           publicExponent: new Uint8Array([1, 0, 1])
         };
         break;
@@ -1493,20 +1592,20 @@
         algorithm = {
           name: "RSASSA-PKCS1-v1_5",
           hash: "SHA-256",
-          modulusLength: options?.modulusLength ?? 2048,
+          modulusLength: 2048,
           publicExponent: new Uint8Array([1, 0, 1])
         };
         break;
       case "ES256":
         algorithm = { name: "ECDSA", namedCurve: "P-256" };
         break;
-      case "EdDSA":
+      case "Ed25519":
         algorithm = { name: "Ed25519" };
         break;
       default:
         throw new UnsupportedOperationError();
     }
-    return crypto.subtle.generateKey(algorithm, options?.extractable ?? false, ["sign", "verify"]);
+    return crypto.subtle.generateKey(algorithm, (_a = options === null || options === void 0 ? void 0 : options.extractable) !== null && _a !== void 0 ? _a : false, ["sign", "verify"]);
   }
 
   // node_modules/@muze-nl/metro-oauth2/src/oauth2.dpop.mjs
@@ -1528,14 +1627,14 @@
       }
       const url2 = everything_default.url(req.url);
       if (req.url.startsWith(options.authorization_endpoint)) {
-        let params2 = req.body;
-        if (params2 instanceof URLSearchParams || params2 instanceof FormData) {
-          params2.set("dpop_jkt", keyInfo.keyPair.publicKey);
+        let params = req.body;
+        if (params instanceof URLSearchParams || params instanceof FormData) {
+          params.set("dpop_jkt", keyInfo.keyPair.publicKey);
         } else {
-          params2.dpop_jkt = keyInfo.keyPair.publicKey;
+          params.dpop_jkt = keyInfo.keyPair.publicKey;
         }
       } else if (req.url.startsWith(options.token_endpoint)) {
-        const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method);
+        const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method);
         req = req.with({
           headers: {
             "DPoP": dpopHeader
@@ -1544,7 +1643,7 @@
       } else if (req.headers.has("Authorization")) {
         const nonce = localStorage.getItem(url2.host + ":nonce") || void 0;
         const accessToken = req.headers.get("Authorization").split(" ")[1];
-        const dpopHeader = await DPoP(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
+        const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
         req = req.with({
           headers: {
             "Authorization": "DPoP " + accessToken,
@@ -1560,258 +1659,18 @@
     };
   }
 
-  // node_modules/@muze-nl/assert/src/assert.mjs
-  globalThis.assertEnabled = false;
-  function enable() {
-    globalThis.assertEnabled = true;
-  }
-  function disable() {
-    globalThis.assertEnabled = false;
-  }
-  function assert2(source, test) {
-    if (globalThis.assertEnabled) {
-      let problems = fails2(source, test);
-      if (problems) {
-        console.error("\u{1F170}\uFE0F  Assertions failed because of:", problems, "in this source:", source);
-        throw new Error("Assertions failed", {
-          cause: { problems, source }
-        });
-      }
-    }
-  }
-  function Optional2(pattern) {
-    return function _Optional(data, root, path) {
-      if (typeof data != "undefined" && data != null && typeof pattern != "undefined") {
-        return fails2(data, pattern, root, path);
-      }
-    };
-  }
-  function Required2(pattern) {
-    return function _Required(data, root, path) {
-      if (data == null || typeof data == "undefined") {
-        return error2("data is required", data, pattern || "any value", path);
-      } else if (typeof pattern != "undefined") {
-        return fails2(data, pattern, root, path);
-      } else {
-        return false;
-      }
-    };
-  }
-  function Recommended(pattern) {
-    return function _Recommended(data, root, path) {
-      if (data == null || typeof data == "undefined") {
-        warn("data does not contain recommended value", data, pattern, path);
-        return false;
-      } else {
-        return fails2(data, pattern, root, path);
-      }
-    };
-  }
-  function oneOf(...patterns) {
-    return function _oneOf(data, root, path) {
-      for (let pattern of patterns) {
-        if (!fails2(data, pattern, root, path)) {
-          return false;
-        }
-      }
-      return error2("data does not match oneOf patterns", data, patterns, path);
-    };
-  }
-  function anyOf(...patterns) {
-    return function _anyOf(data, root, path) {
-      if (!Array.isArray(data)) {
-        return error2("data is not an array", data, "anyOf", path);
-      }
-      for (let value of data) {
-        if (oneOf(...patterns)(value)) {
-          return error2("data does not match anyOf patterns", value, patterns, path);
-        }
-      }
-      return false;
-    };
-  }
-  function allOf(...patterns) {
-    return function _allOf(data, root, path) {
-      let problems = [];
-      for (let pattern of patterns) {
-        problems = problems.concat(fails2(data, pattern, root, path));
-      }
-      problems = problems.filter(Boolean);
-      if (problems.length) {
-        return error2("data does not match all given patterns", data, patterns, path, problems);
-      }
-    };
-  }
-  function validURL2(data, root, path) {
-    try {
-      if (data instanceof URL) {
-        data = data.href;
-      }
-      let url2 = new URL(data);
-      if (url2.href != data) {
-        if (!(url2.href + "/" == data || url2.href == data + "/")) {
-          return error2("data is not a valid url", data, "validURL", path);
-        }
-      }
-    } catch (e) {
-      return error2("data is not a valid url", data, "validURL", path);
-    }
-  }
-  function validEmail(data, root, path) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data)) {
-      return error2("data is not a valid email", data, "validEmail", path);
-    }
-  }
-  function instanceOf(constructor) {
-    return function _instanceOf(data, root, path) {
-      if (!(data instanceof constructor)) {
-        return error2("data is not an instanceof pattern", data, constructor, path);
-      }
-    };
-  }
-  function not(pattern) {
-    return function _not(data, root, path) {
-      if (!fails2(data, pattern, root, path)) {
-        return error2("data matches pattern, when required not to", data, pattern, path);
-      }
-    };
-  }
-  function fails2(data, pattern, root, path = "") {
-    if (!root) {
-      root = data;
-    }
-    let problems = [];
-    if (pattern === Boolean) {
-      if (typeof data != "boolean" && !(data instanceof Boolean)) {
-        problems.push(error2("data is not a boolean", data, pattern, path));
-      }
-    } else if (pattern === Number) {
-      if (typeof data != "number" && !(data instanceof Number)) {
-        problems.push(error2("data is not a number", data, pattern, path));
-      }
-    } else if (pattern === String) {
-      if (typeof data != "string" && !(data instanceof String)) {
-        problems.push(error2("data is not a string", data, pattern, path));
-      }
-      if (data == "") {
-        problems.push(error2("data is an empty string, which is not allowed", data, pattern, path));
-      }
-    } else if (pattern instanceof RegExp) {
-      if (Array.isArray(data)) {
-        let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
-        if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
-        }
-      } else if (typeof data == "undefined") {
-        problems.push(error2("data is undefined, should match pattern", data, pattern, path));
-      } else if (!pattern.test(data)) {
-        problems.push(error2("data does not match pattern", data, pattern, path));
-      }
-    } else if (pattern instanceof Function) {
-      let problem = pattern(data, root, path);
-      if (problem) {
-        if (Array.isArray(problem)) {
-          problems = problems.concat(problem);
-        } else {
-          problems.push(problem);
-        }
-      }
-    } else if (Array.isArray(pattern)) {
-      if (!Array.isArray(data)) {
-        problems.push(error2("data is not an array", data, [], path));
-      }
-      for (let p of pattern) {
-        for (let index of data.keys()) {
-          let problem = fails2(data[index], p, root, path + "[" + index + "]");
-          if (Array.isArray(problem)) {
-            problems = problems.concat(problem);
-          } else if (problem) {
-            problems.push(problem);
-          }
-        }
-      }
-    } else if (pattern && typeof pattern == "object") {
-      if (Array.isArray(data)) {
-        let index = data.findIndex((element, index2) => fails2(element, pattern, root, path + "[" + index2 + "]"));
-        if (index > -1) {
-          problems.push(error2("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
-        }
-      } else if (!data || typeof data != "object") {
-        problems.push(error2("data is not an object, pattern is", data, pattern, path));
-      } else {
-        if (data instanceof URLSearchParams) {
-          data = Object.fromEntries(data);
-        }
-        if (pattern instanceof Function) {
-          let result = fails2(data, pattern, root, path);
-          if (result) {
-            problems = problems.concat(result);
-          }
-        } else {
-          for (const [patternKey, subpattern] of Object.entries(pattern)) {
-            let result = fails2(data[patternKey], subpattern, root, path + "." + patternKey);
-            if (result) {
-              problems = problems.concat(result);
-            }
-          }
-        }
-      }
-    } else {
-      if (pattern != data) {
-        problems.push(error2("data and pattern are not equal", data, pattern, path));
-      }
-    }
-    if (problems.length) {
-      return problems;
-    }
-    return false;
-  }
-  function error2(message, found, expected, path, problems) {
-    let result = {
-      path,
-      message,
-      found,
-      expected
-    };
-    if (problems) {
-      result.problems = problems;
-    }
-    return result;
-  }
-  function warn(message, data, pattern, path) {
-    console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
-  }
-  globalThis.assert = {
-    warn,
-    error: error2,
-    assert: assert2,
-    enable,
-    disable,
-    Required: Required2,
-    Recommended,
-    Optional: Optional2,
-    oneOf,
-    anyOf,
-    allOf,
-    validURL: validURL2,
-    validEmail,
-    instanceOf,
-    not,
-    fails: fails2
-  };
-
   // src/oidc.util.mjs
   var MustHave = (...options) => (value, root) => {
     if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
       return false;
     }
-    return error2("root data must have all of", root, options);
+    return error("root data must have all of", root, options);
   };
   var MustInclude = (...options) => (value) => {
     if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
       return false;
     } else {
-      return error2("data must be an array which includes", value, options);
+      return error("data must be an array which includes", value, options);
     }
   };
   var validJWA = [
@@ -1834,9 +1693,9 @@
 
   // src/oidc.discovery.mjs
   async function oidcDiscovery(options = {}) {
-    assert2(options, {
-      client: Optional2(instanceOf(everything_default.client().constructor)),
-      issuer: Required2(validURL2)
+    assert(options, {
+      client: Optional(instanceOf(everything_default.client().constructor)),
+      issuer: Required(validURL)
     });
     const defaultOptions = {
       client: everything_default.client().with(throwermw()).with(jsonmw()),
@@ -1848,42 +1707,42 @@
       return TestSucceeded;
     }
     const openid_provider_metadata = {
-      issuer: Required2(allOf(options.issuer, MustUseHTTPS)),
-      authorization_endpoint: Required2(validURL2),
-      token_endpoint: Required2(validURL2),
-      userinfo_endpoint: Recommended(validURL2),
+      issuer: Required(allOf(options.issuer, MustUseHTTPS)),
+      authorization_endpoint: Required(validURL),
+      token_endpoint: Required(validURL),
+      userinfo_endpoint: Recommended(validURL),
       // todo: test for https protocol
-      jwks_uri: Required2(validURL2),
-      registration_endpoint: options.requireDynamicRegistration ? Required2(validURL2) : Recommended(validURL2),
+      jwks_uri: Required(validURL),
+      registration_endpoint: options.requireDynamicRegistration ? Required(validURL) : Recommended(validURL),
       scopes_supported: Recommended(MustInclude("openid")),
-      response_types_supported: options.requireDynamicRegistration ? Required2(MustInclude("code", "id_token", "id_token token")) : Required2([]),
-      response_modes_supported: Optional2([]),
-      grant_types_supported: options.requireDynamicRegistration ? Optional2(MustInclude("authorization_code")) : Optional2([]),
-      acr_values_supported: Optional2([]),
-      subject_types_supported: Required2([]),
-      id_token_signing_alg_values_supported: Required2(MustInclude("RS256")),
-      id_token_encryption_alg_values_supported: Optional2([]),
-      id_token_encryption_enc_values_supported: Optional2([]),
-      userinfo_signing_alg_values_supported: Optional2([]),
-      userinfo_encryption_alg_values_supported: Optional2([]),
-      userinfo_encryption_enc_values_supported: Optional2([]),
-      request_object_signing_alg_values_supported: Optional2(MustInclude("RS256")),
+      response_types_supported: options.requireDynamicRegistration ? Required(MustInclude("code", "id_token", "id_token token")) : Required([]),
+      response_modes_supported: Optional([]),
+      grant_types_supported: options.requireDynamicRegistration ? Optional(MustInclude("authorization_code")) : Optional([]),
+      acr_values_supported: Optional([]),
+      subject_types_supported: Required([]),
+      id_token_signing_alg_values_supported: Required(MustInclude("RS256")),
+      id_token_encryption_alg_values_supported: Optional([]),
+      id_token_encryption_enc_values_supported: Optional([]),
+      userinfo_signing_alg_values_supported: Optional([]),
+      userinfo_encryption_alg_values_supported: Optional([]),
+      userinfo_encryption_enc_values_supported: Optional([]),
+      request_object_signing_alg_values_supported: Optional(MustInclude("RS256")),
       // not testing for 'none'
-      request_object_encryption_alg_values_supported: Optional2([]),
-      request_object_encryption_enc_values_supported: Optional2([]),
-      token_endpoint_auth_methods_supported: Optional2(anyOf(...validAuthMethods)),
-      token_endpoint_auth_signing_alg_values_supported: Optional2(MustInclude("RS256"), not(MustInclude("none"))),
-      display_values_supported: Optional2(anyOf("page", "popup", "touch", "wap")),
-      claim_types_supported: Optional2(anyOf("normal", "aggregated", "distributed")),
+      request_object_encryption_alg_values_supported: Optional([]),
+      request_object_encryption_enc_values_supported: Optional([]),
+      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods)),
+      token_endpoint_auth_signing_alg_values_supported: Optional(MustInclude("RS256"), not(MustInclude("none"))),
+      display_values_supported: Optional(anyOf("page", "popup", "touch", "wap")),
+      claim_types_supported: Optional(anyOf("normal", "aggregated", "distributed")),
       claims_supported: Recommended([]),
-      service_documentation: Optional2(validURL2),
-      claims_locales_supported: Optional2([]),
-      ui_locales_supported: Optional2([]),
-      claims_parameter_supported: Optional2(Boolean),
-      request_parameter_supported: Optional2(Boolean),
-      request_uri_parameter_supported: Optional2(Boolean),
-      op_policy_uri: Optional2(validURL2),
-      op_tos_uri: Optional2(validURL2)
+      service_documentation: Optional(validURL),
+      claims_locales_supported: Optional([]),
+      ui_locales_supported: Optional([]),
+      claims_parameter_supported: Optional(Boolean),
+      request_parameter_supported: Optional(Boolean),
+      request_uri_parameter_supported: Optional(Boolean),
+      op_policy_uri: Optional(validURL),
+      op_tos_uri: Optional(validURL)
     };
     const configURL = everything_default.url(options.issuer, ".well-known/openid-configuration");
     const response2 = await options.client.get(
@@ -1892,49 +1751,49 @@
       configURL
     );
     const openid_config = response2.data;
-    assert2(openid_config, openid_provider_metadata);
-    assert2(openid_config.issuer, options.issuer);
+    assert(openid_config, openid_provider_metadata);
+    assert(openid_config.issuer, options.issuer);
     return openid_config;
   }
 
   // src/oidc.register.mjs
   async function register(options) {
     const openid_client_metadata = {
-      redirect_uris: Required2([validURL2]),
-      response_types: Optional2([]),
-      grant_types: Optional2(anyOf("authorization_code", "refresh_token")),
+      redirect_uris: Required([validURL]),
+      response_types: Optional([]),
+      grant_types: Optional(anyOf("authorization_code", "refresh_token")),
       //TODO: match response_types with grant_types
-      application_type: Optional2(oneOf("native", "web")),
-      contacts: Optional2([validEmail]),
-      client_name: Optional2(String),
-      logo_uri: Optional2(validURL2),
-      client_uri: Optional2(validURL2),
-      policy_uri: Optional2(validURL2),
-      tos_uri: Optional2(validURL2),
-      jwks_uri: Optional2(validURL2, not(MustHave("jwks"))),
-      jwks: Optional2(validURL2, not(MustHave("jwks_uri"))),
-      sector_identifier_uri: Optional2(validURL2),
-      subject_type: Optional2(String),
-      id_token_signed_response_alg: Optional2(oneOf(...validJWA)),
-      id_token_encrypted_response_alg: Optional2(oneOf(...validJWA)),
-      id_token_encrypted_response_enc: Optional2(oneOf(...validJWA), MustHave("id_token_encrypted_response_alg")),
-      userinfo_signed_response_alg: Optional2(oneOf(...validJWA)),
-      userinfo_encrypted_response_alg: Optional2(oneOf(...validJWA)),
-      userinfo_encrypted_response_enc: Optional2(oneOf(...validJWA), MustHave("userinfo_encrypted_response_alg")),
-      request_object_signing_alg: Optional2(oneOf(...validJWA)),
-      request_object_encryption_alg: Optional2(oneOf(...validJWA)),
-      request_object_encryption_enc: Optional2(oneOf(...validJWA)),
-      token_endpoint_auth_method: Optional2(oneOf(...validAuthMethods)),
-      token_endpoint_auth_signing_alg: Optional2(oneOf(...validJWA)),
-      default_max_age: Optional2(Number),
-      require_auth_time: Optional2(Boolean),
-      default_acr_values: Optional2([String]),
-      initiate_login_uri: Optional2([validURL2]),
-      request_uris: Optional2([validURL2])
+      application_type: Optional(oneOf("native", "web")),
+      contacts: Optional([validEmail]),
+      client_name: Optional(String),
+      logo_uri: Optional(validURL),
+      client_uri: Optional(validURL),
+      policy_uri: Optional(validURL),
+      tos_uri: Optional(validURL),
+      jwks_uri: Optional(validURL, not(MustHave("jwks"))),
+      jwks: Optional(validURL, not(MustHave("jwks_uri"))),
+      sector_identifier_uri: Optional(validURL),
+      subject_type: Optional(String),
+      id_token_signed_response_alg: Optional(oneOf(...validJWA)),
+      id_token_encrypted_response_alg: Optional(oneOf(...validJWA)),
+      id_token_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("id_token_encrypted_response_alg")),
+      userinfo_signed_response_alg: Optional(oneOf(...validJWA)),
+      userinfo_encrypted_response_alg: Optional(oneOf(...validJWA)),
+      userinfo_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("userinfo_encrypted_response_alg")),
+      request_object_signing_alg: Optional(oneOf(...validJWA)),
+      request_object_encryption_alg: Optional(oneOf(...validJWA)),
+      request_object_encryption_enc: Optional(oneOf(...validJWA)),
+      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods)),
+      token_endpoint_auth_signing_alg: Optional(oneOf(...validJWA)),
+      default_max_age: Optional(Number),
+      require_auth_time: Optional(Boolean),
+      default_acr_values: Optional([String]),
+      initiate_login_uri: Optional([validURL]),
+      request_uris: Optional([validURL])
     };
-    assert2(options, {
-      client: Optional2(instanceOf(everything_default.client().constructor)),
-      registration_endpoint: validURL2,
+    assert(options, {
+      client: Optional(instanceOf(everything_default.client().constructor)),
+      registration_endpoint: validURL,
       client_info: openid_client_metadata
     });
     const defaultOptions = {
@@ -1995,13 +1854,13 @@
       }
     };
     options = Object.assign({}, defaultOptions, options);
-    assert2(options, {
-      client: Required2(instanceOf(client().constructor)),
+    assert(options, {
+      client: Required(instanceOf(client().constructor)),
       // required because it is set in defaultOptions
-      client_info: Required2(),
-      issuer: Required2(validURL2),
-      oauth2: Optional2({}),
-      openid_configuration: Optional2()
+      client_info: Required(),
+      issuer: Required(validURL),
+      oauth2: Optional({}),
+      openid_configuration: Optional()
     });
     if (!options.store) {
       options.store = oidcStore(options.issuer);
