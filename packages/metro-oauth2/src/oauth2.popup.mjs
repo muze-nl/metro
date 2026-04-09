@@ -13,7 +13,7 @@ export function handleRedirect() {
 		let query = window.location.hash.substr(1)
 		params = new URLSearchParams('?'+query)
 	}
-	let parent = window.parent ? window.parent : window.opener
+	let parent = (window.parent !== window) ? window.parent : window.opener
 	if (params.has('code')) {
 		parent.postMessage({
 			authorization_code: params.get('code')
