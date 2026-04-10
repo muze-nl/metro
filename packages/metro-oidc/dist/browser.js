@@ -737,6 +737,20 @@
   }
   var everything_default = metro;
 
+  // node_modules/@muze-nl/metro-oauth2/src/oauth2.mjs
+  var oauth2_exports = {};
+  __export(oauth2_exports, {
+    base64url_encode: () => base64url_encode,
+    createState: () => createState,
+    default: () => oauth2mw,
+    generateCodeChallenge: () => generateCodeChallenge,
+    generateCodeVerifier: () => generateCodeVerifier,
+    getExpires: () => getExpires,
+    isAuthorized: () => isAuthorized,
+    isExpired: () => isExpired,
+    isRedirected: () => isRedirected
+  });
+
   // node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
   function enable() {
@@ -1030,9 +1044,9 @@
       }
     };
     assert(options, {});
-    const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
+    const oauth22 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
-    options.oauth2_configuration = oauth2;
+    options.oauth2_configuration = oauth22;
     const store = tokenStore(options.site);
     if (!options.tokens) {
       options.tokens = store.tokens;
@@ -1049,12 +1063,12 @@
         redirect_uri: Required(validURL)
       }
     });
-    for (let option in oauth2) {
+    for (let option in oauth22) {
       switch (option) {
         case "access_token":
         case "authorization_code":
         case "refresh_token":
-          options.tokens.set(option, oauth2[option]);
+          options.tokens.set(option, oauth22[option]);
           break;
       }
     }
@@ -1151,7 +1165,7 @@
       }
     }
     async function fetchAccessToken() {
-      if (oauth2.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
+      if (oauth22.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
         let authReqURL = await getAuthorizationCodeURL();
         if (!options.authorize_callback || typeof options.authorize_callback !== "function") {
           throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.authorize_callback");
@@ -1209,11 +1223,11 @@
       return data;
     }
     async function getAuthorizationCodeURL() {
-      if (!oauth2.authorization_endpoint) {
+      if (!oauth22.authorization_endpoint) {
         throw metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = url(oauth2.authorization_endpoint, { hash: "" });
-      assert(oauth2, {
+      let url2 = url(oauth22.authorization_endpoint, { hash: "" });
+      assert(oauth22, {
         client_id: /.+/,
         redirect_uri: /.+/,
         scope: /.*/
@@ -1221,56 +1235,56 @@
       let search = {
         response_type: "code",
         // implicit flow uses 'token' here, but is not considered safe, so not supported
-        client_id: oauth2.client_id,
-        redirect_uri: oauth2.redirect_uri,
-        state: oauth2.state || createState(40)
+        client_id: oauth22.client_id,
+        redirect_uri: oauth22.redirect_uri,
+        state: oauth22.state || createState(40)
         // OAuth2.1 RFC says optional, but its a good idea to always add/check it
       };
-      if (oauth2.response_type) {
-        search.response_type = oauth2.response_type;
+      if (oauth22.response_type) {
+        search.response_type = oauth22.response_type;
       }
-      if (oauth2.response_mode) {
-        search.response_mode = oauth2.response_mode;
+      if (oauth22.response_mode) {
+        search.response_mode = oauth22.response_mode;
       }
       options.state.set(search.state);
-      if (oauth2.client_secret) {
-        search.client_secret = oauth2.client_secret;
+      if (oauth22.client_secret) {
+        search.client_secret = oauth22.client_secret;
       }
-      if (oauth2.code_verifier) {
-        options.tokens.set("code_verifier", oauth2.code_verifier);
-        search.code_challenge = await generateCodeChallenge(oauth2.code_verifier);
+      if (oauth22.code_verifier) {
+        options.tokens.set("code_verifier", oauth22.code_verifier);
+        search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
         search.code_challenge_method = "S256";
       }
-      if (oauth2.scope) {
-        search.scope = oauth2.scope;
+      if (oauth22.scope) {
+        search.scope = oauth22.scope;
       }
-      if (oauth2.prompt) {
-        search.prompt = oauth2.prompt;
+      if (oauth22.prompt) {
+        search.prompt = oauth22.prompt;
       }
       return url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
-      assert(oauth2, {
+      assert(oauth22, {
         client_id: /.+/,
         redirect_uri: /.+/
       });
-      if (!oauth2.token_endpoint) {
+      if (!oauth22.token_endpoint) {
         throw metroError("oauth2mw: Missing options.endpoints.token url");
       }
-      let url2 = url(oauth2.token_endpoint, { hash: "" });
+      let url2 = url(oauth22.token_endpoint, { hash: "" });
       let params = {
-        grant_type: grant_type || oauth2.grant_type,
-        client_id: oauth2.client_id
+        grant_type: grant_type || oauth22.grant_type,
+        client_id: oauth22.client_id
       };
-      if (oauth2.client_secret) {
-        params.client_secret = oauth2.client_secret;
+      if (oauth22.client_secret) {
+        params.client_secret = oauth22.client_secret;
       }
-      if (oauth2.scope) {
-        params.scope = oauth2.scope;
+      if (oauth22.scope) {
+        params.scope = oauth22.scope;
       }
       switch (params.grant_type) {
         case "authorization_code":
-          params.redirect_uri = oauth2.redirect_uri;
+          params.redirect_uri = oauth22.redirect_uri;
           params.code = options.tokens.get("authorization_code");
           const code_verifier = options.tokens.get("code_verifier");
           if (code_verifier) {
@@ -1346,6 +1360,277 @@
       return false;
     }
     return true;
+  }
+  function isAuthorized(tokens) {
+    if (typeof tokens == "string") {
+      tokens = tokenStore(tokens).tokens;
+    }
+    let accessToken = tokens.get("access_token");
+    if (accessToken && !isExpired(accessToken)) {
+      return true;
+    }
+    let refreshToken = tokens.get("refresh_token");
+    if (refreshToken) {
+      return true;
+    }
+    return false;
+  }
+
+  // node_modules/@muze-nl/metro-oauth2/src/oauth2.mockserver.mjs
+  var oauth2_mockserver_exports = {};
+  __export(oauth2_mockserver_exports, {
+    default: () => oauth2mockserver
+  });
+  var baseResponse = {
+    status: 200,
+    statusText: "OK",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
+  var badRequest = (error3) => {
+    return {
+      status: 400,
+      statusText: "Bad Request",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        error: "invalid_request",
+        error_description: error3
+      })
+    };
+  };
+  var error2;
+  var pkce = {};
+  function oauth2mockserver(options = {}) {
+    const defaultOptions = {
+      "PKCE": false,
+      "DPoP": false
+    };
+    options = Object.assign({}, defaultOptions, options);
+    return async (req, next) => {
+      let url2 = everything_default.url(req.url);
+      switch (url2.pathname) {
+        case "/authorize/":
+          if (error2 = fails(url2.searchParams, {
+            response_type: "code",
+            client_id: "mockClientId",
+            state: Optional(/.*/)
+          })) {
+            return everything_default.response(badRequest(error2));
+          }
+          if (url2.searchParams.has("code_challenge")) {
+            if (!url2.searchParams.has("code_challenge_method")) {
+              return everything_default.response(badRequest("missing code_challenge_method"));
+            }
+            pkce.code_challenge = url2.searchParams.get("code_challenge");
+            pkce.code_challenge_method = url2.searchParams.get("code_challenge_method");
+          }
+          return everything_default.response(baseResponse, {
+            body: JSON.stringify({
+              code: "mockAuthorizeToken",
+              state: url2.searchParams.get("state")
+            })
+          });
+          break;
+        case "/token/":
+          if (req.data instanceof URLSearchParams) {
+            let body = {};
+            req.data.forEach((value, key) => body[key] = value);
+            req = req.with({ body });
+          }
+          if (error2 = fails(req, {
+            method: "POST",
+            data: {
+              grant_type: oneOf("refresh_token", "authorization_code")
+            }
+          })) {
+            return everything_default.response(badRequest(error2));
+          }
+          switch (req.data.grant_type) {
+            case "refresh_token":
+              if (error2 = fails(req.data, oneOf({
+                refresh_token: "mockRefreshToken",
+                client_id: "mockClientId",
+                client_secret: "mockClientSecret"
+              }, {
+                refresh_token: "mockRefreshToken",
+                client_id: "mockClientId",
+                code_verifier: /.+/
+              }))) {
+                return everything_default.response(badRequest(error2));
+              }
+              break;
+            case "access_token":
+              if (error2 = fails(req.data, oneOf({
+                client_id: "mockClientId",
+                client_secret: "mockClientSecret"
+              }, {
+                client_id: "mockClientId",
+                code_challenge: /.*/,
+                //FIXME: check that this matches code_verifier
+                code_challenge_method: "S256"
+              }))) {
+                return everything_default.response(badRequest(error2));
+              }
+              break;
+          }
+          return everything_default.response(baseResponse, {
+            body: JSON.stringify({
+              access_token: "mockAccessToken",
+              token_type: "mockExample",
+              expires_in: 3600,
+              refresh_token: "mockRefreshToken",
+              example_parameter: "mockExampleValue"
+            })
+          });
+          break;
+        case "/protected/":
+          let auth = req.headers.get("Authorization");
+          let [type, token] = auth ? auth.split(" ") : [];
+          if (!token || token !== "mockAccessToken") {
+            return everything_default.response({
+              status: 401,
+              statusText: "Forbidden",
+              body: "401 Forbidden"
+            });
+          }
+          return everything_default.response(baseResponse, {
+            body: JSON.stringify({
+              result: "Success"
+            })
+          });
+          break;
+        case "/public/":
+          return everything_default.response(baseResponse, {
+            body: JSON.stringify({
+              result: "Success"
+            })
+          });
+          break;
+        default:
+          return everything_default.response({
+            status: 404,
+            statusText: "not found",
+            body: "404 Not Found " + url2
+          });
+          break;
+      }
+    };
+  }
+
+  // node_modules/@muze-nl/metro-oauth2/src/oauth2.discovery.mjs
+  var oauth2_discovery_exports = {};
+  __export(oauth2_discovery_exports, {
+    default: () => makeClient
+  });
+  var validAlgorithms = [
+    "HS256",
+    "HS384",
+    "HS512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "ES256",
+    "ES384",
+    "ES512"
+  ];
+  var validAuthMethods = [
+    "client_secret_post",
+    "client_secret_base",
+    "client_secret_jwt",
+    "private_key_jwt"
+  ];
+  var oauth_authorization_server_metadata = {
+    issuer: Required(validURL),
+    authorization_endpoint: Required(validURL),
+    token_endpoint: Required(validURL),
+    jwks_uri: Optional(validURL),
+    registration_endpoint: Optional(validURL),
+    scopes_supported: Recommended([]),
+    response_types_supported: Required(anyOf("code", "token")),
+    response_modes_supported: Optional([]),
+    grant_types_supported: Optional([]),
+    token_endpoint_auth_methods_supported: Optional([]),
+    token_endpoint_auth_signing_alg_values_supported: Optional([]),
+    service_documentation: Optional(validURL),
+    ui_locales_supported: Optional([]),
+    op_policy_uri: Optional(validURL),
+    op_tos_uri: Optional(validURL),
+    revocation_endpoint: Optional(validURL),
+    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    introspection_endpoint: Optional(validURL),
+    introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    code_challendge_methods_supported: Optional([])
+  };
+  function makeClient(options = {}) {
+    const defaultOptions = {
+      client: everything_default.client()
+    };
+    options = Object.assign({}, defaultOptions, options);
+    assert(options, {
+      issuer: Required(validURL)
+    });
+    const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer);
+    return options.client.with(options.issuer);
+  }
+  async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
+    let res = client2.get(everything_default.url(issuer, ".wellknown/oauth_authorization_server"));
+    if (res.ok) {
+      assert(res.headers.get("Content-Type"), /application\/json.*/);
+      let configuration = await res.json();
+      assert(configuration, oauth_authorization_server_metadata);
+      return configuration;
+    }
+    throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
+  }
+
+  // node_modules/@muze-nl/metro-oauth2/src/oauth2.popup.mjs
+  function handleRedirect(origin = null) {
+    let success = false;
+    origin = origin || window.location.origin;
+    let params = new URLSearchParams(window.location.search);
+    if (!params.has("code") && window.location.hash) {
+      let query = window.location.hash.substr(1);
+      params = new URLSearchParams("?" + query);
+    }
+    let parent = window.parent !== window ? window.parent : window.opener;
+    if (!parent) {
+      console.error("No parent window found, cannot post authorization code (or error)");
+    } else {
+      if (params.has("code")) {
+        parent.postMessage({
+          authorization_code: params.get("code")
+        }, origin);
+        success = true;
+      } else if (params.has("error")) {
+        parent.postMessage({
+          error: params.get("error")
+        }, origin);
+      } else {
+        parent.postMessage({
+          error: "Could not find an authorization_code"
+        }, origin);
+      }
+    }
+    return success;
+  }
+  function authorizePopup(authorizationCodeURL) {
+    return new Promise((resolve, reject) => {
+      addEventListener("message", (event) => {
+        if (event.data.authorization_code) {
+          resolve(event.data.authorization_code);
+        } else if (event.data.error) {
+          reject(event.data.error);
+        } else {
+          reject("Unknown authorization error");
+        }
+      }, { once: true });
+      window.open(authorizationCodeURL);
+    });
   }
 
   // node_modules/@muze-nl/metro-oauth2/src/keysstore.mjs
@@ -1659,6 +1944,21 @@
     };
   }
 
+  // node_modules/@muze-nl/metro-oauth2/src/browser.mjs
+  var oauth2 = Object.assign({}, oauth2_exports, {
+    oauth2mw,
+    mockserver: oauth2_mockserver_exports,
+    discover: oauth2_discovery_exports,
+    tokenstore: tokenStore,
+    dpopmw,
+    keysstore: keysStore,
+    authorizePopup,
+    popupHandleRedirect: handleRedirect
+  });
+  if (!globalThis.metro.oauth2) {
+    globalThis.metro.oauth2 = oauth2;
+  }
+
   // src/oidc.util.mjs
   var MustHave = (...options) => (value, root) => {
     if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
@@ -1684,7 +1984,7 @@
     "ES384",
     "ES512"
   ];
-  var validAuthMethods = [
+  var validAuthMethods2 = [
     "client_secret_post",
     "client_secret_basic",
     "client_secret_jwt",
@@ -1730,7 +2030,7 @@
       // not testing for 'none'
       request_object_encryption_alg_values_supported: Optional([]),
       request_object_encryption_enc_values_supported: Optional([]),
-      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods)),
+      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods2)),
       token_endpoint_auth_signing_alg_values_supported: Optional(MustInclude("RS256"), not(MustInclude("none"))),
       display_values_supported: Optional(anyOf("page", "popup", "touch", "wap")),
       claim_types_supported: Optional(anyOf("normal", "aggregated", "distributed")),
@@ -1783,7 +2083,7 @@
       request_object_signing_alg: Optional(oneOf(...validJWA)),
       request_object_encryption_alg: Optional(oneOf(...validJWA)),
       request_object_encryption_enc: Optional(oneOf(...validJWA)),
-      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods)),
+      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods2)),
       token_endpoint_auth_signing_alg: Optional(oneOf(...validJWA)),
       default_max_age: Optional(Number),
       require_auth_time: Optional(Boolean),
@@ -1984,6 +2284,6 @@
   if (!globalThis.metro.oidc) {
     globalThis.metro.oidc = oidc;
   }
-  var browser_default = oidc;
+  var browser_default2 = oidc;
 })();
 //# sourceMappingURL=browser.js.map
