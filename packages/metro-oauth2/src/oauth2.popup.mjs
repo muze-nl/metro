@@ -14,7 +14,7 @@ export function handleRedirect(origin = null) {
 
 	let params = new URLSearchParams(window.location.search)
 	if (!params.has('code') && window.location.hash) {
-		let query = window.location.hash.substr(1)
+		let query = window.location.hash.substring(1)
 		params = new URLSearchParams('?'+query)
 	}
 
