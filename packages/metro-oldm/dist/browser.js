@@ -54,8 +54,7 @@
           throw new Error("Invalid string. Length must be a multiple of 4");
         }
         var validLen = b64.indexOf("=");
-        if (validLen === -1)
-          validLen = len2;
+        if (validLen === -1) validLen = len2;
         var placeHoldersLen = validLen === len2 ? 0 : 4 - validLen % 4;
         return [validLen, placeHoldersLen];
       }
@@ -248,16 +247,14 @@
       Object.defineProperty(Buffer3.prototype, "parent", {
         enumerable: true,
         get: function() {
-          if (!Buffer3.isBuffer(this))
-            return void 0;
+          if (!Buffer3.isBuffer(this)) return void 0;
           return this.buffer;
         }
       });
       Object.defineProperty(Buffer3.prototype, "offset", {
         enumerable: true,
         get: function() {
-          if (!Buffer3.isBuffer(this))
-            return void 0;
+          if (!Buffer3.isBuffer(this)) return void 0;
           return this.byteOffset;
         }
       });
@@ -309,8 +306,7 @@
           return Buffer3.from(valueOf, encodingOrOffset, length);
         }
         const b = fromObject(value);
-        if (b)
-          return b;
+        if (b) return b;
         if (typeof Symbol !== "undefined" && Symbol.toPrimitive != null && typeof value[Symbol.toPrimitive] === "function") {
           return Buffer3.from(value[Symbol.toPrimitive]("string"), encodingOrOffset, length);
         }
@@ -437,17 +433,14 @@
         return b != null && b._isBuffer === true && b !== Buffer3.prototype;
       };
       Buffer3.compare = function compare(a, b) {
-        if (isInstance(a, Uint8Array))
-          a = Buffer3.from(a, a.offset, a.byteLength);
-        if (isInstance(b, Uint8Array))
-          b = Buffer3.from(b, b.offset, b.byteLength);
+        if (isInstance(a, Uint8Array)) a = Buffer3.from(a, a.offset, a.byteLength);
+        if (isInstance(b, Uint8Array)) b = Buffer3.from(b, b.offset, b.byteLength);
         if (!Buffer3.isBuffer(a) || !Buffer3.isBuffer(b)) {
           throw new TypeError(
             'The "buf1", "buf2" arguments must be one of type Buffer or Uint8Array'
           );
         }
-        if (a === b)
-          return 0;
+        if (a === b) return 0;
         let x = a.length;
         let y = b.length;
         for (let i = 0, len = Math.min(x, y); i < len; ++i) {
@@ -457,10 +450,8 @@
             break;
           }
         }
-        if (x < y)
-          return -1;
-        if (y < x)
-          return 1;
+        if (x < y) return -1;
+        if (y < x) return 1;
         return 0;
       };
       Buffer3.isEncoding = function isEncoding(encoding) {
@@ -501,8 +492,7 @@
           let buf = list[i];
           if (isInstance(buf, Uint8Array)) {
             if (pos + buf.length > buffer.length) {
-              if (!Buffer3.isBuffer(buf))
-                buf = Buffer3.from(buf);
+              if (!Buffer3.isBuffer(buf)) buf = Buffer3.from(buf);
               buf.copy(buffer, pos);
             } else {
               Uint8Array.prototype.set.call(
@@ -534,8 +524,7 @@
         }
         const len = string.length;
         const mustMatch = arguments.length > 2 && arguments[2] === true;
-        if (!mustMatch && len === 0)
-          return 0;
+        if (!mustMatch && len === 0) return 0;
         let loweredCase = false;
         for (; ; ) {
           switch (encoding) {
@@ -584,8 +573,7 @@
         if (end <= start) {
           return "";
         }
-        if (!encoding)
-          encoding = "utf8";
+        if (!encoding) encoding = "utf8";
         while (true) {
           switch (encoding) {
             case "hex":
@@ -606,8 +594,7 @@
             case "utf-16le":
               return utf16leSlice(this, start, end);
             default:
-              if (loweredCase)
-                throw new TypeError("Unknown encoding: " + encoding);
+              if (loweredCase) throw new TypeError("Unknown encoding: " + encoding);
               encoding = (encoding + "").toLowerCase();
               loweredCase = true;
           }
@@ -655,26 +642,21 @@
       };
       Buffer3.prototype.toString = function toString() {
         const length = this.length;
-        if (length === 0)
-          return "";
-        if (arguments.length === 0)
-          return utf8Slice(this, 0, length);
+        if (length === 0) return "";
+        if (arguments.length === 0) return utf8Slice(this, 0, length);
         return slowToString.apply(this, arguments);
       };
       Buffer3.prototype.toLocaleString = Buffer3.prototype.toString;
       Buffer3.prototype.equals = function equals(b) {
-        if (!Buffer3.isBuffer(b))
-          throw new TypeError("Argument must be a Buffer");
-        if (this === b)
-          return true;
+        if (!Buffer3.isBuffer(b)) throw new TypeError("Argument must be a Buffer");
+        if (this === b) return true;
         return Buffer3.compare(this, b) === 0;
       };
       Buffer3.prototype.inspect = function inspect() {
         let str = "";
         const max = exports.INSPECT_MAX_BYTES;
         str = this.toString("hex", 0, max).replace(/(.{2})/g, "$1 ").trim();
-        if (this.length > max)
-          str += " ... ";
+        if (this.length > max) str += " ... ";
         return "<Buffer " + str + ">";
       };
       if (customInspectSymbol) {
@@ -717,8 +699,7 @@
         end >>>= 0;
         thisStart >>>= 0;
         thisEnd >>>= 0;
-        if (this === target)
-          return 0;
+        if (this === target) return 0;
         let x = thisEnd - thisStart;
         let y = end - start;
         const len = Math.min(x, y);
@@ -731,15 +712,12 @@
             break;
           }
         }
-        if (x < y)
-          return -1;
-        if (y < x)
-          return 1;
+        if (x < y) return -1;
+        if (y < x) return 1;
         return 0;
       };
       function bidirectionalIndexOf(buffer, val, byteOffset, encoding, dir) {
-        if (buffer.length === 0)
-          return -1;
+        if (buffer.length === 0) return -1;
         if (typeof byteOffset === "string") {
           encoding = byteOffset;
           byteOffset = 0;
@@ -752,18 +730,13 @@
         if (numberIsNaN(byteOffset)) {
           byteOffset = dir ? 0 : buffer.length - 1;
         }
-        if (byteOffset < 0)
-          byteOffset = buffer.length + byteOffset;
+        if (byteOffset < 0) byteOffset = buffer.length + byteOffset;
         if (byteOffset >= buffer.length) {
-          if (dir)
-            return -1;
-          else
-            byteOffset = buffer.length - 1;
+          if (dir) return -1;
+          else byteOffset = buffer.length - 1;
         } else if (byteOffset < 0) {
-          if (dir)
-            byteOffset = 0;
-          else
-            return -1;
+          if (dir) byteOffset = 0;
+          else return -1;
         }
         if (typeof val === "string") {
           val = Buffer3.from(val, encoding);
@@ -814,19 +787,15 @@
           let foundIndex = -1;
           for (i = byteOffset; i < arrLength; i++) {
             if (read(arr, i) === read(val, foundIndex === -1 ? 0 : i - foundIndex)) {
-              if (foundIndex === -1)
-                foundIndex = i;
-              if (i - foundIndex + 1 === valLength)
-                return foundIndex * indexSize;
+              if (foundIndex === -1) foundIndex = i;
+              if (i - foundIndex + 1 === valLength) return foundIndex * indexSize;
             } else {
-              if (foundIndex !== -1)
-                i -= i - foundIndex;
+              if (foundIndex !== -1) i -= i - foundIndex;
               foundIndex = -1;
             }
           }
         } else {
-          if (byteOffset + valLength > arrLength)
-            byteOffset = arrLength - valLength;
+          if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength;
           for (i = byteOffset; i >= 0; i--) {
             let found = true;
             for (let j = 0; j < valLength; j++) {
@@ -835,8 +804,7 @@
                 break;
               }
             }
-            if (found)
-              return i;
+            if (found) return i;
           }
         }
         return -1;
@@ -868,8 +836,7 @@
         let i;
         for (i = 0; i < length; ++i) {
           const parsed = parseInt(string.substr(i * 2, 2), 16);
-          if (numberIsNaN(parsed))
-            return i;
+          if (numberIsNaN(parsed)) return i;
           buf[offset + i] = parsed;
         }
         return i;
@@ -899,8 +866,7 @@
           offset = offset >>> 0;
           if (isFinite(length)) {
             length = length >>> 0;
-            if (encoding === void 0)
-              encoding = "utf8";
+            if (encoding === void 0) encoding = "utf8";
           } else {
             encoding = length;
             length = void 0;
@@ -911,13 +877,11 @@
           );
         }
         const remaining = this.length - offset;
-        if (length === void 0 || length > remaining)
-          length = remaining;
+        if (length === void 0 || length > remaining) length = remaining;
         if (string.length > 0 && (length < 0 || offset < 0) || offset > this.length) {
           throw new RangeError("Attempt to write outside buffer bounds");
         }
-        if (!encoding)
-          encoding = "utf8";
+        if (!encoding) encoding = "utf8";
         let loweredCase = false;
         for (; ; ) {
           switch (encoding) {
@@ -938,8 +902,7 @@
             case "utf-16le":
               return ucs2Write(this, string, offset, length);
             default:
-              if (loweredCase)
-                throw new TypeError("Unknown encoding: " + encoding);
+              if (loweredCase) throw new TypeError("Unknown encoding: " + encoding);
               encoding = ("" + encoding).toLowerCase();
               loweredCase = true;
           }
@@ -1052,10 +1015,8 @@
       }
       function hexSlice(buf, start, end) {
         const len = buf.length;
-        if (!start || start < 0)
-          start = 0;
-        if (!end || end < 0 || end > len)
-          end = len;
+        if (!start || start < 0) start = 0;
+        if (!end || end < 0 || end > len) end = len;
         let out = "";
         for (let i = start; i < end; ++i) {
           out += hexSliceLookupTable[buf[i]];
@@ -1076,35 +1037,29 @@
         end = end === void 0 ? len : ~~end;
         if (start < 0) {
           start += len;
-          if (start < 0)
-            start = 0;
+          if (start < 0) start = 0;
         } else if (start > len) {
           start = len;
         }
         if (end < 0) {
           end += len;
-          if (end < 0)
-            end = 0;
+          if (end < 0) end = 0;
         } else if (end > len) {
           end = len;
         }
-        if (end < start)
-          end = start;
+        if (end < start) end = start;
         const newBuf = this.subarray(start, end);
         Object.setPrototypeOf(newBuf, Buffer3.prototype);
         return newBuf;
       };
       function checkOffset(offset, ext, length) {
-        if (offset % 1 !== 0 || offset < 0)
-          throw new RangeError("offset is not uint");
-        if (offset + ext > length)
-          throw new RangeError("Trying to access beyond buffer length");
+        if (offset % 1 !== 0 || offset < 0) throw new RangeError("offset is not uint");
+        if (offset + ext > length) throw new RangeError("Trying to access beyond buffer length");
       }
       Buffer3.prototype.readUintLE = Buffer3.prototype.readUIntLE = function readUIntLE(offset, byteLength2, noAssert) {
         offset = offset >>> 0;
         byteLength2 = byteLength2 >>> 0;
-        if (!noAssert)
-          checkOffset(offset, byteLength2, this.length);
+        if (!noAssert) checkOffset(offset, byteLength2, this.length);
         let val = this[offset];
         let mul = 1;
         let i = 0;
@@ -1128,63 +1083,57 @@
       };
       Buffer3.prototype.readUint8 = Buffer3.prototype.readUInt8 = function readUInt8(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 1, this.length);
+        if (!noAssert) checkOffset(offset, 1, this.length);
         return this[offset];
       };
       Buffer3.prototype.readUint16LE = Buffer3.prototype.readUInt16LE = function readUInt16LE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 2, this.length);
+        if (!noAssert) checkOffset(offset, 2, this.length);
         return this[offset] | this[offset + 1] << 8;
       };
       Buffer3.prototype.readUint16BE = Buffer3.prototype.readUInt16BE = function readUInt16BE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 2, this.length);
+        if (!noAssert) checkOffset(offset, 2, this.length);
         return this[offset] << 8 | this[offset + 1];
       };
       Buffer3.prototype.readUint32LE = Buffer3.prototype.readUInt32LE = function readUInt32LE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 4, this.length);
+        if (!noAssert) checkOffset(offset, 4, this.length);
         return (this[offset] | this[offset + 1] << 8 | this[offset + 2] << 16) + this[offset + 3] * 16777216;
       };
       Buffer3.prototype.readUint32BE = Buffer3.prototype.readUInt32BE = function readUInt32BE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 4, this.length);
+        if (!noAssert) checkOffset(offset, 4, this.length);
         return this[offset] * 16777216 + (this[offset + 1] << 16 | this[offset + 2] << 8 | this[offset + 3]);
       };
       Buffer3.prototype.readBigUInt64LE = defineBigIntMethod(function readBigUInt64LE(offset) {
         offset = offset >>> 0;
         validateNumber(offset, "offset");
-        const first = this[offset];
+        const first2 = this[offset];
         const last = this[offset + 7];
-        if (first === void 0 || last === void 0) {
+        if (first2 === void 0 || last === void 0) {
           boundsError(offset, this.length - 8);
         }
-        const lo = first + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 24;
+        const lo = first2 + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 24;
         const hi = this[++offset] + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + last * 2 ** 24;
         return BigInt(lo) + (BigInt(hi) << BigInt(32));
       });
       Buffer3.prototype.readBigUInt64BE = defineBigIntMethod(function readBigUInt64BE(offset) {
         offset = offset >>> 0;
         validateNumber(offset, "offset");
-        const first = this[offset];
+        const first2 = this[offset];
         const last = this[offset + 7];
-        if (first === void 0 || last === void 0) {
+        if (first2 === void 0 || last === void 0) {
           boundsError(offset, this.length - 8);
         }
-        const hi = first * 2 ** 24 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 8 + this[++offset];
+        const hi = first2 * 2 ** 24 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 8 + this[++offset];
         const lo = this[++offset] * 2 ** 24 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 8 + last;
         return (BigInt(hi) << BigInt(32)) + BigInt(lo);
       });
       Buffer3.prototype.readIntLE = function readIntLE(offset, byteLength2, noAssert) {
         offset = offset >>> 0;
         byteLength2 = byteLength2 >>> 0;
-        if (!noAssert)
-          checkOffset(offset, byteLength2, this.length);
+        if (!noAssert) checkOffset(offset, byteLength2, this.length);
         let val = this[offset];
         let mul = 1;
         let i = 0;
@@ -1192,15 +1141,13 @@
           val += this[offset + i] * mul;
         }
         mul *= 128;
-        if (val >= mul)
-          val -= Math.pow(2, 8 * byteLength2);
+        if (val >= mul) val -= Math.pow(2, 8 * byteLength2);
         return val;
       };
       Buffer3.prototype.readIntBE = function readIntBE(offset, byteLength2, noAssert) {
         offset = offset >>> 0;
         byteLength2 = byteLength2 >>> 0;
-        if (!noAssert)
-          checkOffset(offset, byteLength2, this.length);
+        if (!noAssert) checkOffset(offset, byteLength2, this.length);
         let i = byteLength2;
         let mul = 1;
         let val = this[offset + --i];
@@ -1208,98 +1155,84 @@
           val += this[offset + --i] * mul;
         }
         mul *= 128;
-        if (val >= mul)
-          val -= Math.pow(2, 8 * byteLength2);
+        if (val >= mul) val -= Math.pow(2, 8 * byteLength2);
         return val;
       };
       Buffer3.prototype.readInt8 = function readInt8(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 1, this.length);
-        if (!(this[offset] & 128))
-          return this[offset];
+        if (!noAssert) checkOffset(offset, 1, this.length);
+        if (!(this[offset] & 128)) return this[offset];
         return (255 - this[offset] + 1) * -1;
       };
       Buffer3.prototype.readInt16LE = function readInt16LE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 2, this.length);
+        if (!noAssert) checkOffset(offset, 2, this.length);
         const val = this[offset] | this[offset + 1] << 8;
         return val & 32768 ? val | 4294901760 : val;
       };
       Buffer3.prototype.readInt16BE = function readInt16BE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 2, this.length);
+        if (!noAssert) checkOffset(offset, 2, this.length);
         const val = this[offset + 1] | this[offset] << 8;
         return val & 32768 ? val | 4294901760 : val;
       };
       Buffer3.prototype.readInt32LE = function readInt32LE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 4, this.length);
+        if (!noAssert) checkOffset(offset, 4, this.length);
         return this[offset] | this[offset + 1] << 8 | this[offset + 2] << 16 | this[offset + 3] << 24;
       };
       Buffer3.prototype.readInt32BE = function readInt32BE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 4, this.length);
+        if (!noAssert) checkOffset(offset, 4, this.length);
         return this[offset] << 24 | this[offset + 1] << 16 | this[offset + 2] << 8 | this[offset + 3];
       };
       Buffer3.prototype.readBigInt64LE = defineBigIntMethod(function readBigInt64LE(offset) {
         offset = offset >>> 0;
         validateNumber(offset, "offset");
-        const first = this[offset];
+        const first2 = this[offset];
         const last = this[offset + 7];
-        if (first === void 0 || last === void 0) {
+        if (first2 === void 0 || last === void 0) {
           boundsError(offset, this.length - 8);
         }
         const val = this[offset + 4] + this[offset + 5] * 2 ** 8 + this[offset + 6] * 2 ** 16 + (last << 24);
-        return (BigInt(val) << BigInt(32)) + BigInt(first + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 24);
+        return (BigInt(val) << BigInt(32)) + BigInt(first2 + this[++offset] * 2 ** 8 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 24);
       });
       Buffer3.prototype.readBigInt64BE = defineBigIntMethod(function readBigInt64BE(offset) {
         offset = offset >>> 0;
         validateNumber(offset, "offset");
-        const first = this[offset];
+        const first2 = this[offset];
         const last = this[offset + 7];
-        if (first === void 0 || last === void 0) {
+        if (first2 === void 0 || last === void 0) {
           boundsError(offset, this.length - 8);
         }
-        const val = (first << 24) + // Overflow
+        const val = (first2 << 24) + // Overflow
         this[++offset] * 2 ** 16 + this[++offset] * 2 ** 8 + this[++offset];
         return (BigInt(val) << BigInt(32)) + BigInt(this[++offset] * 2 ** 24 + this[++offset] * 2 ** 16 + this[++offset] * 2 ** 8 + last);
       });
       Buffer3.prototype.readFloatLE = function readFloatLE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 4, this.length);
+        if (!noAssert) checkOffset(offset, 4, this.length);
         return ieee754.read(this, offset, true, 23, 4);
       };
       Buffer3.prototype.readFloatBE = function readFloatBE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 4, this.length);
+        if (!noAssert) checkOffset(offset, 4, this.length);
         return ieee754.read(this, offset, false, 23, 4);
       };
       Buffer3.prototype.readDoubleLE = function readDoubleLE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 8, this.length);
+        if (!noAssert) checkOffset(offset, 8, this.length);
         return ieee754.read(this, offset, true, 52, 8);
       };
       Buffer3.prototype.readDoubleBE = function readDoubleBE(offset, noAssert) {
         offset = offset >>> 0;
-        if (!noAssert)
-          checkOffset(offset, 8, this.length);
+        if (!noAssert) checkOffset(offset, 8, this.length);
         return ieee754.read(this, offset, false, 52, 8);
       };
       function checkInt(buf, value, offset, ext, max, min) {
-        if (!Buffer3.isBuffer(buf))
-          throw new TypeError('"buffer" argument must be a Buffer instance');
-        if (value > max || value < min)
-          throw new RangeError('"value" argument is out of bounds');
-        if (offset + ext > buf.length)
-          throw new RangeError("Index out of range");
+        if (!Buffer3.isBuffer(buf)) throw new TypeError('"buffer" argument must be a Buffer instance');
+        if (value > max || value < min) throw new RangeError('"value" argument is out of bounds');
+        if (offset + ext > buf.length) throw new RangeError("Index out of range");
       }
       Buffer3.prototype.writeUintLE = Buffer3.prototype.writeUIntLE = function writeUIntLE(value, offset, byteLength2, noAssert) {
         value = +value;
@@ -1336,16 +1269,14 @@
       Buffer3.prototype.writeUint8 = Buffer3.prototype.writeUInt8 = function writeUInt8(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 1, 255, 0);
+        if (!noAssert) checkInt(this, value, offset, 1, 255, 0);
         this[offset] = value & 255;
         return offset + 1;
       };
       Buffer3.prototype.writeUint16LE = Buffer3.prototype.writeUInt16LE = function writeUInt16LE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 2, 65535, 0);
+        if (!noAssert) checkInt(this, value, offset, 2, 65535, 0);
         this[offset] = value & 255;
         this[offset + 1] = value >>> 8;
         return offset + 2;
@@ -1353,8 +1284,7 @@
       Buffer3.prototype.writeUint16BE = Buffer3.prototype.writeUInt16BE = function writeUInt16BE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 2, 65535, 0);
+        if (!noAssert) checkInt(this, value, offset, 2, 65535, 0);
         this[offset] = value >>> 8;
         this[offset + 1] = value & 255;
         return offset + 2;
@@ -1362,8 +1292,7 @@
       Buffer3.prototype.writeUint32LE = Buffer3.prototype.writeUInt32LE = function writeUInt32LE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 4, 4294967295, 0);
+        if (!noAssert) checkInt(this, value, offset, 4, 4294967295, 0);
         this[offset + 3] = value >>> 24;
         this[offset + 2] = value >>> 16;
         this[offset + 1] = value >>> 8;
@@ -1373,8 +1302,7 @@
       Buffer3.prototype.writeUint32BE = Buffer3.prototype.writeUInt32BE = function writeUInt32BE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 4, 4294967295, 0);
+        if (!noAssert) checkInt(this, value, offset, 4, 4294967295, 0);
         this[offset] = value >>> 24;
         this[offset + 1] = value >>> 16;
         this[offset + 2] = value >>> 8;
@@ -1468,18 +1396,15 @@
       Buffer3.prototype.writeInt8 = function writeInt8(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 1, 127, -128);
-        if (value < 0)
-          value = 255 + value + 1;
+        if (!noAssert) checkInt(this, value, offset, 1, 127, -128);
+        if (value < 0) value = 255 + value + 1;
         this[offset] = value & 255;
         return offset + 1;
       };
       Buffer3.prototype.writeInt16LE = function writeInt16LE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 2, 32767, -32768);
+        if (!noAssert) checkInt(this, value, offset, 2, 32767, -32768);
         this[offset] = value & 255;
         this[offset + 1] = value >>> 8;
         return offset + 2;
@@ -1487,8 +1412,7 @@
       Buffer3.prototype.writeInt16BE = function writeInt16BE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 2, 32767, -32768);
+        if (!noAssert) checkInt(this, value, offset, 2, 32767, -32768);
         this[offset] = value >>> 8;
         this[offset + 1] = value & 255;
         return offset + 2;
@@ -1496,8 +1420,7 @@
       Buffer3.prototype.writeInt32LE = function writeInt32LE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 4, 2147483647, -2147483648);
+        if (!noAssert) checkInt(this, value, offset, 4, 2147483647, -2147483648);
         this[offset] = value & 255;
         this[offset + 1] = value >>> 8;
         this[offset + 2] = value >>> 16;
@@ -1507,10 +1430,8 @@
       Buffer3.prototype.writeInt32BE = function writeInt32BE(value, offset, noAssert) {
         value = +value;
         offset = offset >>> 0;
-        if (!noAssert)
-          checkInt(this, value, offset, 4, 2147483647, -2147483648);
-        if (value < 0)
-          value = 4294967295 + value + 1;
+        if (!noAssert) checkInt(this, value, offset, 4, 2147483647, -2147483648);
+        if (value < 0) value = 4294967295 + value + 1;
         this[offset] = value >>> 24;
         this[offset + 1] = value >>> 16;
         this[offset + 2] = value >>> 8;
@@ -1524,10 +1445,8 @@
         return wrtBigUInt64BE(this, value, offset, -BigInt("0x8000000000000000"), BigInt("0x7fffffffffffffff"));
       });
       function checkIEEE754(buf, value, offset, ext, max, min) {
-        if (offset + ext > buf.length)
-          throw new RangeError("Index out of range");
-        if (offset < 0)
-          throw new RangeError("Index out of range");
+        if (offset + ext > buf.length) throw new RangeError("Index out of range");
+        if (offset < 0) throw new RangeError("Index out of range");
       }
       function writeFloat(buf, value, offset, littleEndian, noAssert) {
         value = +value;
@@ -1560,31 +1479,20 @@
         return writeDouble(this, value, offset, false, noAssert);
       };
       Buffer3.prototype.copy = function copy(target, targetStart, start, end) {
-        if (!Buffer3.isBuffer(target))
-          throw new TypeError("argument should be a Buffer");
-        if (!start)
-          start = 0;
-        if (!end && end !== 0)
-          end = this.length;
-        if (targetStart >= target.length)
-          targetStart = target.length;
-        if (!targetStart)
-          targetStart = 0;
-        if (end > 0 && end < start)
-          end = start;
-        if (end === start)
-          return 0;
-        if (target.length === 0 || this.length === 0)
-          return 0;
+        if (!Buffer3.isBuffer(target)) throw new TypeError("argument should be a Buffer");
+        if (!start) start = 0;
+        if (!end && end !== 0) end = this.length;
+        if (targetStart >= target.length) targetStart = target.length;
+        if (!targetStart) targetStart = 0;
+        if (end > 0 && end < start) end = start;
+        if (end === start) return 0;
+        if (target.length === 0 || this.length === 0) return 0;
         if (targetStart < 0) {
           throw new RangeError("targetStart out of bounds");
         }
-        if (start < 0 || start >= this.length)
-          throw new RangeError("Index out of range");
-        if (end < 0)
-          throw new RangeError("sourceEnd out of bounds");
-        if (end > this.length)
-          end = this.length;
+        if (start < 0 || start >= this.length) throw new RangeError("Index out of range");
+        if (end < 0) throw new RangeError("sourceEnd out of bounds");
+        if (end > this.length) end = this.length;
         if (target.length - targetStart < end - start) {
           end = target.length - targetStart + start;
         }
@@ -1635,8 +1543,7 @@
         }
         start = start >>> 0;
         end = end === void 0 ? this.length : end >>> 0;
-        if (!val)
-          val = 0;
+        if (!val) val = 0;
         let i;
         if (typeof val === "number") {
           for (i = start; i < end; ++i) {
@@ -1775,8 +1682,7 @@
       function base64clean(str) {
         str = str.split("=")[0];
         str = str.trim().replace(INVALID_BASE64_RE, "");
-        if (str.length < 2)
-          return "";
+        if (str.length < 2) return "";
         while (str.length % 4 !== 0) {
           str = str + "=";
         }
@@ -1793,51 +1699,43 @@
           if (codePoint > 55295 && codePoint < 57344) {
             if (!leadSurrogate) {
               if (codePoint > 56319) {
-                if ((units -= 3) > -1)
-                  bytes.push(239, 191, 189);
+                if ((units -= 3) > -1) bytes.push(239, 191, 189);
                 continue;
               } else if (i + 1 === length) {
-                if ((units -= 3) > -1)
-                  bytes.push(239, 191, 189);
+                if ((units -= 3) > -1) bytes.push(239, 191, 189);
                 continue;
               }
               leadSurrogate = codePoint;
               continue;
             }
             if (codePoint < 56320) {
-              if ((units -= 3) > -1)
-                bytes.push(239, 191, 189);
+              if ((units -= 3) > -1) bytes.push(239, 191, 189);
               leadSurrogate = codePoint;
               continue;
             }
             codePoint = (leadSurrogate - 55296 << 10 | codePoint - 56320) + 65536;
           } else if (leadSurrogate) {
-            if ((units -= 3) > -1)
-              bytes.push(239, 191, 189);
+            if ((units -= 3) > -1) bytes.push(239, 191, 189);
           }
           leadSurrogate = null;
           if (codePoint < 128) {
-            if ((units -= 1) < 0)
-              break;
+            if ((units -= 1) < 0) break;
             bytes.push(codePoint);
           } else if (codePoint < 2048) {
-            if ((units -= 2) < 0)
-              break;
+            if ((units -= 2) < 0) break;
             bytes.push(
               codePoint >> 6 | 192,
               codePoint & 63 | 128
             );
           } else if (codePoint < 65536) {
-            if ((units -= 3) < 0)
-              break;
+            if ((units -= 3) < 0) break;
             bytes.push(
               codePoint >> 12 | 224,
               codePoint >> 6 & 63 | 128,
               codePoint & 63 | 128
             );
           } else if (codePoint < 1114112) {
-            if ((units -= 4) < 0)
-              break;
+            if ((units -= 4) < 0) break;
             bytes.push(
               codePoint >> 18 | 240,
               codePoint >> 12 & 63 | 128,
@@ -1861,8 +1759,7 @@
         let c, hi, lo;
         const byteArray = [];
         for (let i = 0; i < str.length; ++i) {
-          if ((units -= 2) < 0)
-            break;
+          if ((units -= 2) < 0) break;
           c = str.charCodeAt(i);
           hi = c >> 8;
           lo = c % 256;
@@ -1877,8 +1774,7 @@
       function blitBuffer(src, dst, offset, length) {
         let i;
         for (i = 0; i < length; ++i) {
-          if (i + offset >= dst.length || i >= src.length)
-            break;
+          if (i + offset >= dst.length || i >= src.length) break;
           dst[i + offset] = src[i];
         }
         return i;
@@ -1889,7 +1785,7 @@
       function numberIsNaN(obj) {
         return obj !== obj;
       }
-      var hexSliceLookupTable = function() {
+      var hexSliceLookupTable = (function() {
         const alphabet = "0123456789abcdef";
         const table = new Array(256);
         for (let i = 0; i < 16; ++i) {
@@ -1899,7 +1795,7 @@
           }
         }
         return table;
-      }();
+      })();
       function defineBigIntMethod(fn) {
         return typeof BigInt === "undefined" ? BufferBigIntNotDefined : fn;
       }
@@ -2019,8 +1915,8 @@
         SymbolAsyncIterator: Symbol.asyncIterator,
         SymbolHasInstance: Symbol.hasInstance,
         SymbolIterator: Symbol.iterator,
-        SymbolDispose: Symbol.dispose || Symbol("Symbol.dispose"),
-        SymbolAsyncDispose: Symbol.asyncDispose || Symbol("Symbol.asyncDispose"),
+        SymbolDispose: Symbol.dispose || /* @__PURE__ */ Symbol("Symbol.dispose"),
+        SymbolAsyncDispose: Symbol.asyncDispose || /* @__PURE__ */ Symbol("Symbol.asyncDispose"),
         TypedArrayPrototypeSet(self2, buf, len) {
           return self2.set(buf, len);
         },
@@ -2088,7 +1984,7 @@
       var { format, inspect } = require_inspect();
       var { AggregateError: CustomAggregateError } = require_primordials();
       var AggregateError = globalThis.AggregateError || CustomAggregateError;
-      var kIsNodeError = Symbol("kIsNodeError");
+      var kIsNodeError = /* @__PURE__ */ Symbol("kIsNodeError");
       var kTypes = [
         "string",
         "function",
@@ -2434,8 +2330,7 @@
         };
       }
       function ProcessEmitWarning(warning) {
-        if (console && console.warn)
-          console.warn(warning);
+        if (console && console.warn) console.warn(warning);
       }
       var NumberIsNaN = Number.isNaN || function NumberIsNaN2(value) {
         return value !== value;
@@ -2491,8 +2386,7 @@
       };
       EventEmitter.prototype.emit = function emit(type) {
         var args = [];
-        for (var i = 1; i < arguments.length; i++)
-          args.push(arguments[i]);
+        for (var i = 1; i < arguments.length; i++) args.push(arguments[i]);
         var doError = type === "error";
         var events = this._events;
         if (events !== void 0)
@@ -2663,8 +2557,7 @@
           var key;
           for (i = 0; i < keys.length; ++i) {
             key = keys[i];
-            if (key === "removeListener")
-              continue;
+            if (key === "removeListener") continue;
             this.removeAllListeners(key);
           }
           this.removeAllListeners("removeListener");
@@ -2920,7 +2813,7 @@
           return ac.signal;
         }
       };
-      module.exports.promisify.custom = Symbol.for("nodejs.util.promisify.custom");
+      module.exports.promisify.custom = /* @__PURE__ */ Symbol.for("nodejs.util.promisify.custom");
     }
   });
 
@@ -2973,12 +2866,9 @@
         return value;
       }
       var validateInteger = hideStackFrames((value, name, min = NumberMIN_SAFE_INTEGER, max = NumberMAX_SAFE_INTEGER) => {
-        if (typeof value !== "number")
-          throw new ERR_INVALID_ARG_TYPE(name, "number", value);
-        if (!NumberIsInteger(value))
-          throw new ERR_OUT_OF_RANGE(name, "an integer", value);
-        if (value < min || value > max)
-          throw new ERR_OUT_OF_RANGE(name, `>= ${min} && <= ${max}`, value);
+        if (typeof value !== "number") throw new ERR_INVALID_ARG_TYPE(name, "number", value);
+        if (!NumberIsInteger(value)) throw new ERR_OUT_OF_RANGE(name, "an integer", value);
+        if (value < min || value > max) throw new ERR_OUT_OF_RANGE(name, `>= ${min} && <= ${max}`, value);
       });
       var validateInt32 = hideStackFrames((value, name, min = -2147483648, max = 2147483647) => {
         if (typeof value !== "number") {
@@ -3005,12 +2895,10 @@
         }
       });
       function validateString(value, name) {
-        if (typeof value !== "string")
-          throw new ERR_INVALID_ARG_TYPE(name, "string", value);
+        if (typeof value !== "string") throw new ERR_INVALID_ARG_TYPE(name, "string", value);
       }
       function validateNumber(value, name, min = void 0, max) {
-        if (typeof value !== "number")
-          throw new ERR_INVALID_ARG_TYPE(name, "number", value);
+        if (typeof value !== "number") throw new ERR_INVALID_ARG_TYPE(name, "number", value);
         if (min != null && value < min || max != null && value > max || (min != null || max != null) && NumberIsNaN(value)) {
           throw new ERR_OUT_OF_RANGE(
             name,
@@ -3030,8 +2918,7 @@
         }
       });
       function validateBoolean(value, name) {
-        if (typeof value !== "boolean")
-          throw new ERR_INVALID_ARG_TYPE(name, "boolean", value);
+        if (typeof value !== "boolean") throw new ERR_INVALID_ARG_TYPE(name, "boolean", value);
       }
       function getOwnPropertyValueOrDefault(options, key, defaultValue) {
         return options == null || !ObjectPrototypeHasOwnProperty(options, key) ? defaultValue : options[key];
@@ -3114,16 +3001,13 @@
         }
       });
       var validateFunction = hideStackFrames((value, name) => {
-        if (typeof value !== "function")
-          throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
+        if (typeof value !== "function") throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
       });
       var validatePlainFunction = hideStackFrames((value, name) => {
-        if (typeof value !== "function" || isAsyncFunction(value))
-          throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
+        if (typeof value !== "function" || isAsyncFunction(value)) throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
       });
       var validateUndefined = hideStackFrames((value, name) => {
-        if (value !== void 0)
-          throw new ERR_INVALID_ARG_TYPE(name, "undefined", value);
+        if (value !== void 0) throw new ERR_INVALID_ARG_TYPE(name, "undefined", value);
       });
       function validateUnion(value, name, union) {
         if (!ArrayPrototypeIncludes(union, value)) {
@@ -3399,84 +3283,59 @@
         return isReadableStream(obj) || isWritableStream(obj) || isTransformStream(obj);
       }
       function isIterable(obj, isAsync) {
-        if (obj == null)
-          return false;
-        if (isAsync === true)
-          return typeof obj[SymbolAsyncIterator] === "function";
-        if (isAsync === false)
-          return typeof obj[SymbolIterator] === "function";
+        if (obj == null) return false;
+        if (isAsync === true) return typeof obj[SymbolAsyncIterator] === "function";
+        if (isAsync === false) return typeof obj[SymbolIterator] === "function";
         return typeof obj[SymbolAsyncIterator] === "function" || typeof obj[SymbolIterator] === "function";
       }
       function isDestroyed(stream) {
-        if (!isNodeStream(stream))
-          return null;
+        if (!isNodeStream(stream)) return null;
         const wState = stream._writableState;
         const rState = stream._readableState;
         const state = wState || rState;
         return !!(stream.destroyed || stream[kIsDestroyed] || state !== null && state !== void 0 && state.destroyed);
       }
       function isWritableEnded(stream) {
-        if (!isWritableNodeStream(stream))
-          return null;
-        if (stream.writableEnded === true)
-          return true;
+        if (!isWritableNodeStream(stream)) return null;
+        if (stream.writableEnded === true) return true;
         const wState = stream._writableState;
-        if (wState !== null && wState !== void 0 && wState.errored)
-          return false;
-        if (typeof (wState === null || wState === void 0 ? void 0 : wState.ended) !== "boolean")
-          return null;
+        if (wState !== null && wState !== void 0 && wState.errored) return false;
+        if (typeof (wState === null || wState === void 0 ? void 0 : wState.ended) !== "boolean") return null;
         return wState.ended;
       }
       function isWritableFinished(stream, strict) {
-        if (!isWritableNodeStream(stream))
-          return null;
-        if (stream.writableFinished === true)
-          return true;
+        if (!isWritableNodeStream(stream)) return null;
+        if (stream.writableFinished === true) return true;
         const wState = stream._writableState;
-        if (wState !== null && wState !== void 0 && wState.errored)
-          return false;
-        if (typeof (wState === null || wState === void 0 ? void 0 : wState.finished) !== "boolean")
-          return null;
+        if (wState !== null && wState !== void 0 && wState.errored) return false;
+        if (typeof (wState === null || wState === void 0 ? void 0 : wState.finished) !== "boolean") return null;
         return !!(wState.finished || strict === false && wState.ended === true && wState.length === 0);
       }
       function isReadableEnded(stream) {
-        if (!isReadableNodeStream(stream))
-          return null;
-        if (stream.readableEnded === true)
-          return true;
+        if (!isReadableNodeStream(stream)) return null;
+        if (stream.readableEnded === true) return true;
         const rState = stream._readableState;
-        if (!rState || rState.errored)
-          return false;
-        if (typeof (rState === null || rState === void 0 ? void 0 : rState.ended) !== "boolean")
-          return null;
+        if (!rState || rState.errored) return false;
+        if (typeof (rState === null || rState === void 0 ? void 0 : rState.ended) !== "boolean") return null;
         return rState.ended;
       }
       function isReadableFinished(stream, strict) {
-        if (!isReadableNodeStream(stream))
-          return null;
+        if (!isReadableNodeStream(stream)) return null;
         const rState = stream._readableState;
-        if (rState !== null && rState !== void 0 && rState.errored)
-          return false;
-        if (typeof (rState === null || rState === void 0 ? void 0 : rState.endEmitted) !== "boolean")
-          return null;
+        if (rState !== null && rState !== void 0 && rState.errored) return false;
+        if (typeof (rState === null || rState === void 0 ? void 0 : rState.endEmitted) !== "boolean") return null;
         return !!(rState.endEmitted || strict === false && rState.ended === true && rState.length === 0);
       }
       function isReadable(stream) {
-        if (stream && stream[kIsReadable] != null)
-          return stream[kIsReadable];
-        if (typeof (stream === null || stream === void 0 ? void 0 : stream.readable) !== "boolean")
-          return null;
-        if (isDestroyed(stream))
-          return false;
+        if (stream && stream[kIsReadable] != null) return stream[kIsReadable];
+        if (typeof (stream === null || stream === void 0 ? void 0 : stream.readable) !== "boolean") return null;
+        if (isDestroyed(stream)) return false;
         return isReadableNodeStream(stream) && stream.readable && !isReadableFinished(stream);
       }
       function isWritable(stream) {
-        if (stream && stream[kIsWritable] != null)
-          return stream[kIsWritable];
-        if (typeof (stream === null || stream === void 0 ? void 0 : stream.writable) !== "boolean")
-          return null;
-        if (isDestroyed(stream))
-          return false;
+        if (stream && stream[kIsWritable] != null) return stream[kIsWritable];
+        if (typeof (stream === null || stream === void 0 ? void 0 : stream.writable) !== "boolean") return null;
+        if (isDestroyed(stream)) return false;
         return isWritableNodeStream(stream) && stream.writable && !isWritableEnded(stream);
       }
       function isFinished(stream, opts) {
@@ -3542,8 +3401,7 @@
         return typeof stream._consuming === "boolean" && typeof stream._dumped === "boolean" && ((_stream$req = stream.req) === null || _stream$req === void 0 ? void 0 : _stream$req.upgradeOrConnect) === void 0;
       }
       function willEmitClose(stream) {
-        if (!isNodeStream(stream))
-          return null;
+        if (!isNodeStream(stream)) return null;
         const wState = stream._writableState;
         const rState = stream._readableState;
         const state = wState || rState;
@@ -3692,12 +3550,10 @@
             return callback.call(stream, errored);
           }
           if (readable && !readableFinished && isReadableNodeStream(stream, true)) {
-            if (!isReadableFinished(stream, false))
-              return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE());
+            if (!isReadableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE());
           }
           if (writable && !writableFinished) {
-            if (!isWritableFinished(stream, false))
-              return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE());
+            if (!isWritableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE());
           }
           callback.call(stream);
         };
@@ -3754,8 +3610,7 @@
           stream.removeListener("complete", onfinish);
           stream.removeListener("abort", onclose);
           stream.removeListener("request", onrequest);
-          if (stream.req)
-            stream.req.removeListener("finish", onfinish);
+          if (stream.req) stream.req.removeListener("finish", onfinish);
           stream.removeListener("end", onlegacyfinish);
           stream.removeListener("close", onlegacyfinish);
           stream.removeListener("finish", onfinish);
@@ -4145,17 +4000,14 @@
         }
         let didOnEnd = false;
         function onend() {
-          if (didOnEnd)
-            return;
+          if (didOnEnd) return;
           didOnEnd = true;
           dest.end();
         }
         function onclose() {
-          if (didOnEnd)
-            return;
+          if (didOnEnd) return;
           didOnEnd = true;
-          if (typeof dest.destroy === "function")
-            dest.destroy();
+          if (typeof dest.destroy === "function") dest.destroy();
         }
         function onerror(er) {
           cleanup();
@@ -4183,14 +4035,10 @@
         return dest;
       };
       function prependListener(emitter, event, fn) {
-        if (typeof emitter.prependListener === "function")
-          return emitter.prependListener(event, fn);
-        if (!emitter._events || !emitter._events[event])
-          emitter.on(event, fn);
-        else if (ArrayIsArray(emitter._events[event]))
-          emitter._events[event].unshift(fn);
-        else
-          emitter._events[event] = [fn, emitter._events[event]];
+        if (typeof emitter.prependListener === "function") return emitter.prependListener(event, fn);
+        if (!emitter._events || !emitter._events[event]) emitter.on(event, fn);
+        else if (ArrayIsArray(emitter._events[event])) emitter._events[event].unshift(fn);
+        else emitter._events[event] = [fn, emitter._events[event]];
       }
       module.exports = {
         Stream,
@@ -4268,10 +4116,8 @@
             data: v,
             next: null
           };
-          if (this.length > 0)
-            this.tail.next = entry;
-          else
-            this.head = entry;
+          if (this.length > 0) this.tail.next = entry;
+          else this.head = entry;
           this.tail = entry;
           ++this.length;
         }
@@ -4280,19 +4126,15 @@
             data: v,
             next: this.head
           };
-          if (this.length === 0)
-            this.tail = entry;
+          if (this.length === 0) this.tail = entry;
           this.head = entry;
           ++this.length;
         }
         shift() {
-          if (this.length === 0)
-            return;
+          if (this.length === 0) return;
           const ret = this.head.data;
-          if (this.length === 1)
-            this.head = this.tail = null;
-          else
-            this.head = this.head.next;
+          if (this.length === 1) this.head = this.tail = null;
+          else this.head = this.head.next;
           --this.length;
           return ret;
         }
@@ -4301,17 +4143,14 @@
           this.length = 0;
         }
         join(s) {
-          if (this.length === 0)
-            return "";
+          if (this.length === 0) return "";
           let p = this.head;
           let ret = "" + p.data;
-          while ((p = p.next) !== null)
-            ret += s + p.data;
+          while ((p = p.next) !== null) ret += s + p.data;
           return ret;
         }
         concat(n) {
-          if (this.length === 0)
-            return Buffer3.alloc(0);
+          if (this.length === 0) return Buffer3.alloc(0);
           const ret = Buffer3.allocUnsafe(n >>> 0);
           let p = this.head;
           let i = 0;
@@ -4357,10 +4196,8 @@
               if (n === str.length) {
                 ret += str;
                 ++c;
-                if (p.next)
-                  this.head = p.next;
-                else
-                  this.head = this.tail = null;
+                if (p.next) this.head = p.next;
+                else this.head = this.tail = null;
               } else {
                 ret += StringPrototypeSlice(str, 0, n);
                 this.head = p;
@@ -4388,10 +4225,8 @@
               if (n === buf.length) {
                 TypedArrayPrototypeSet(ret, buf, retLen - n);
                 ++c;
-                if (p.next)
-                  this.head = p.next;
-                else
-                  this.head = this.tail = null;
+                if (p.next) this.head = p.next;
+                else this.head = this.tail = null;
               } else {
                 TypedArrayPrototypeSet(ret, new Uint8Array2(buf.buffer, buf.byteOffset, n), retLen - n);
                 this.head = p;
@@ -4405,7 +4240,7 @@
           return ret;
         }
         // Make sure the linked list only shows the minimal necessary information.
-        [Symbol.for("nodejs.util.inspect.custom")](_, options) {
+        [/* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom")](_, options) {
           return inspect(this, {
             ...options,
             // Only inspect one level.
@@ -4543,8 +4378,7 @@
         }
       };
       function _normalizeEncoding(enc) {
-        if (!enc)
-          return "utf8";
+        if (!enc) return "utf8";
         var retried;
         while (true) {
           switch (enc) {
@@ -4564,8 +4398,7 @@
             case "hex":
               return enc;
             default:
-              if (retried)
-                return;
+              if (retried) return;
               enc = ("" + enc).toLowerCase();
               retried = true;
           }
@@ -4573,8 +4406,7 @@
       }
       function normalizeEncoding(enc) {
         var nenc = _normalizeEncoding(enc);
-        if (typeof nenc !== "string" && (Buffer3.isEncoding === isEncoding || !isEncoding(enc)))
-          throw new Error("Unknown encoding: " + enc);
+        if (typeof nenc !== "string" && (Buffer3.isEncoding === isEncoding || !isEncoding(enc))) throw new Error("Unknown encoding: " + enc);
         return nenc || enc;
       }
       exports.StringDecoder = StringDecoder;
@@ -4606,21 +4438,18 @@
         this.lastChar = Buffer3.allocUnsafe(nb);
       }
       StringDecoder.prototype.write = function(buf) {
-        if (buf.length === 0)
-          return "";
+        if (buf.length === 0) return "";
         var r;
         var i;
         if (this.lastNeed) {
           r = this.fillLast(buf);
-          if (r === void 0)
-            return "";
+          if (r === void 0) return "";
           i = this.lastNeed;
           this.lastNeed = 0;
         } else {
           i = 0;
         }
-        if (i < buf.length)
-          return r ? r + this.text(buf, i) : this.text(buf, i);
+        if (i < buf.length) return r ? r + this.text(buf, i) : this.text(buf, i);
         return r || "";
       };
       StringDecoder.prototype.end = utf8End;
@@ -4634,43 +4463,32 @@
         this.lastNeed -= buf.length;
       };
       function utf8CheckByte(byte) {
-        if (byte <= 127)
-          return 0;
-        else if (byte >> 5 === 6)
-          return 2;
-        else if (byte >> 4 === 14)
-          return 3;
-        else if (byte >> 3 === 30)
-          return 4;
+        if (byte <= 127) return 0;
+        else if (byte >> 5 === 6) return 2;
+        else if (byte >> 4 === 14) return 3;
+        else if (byte >> 3 === 30) return 4;
         return byte >> 6 === 2 ? -1 : -2;
       }
       function utf8CheckIncomplete(self2, buf, i) {
         var j = buf.length - 1;
-        if (j < i)
-          return 0;
+        if (j < i) return 0;
         var nb = utf8CheckByte(buf[j]);
         if (nb >= 0) {
-          if (nb > 0)
-            self2.lastNeed = nb - 1;
+          if (nb > 0) self2.lastNeed = nb - 1;
           return nb;
         }
-        if (--j < i || nb === -2)
-          return 0;
+        if (--j < i || nb === -2) return 0;
         nb = utf8CheckByte(buf[j]);
         if (nb >= 0) {
-          if (nb > 0)
-            self2.lastNeed = nb - 2;
+          if (nb > 0) self2.lastNeed = nb - 2;
           return nb;
         }
-        if (--j < i || nb === -2)
-          return 0;
+        if (--j < i || nb === -2) return 0;
         nb = utf8CheckByte(buf[j]);
         if (nb >= 0) {
           if (nb > 0) {
-            if (nb === 2)
-              nb = 0;
-            else
-              self2.lastNeed = nb - 3;
+            if (nb === 2) nb = 0;
+            else self2.lastNeed = nb - 3;
           }
           return nb;
         }
@@ -4697,8 +4515,7 @@
       function utf8FillLast(buf) {
         var p = this.lastTotal - this.lastNeed;
         var r = utf8CheckExtraBytes(this, buf, p);
-        if (r !== void 0)
-          return r;
+        if (r !== void 0) return r;
         if (this.lastNeed <= buf.length) {
           buf.copy(this.lastChar, p, 0, this.lastNeed);
           return this.lastChar.toString(this.encoding, 0, this.lastTotal);
@@ -4708,8 +4525,7 @@
       }
       function utf8Text(buf, i) {
         var total = utf8CheckIncomplete(this, buf, i);
-        if (!this.lastNeed)
-          return buf.toString("utf8", i);
+        if (!this.lastNeed) return buf.toString("utf8", i);
         this.lastTotal = total;
         var end = buf.length - (total - this.lastNeed);
         buf.copy(this.lastChar, 0, end);
@@ -4717,8 +4533,7 @@
       }
       function utf8End(buf) {
         var r = buf && buf.length ? this.write(buf) : "";
-        if (this.lastNeed)
-          return r + "\uFFFD";
+        if (this.lastNeed) return r + "\uFFFD";
         return r;
       }
       function utf16Text(buf, i) {
@@ -4751,8 +4566,7 @@
       }
       function base64Text(buf, i) {
         var n = (buf.length - i) % 3;
-        if (n === 0)
-          return buf.toString("base64", i);
+        if (n === 0) return buf.toString("base64", i);
         this.lastNeed = 3 - n;
         this.lastTotal = 3;
         if (n === 1) {
@@ -4765,8 +4579,7 @@
       }
       function base64End(buf) {
         var r = buf && buf.length ? this.write(buf) : "";
-        if (this.lastNeed)
-          return r + this.lastChar.toString("base64", 0, 3 - this.lastNeed);
+        if (this.lastNeed) return r + this.lastChar.toString("base64", 0, 3 - this.lastNeed);
         return r;
       }
       function simpleWrite(buf) {
@@ -4951,10 +4764,8 @@
             return (this.state & bit) !== 0;
           },
           set(value) {
-            if (value)
-              this.state |= bit;
-            else
-              this.state &= ~bit;
+            if (value) this.state |= bit;
+            else this.state &= ~bit;
           }
         };
       }
@@ -4996,23 +4807,18 @@
         dataEmitted: makeBitMapDescriptor(kDataEmitted)
       });
       function ReadableState(options, stream, isDuplex) {
-        if (typeof isDuplex !== "boolean")
-          isDuplex = stream instanceof require_duplex();
+        if (typeof isDuplex !== "boolean") isDuplex = stream instanceof require_duplex();
         this.state = kEmitClose | kAutoDestroy | kConstructed | kSync;
-        if (options && options.objectMode)
-          this.state |= kObjectMode;
-        if (isDuplex && options && options.readableObjectMode)
-          this.state |= kObjectMode;
+        if (options && options.objectMode) this.state |= kObjectMode;
+        if (isDuplex && options && options.readableObjectMode) this.state |= kObjectMode;
         this.highWaterMark = options ? getHighWaterMark(this, options, "readableHighWaterMark", isDuplex) : getDefaultHighWaterMark(false);
         this.buffer = new BufferList();
         this.length = 0;
         this.pipes = [];
         this.flowing = null;
         this[kPaused] = null;
-        if (options && options.emitClose === false)
-          this.state &= ~kEmitClose;
-        if (options && options.autoDestroy === false)
-          this.state &= ~kAutoDestroy;
+        if (options && options.emitClose === false) this.state &= ~kEmitClose;
+        if (options && options.autoDestroy === false) this.state &= ~kAutoDestroy;
         this.errored = null;
         this.defaultEncoding = options && options.defaultEncoding || "utf8";
         this.awaitDrainWriters = null;
@@ -5024,19 +4830,14 @@
         }
       }
       function Readable2(options) {
-        if (!(this instanceof Readable2))
-          return new Readable2(options);
+        if (!(this instanceof Readable2)) return new Readable2(options);
         const isDuplex = this instanceof require_duplex();
         this._readableState = new ReadableState(options, this, isDuplex);
         if (options) {
-          if (typeof options.read === "function")
-            this._read = options.read;
-          if (typeof options.destroy === "function")
-            this._destroy = options.destroy;
-          if (typeof options.construct === "function")
-            this._construct = options.construct;
-          if (options.signal && !isDuplex)
-            addAbortSignal(options.signal, this);
+          if (typeof options.read === "function") this._read = options.read;
+          if (typeof options.destroy === "function") this._destroy = options.destroy;
+          if (typeof options.construct === "function") this._construct = options.construct;
+          if (options.signal && !isDuplex) addAbortSignal(options.signal, this);
         }
         Stream.call(this, options);
         destroyImpl.construct(this, () => {
@@ -5098,12 +4899,9 @@
           onEofChunk(stream, state);
         } else if ((state.state & kObjectMode) !== 0 || chunk && chunk.length > 0) {
           if (addToFront) {
-            if ((state.state & kEndEmitted) !== 0)
-              errorOrDestroy(stream, new ERR_STREAM_UNSHIFT_AFTER_END_EVENT());
-            else if (state.destroyed || state.errored)
-              return false;
-            else
-              addChunk(stream, state, chunk, true);
+            if ((state.state & kEndEmitted) !== 0) errorOrDestroy(stream, new ERR_STREAM_UNSHIFT_AFTER_END_EVENT());
+            else if (state.destroyed || state.errored) return false;
+            else addChunk(stream, state, chunk, true);
           } else if (state.ended) {
             errorOrDestroy(stream, new ERR_STREAM_PUSH_AFTER_EOF());
           } else if (state.destroyed || state.errored) {
@@ -5112,10 +4910,8 @@
             state.state &= ~kReading;
             if (state.decoder && !encoding) {
               chunk = state.decoder.write(chunk);
-              if (state.objectMode || chunk.length !== 0)
-                addChunk(stream, state, chunk, false);
-              else
-                maybeReadMore(stream, state);
+              if (state.objectMode || chunk.length !== 0) addChunk(stream, state, chunk, false);
+              else maybeReadMore(stream, state);
             } else {
               addChunk(stream, state, chunk, false);
             }
@@ -5137,12 +4933,9 @@
           stream.emit("data", chunk);
         } else {
           state.length += state.objectMode ? 1 : chunk.length;
-          if (addToFront)
-            state.buffer.unshift(chunk);
-          else
-            state.buffer.push(chunk);
-          if ((state.state & kNeedReadable) !== 0)
-            emitReadable(stream);
+          if (addToFront) state.buffer.unshift(chunk);
+          else state.buffer.push(chunk);
+          if ((state.state & kNeedReadable) !== 0) emitReadable(stream);
         }
         maybeReadMore(stream, state);
       }
@@ -5160,8 +4953,7 @@
           content += decoder.write(data);
         }
         buffer.clear();
-        if (content !== "")
-          buffer.push(content);
+        if (content !== "") buffer.push(content);
         this._readableState.length = content.length;
         return this;
       };
@@ -5181,17 +4973,13 @@
         return n;
       }
       function howMuchToRead(n, state) {
-        if (n <= 0 || state.length === 0 && state.ended)
-          return 0;
-        if ((state.state & kObjectMode) !== 0)
-          return 1;
+        if (n <= 0 || state.length === 0 && state.ended) return 0;
+        if ((state.state & kObjectMode) !== 0) return 1;
         if (NumberIsNaN(n)) {
-          if (state.flowing && state.length)
-            return state.buffer.first().length;
+          if (state.flowing && state.length) return state.buffer.first().length;
           return state.length;
         }
-        if (n <= state.length)
-          return n;
+        if (n <= state.length) return n;
         return state.ended ? state.length : 0;
       }
       Readable2.prototype.read = function(n) {
@@ -5203,22 +4991,17 @@
         }
         const state = this._readableState;
         const nOrig = n;
-        if (n > state.highWaterMark)
-          state.highWaterMark = computeNewHighWaterMark(n);
-        if (n !== 0)
-          state.state &= ~kEmittedReadable;
+        if (n > state.highWaterMark) state.highWaterMark = computeNewHighWaterMark(n);
+        if (n !== 0) state.state &= ~kEmittedReadable;
         if (n === 0 && state.needReadable && ((state.highWaterMark !== 0 ? state.length >= state.highWaterMark : state.length > 0) || state.ended)) {
           debug("read: emitReadable", state.length, state.ended);
-          if (state.length === 0 && state.ended)
-            endReadable(this);
-          else
-            emitReadable(this);
+          if (state.length === 0 && state.ended) endReadable(this);
+          else emitReadable(this);
           return null;
         }
         n = howMuchToRead(n, state);
         if (n === 0 && state.ended) {
-          if (state.length === 0)
-            endReadable(this);
+          if (state.length === 0) endReadable(this);
           return null;
         }
         let doRead = (state.state & kNeedReadable) !== 0;
@@ -5233,22 +5016,18 @@
         } else if (doRead) {
           debug("do read");
           state.state |= kReading | kSync;
-          if (state.length === 0)
-            state.state |= kNeedReadable;
+          if (state.length === 0) state.state |= kNeedReadable;
           try {
             this._read(state.highWaterMark);
           } catch (err) {
             errorOrDestroy(this, err);
           }
           state.state &= ~kSync;
-          if (!state.reading)
-            n = howMuchToRead(nOrig, state);
+          if (!state.reading) n = howMuchToRead(nOrig, state);
         }
         let ret;
-        if (n > 0)
-          ret = fromList(n, state);
-        else
-          ret = null;
+        if (n > 0) ret = fromList(n, state);
+        else ret = null;
         if (ret === null) {
           state.needReadable = state.length <= state.highWaterMark;
           n = 0;
@@ -5261,10 +5040,8 @@
           }
         }
         if (state.length === 0) {
-          if (!state.ended)
-            state.needReadable = true;
-          if (nOrig !== n && state.ended)
-            endReadable(this);
+          if (!state.ended) state.needReadable = true;
+          if (nOrig !== n && state.ended) endReadable(this);
         }
         if (ret !== null && !state.errorEmitted && !state.closeEmitted) {
           state.dataEmitted = true;
@@ -5274,8 +5051,7 @@
       };
       function onEofChunk(stream, state) {
         debug("onEofChunk");
-        if (state.ended)
-          return;
+        if (state.ended) return;
         if (state.decoder) {
           const chunk = state.decoder.end();
           if (chunk && chunk.length) {
@@ -5344,10 +5120,8 @@
         debug("pipe count=%d opts=%j", state.pipes.length, pipeOpts);
         const doEnd = (!pipeOpts || pipeOpts.end !== false) && dest !== process.stdout && dest !== process.stderr;
         const endFn = doEnd ? onend : unpipe;
-        if (state.endEmitted)
-          process.nextTick(endFn);
-        else
-          src.once("end", endFn);
+        if (state.endEmitted) process.nextTick(endFn);
+        else src.once("end", endFn);
         dest.on("unpipe", onunpipe);
         function onunpipe(readable, unpipeInfo) {
           debug("onunpipe");
@@ -5377,8 +5151,7 @@
           src.removeListener("end", unpipe);
           src.removeListener("data", ondata);
           cleanedUp = true;
-          if (ondrain && state.awaitDrainWriters && (!dest._writableState || dest._writableState.needDrain))
-            ondrain();
+          if (ondrain && state.awaitDrainWriters && (!dest._writableState || dest._writableState.needDrain)) ondrain();
         }
         function pause() {
           if (!cleanedUp) {
@@ -5464,8 +5237,7 @@
         const unpipeInfo = {
           hasUnpiped: false
         };
-        if (state.pipes.length === 0)
-          return this;
+        if (state.pipes.length === 0) return this;
         if (!dest) {
           const dests = state.pipes;
           state.pipes = [];
@@ -5477,11 +5249,9 @@
           return this;
         }
         const index = ArrayPrototypeIndexOf(state.pipes, dest);
-        if (index === -1)
-          return this;
+        if (index === -1) return this;
         state.pipes.splice(index, 1);
-        if (state.pipes.length === 0)
-          this.pause();
+        if (state.pipes.length === 0) this.pause();
         dest.emit("unpipe", this, unpipeInfo);
         return this;
       };
@@ -5490,8 +5260,7 @@
         const state = this._readableState;
         if (ev === "data") {
           state.readableListening = this.listenerCount("readable") > 0;
-          if (state.flowing !== false)
-            this.resume();
+          if (state.flowing !== false) this.resume();
         } else if (ev === "readable") {
           if (!state.endEmitted && !state.readableListening) {
             state.readableListening = state.needReadable = true;
@@ -5562,8 +5331,7 @@
         state.resumeScheduled = false;
         stream.emit("resume");
         flow(stream);
-        if (state.flowing && !state.reading)
-          stream.read(0);
+        if (state.flowing && !state.reading) stream.read(0);
       }
       Readable2.prototype.pause = function() {
         debug("call pause flowing=%j", this._readableState.flowing);
@@ -5578,8 +5346,7 @@
       function flow(stream) {
         const state = stream._readableState;
         debug("flow", state.flowing);
-        while (state.flowing && stream.read() !== null)
-          ;
+        while (state.flowing && stream.read() !== null) ;
       }
       Readable2.prototype.wrap = function(stream) {
         let paused = false;
@@ -5812,18 +5579,13 @@
       });
       Readable2._fromList = fromList;
       function fromList(n, state) {
-        if (state.length === 0)
-          return null;
+        if (state.length === 0) return null;
         let ret;
-        if (state.objectMode)
-          ret = state.buffer.shift();
+        if (state.objectMode) ret = state.buffer.shift();
         else if (!n || n >= state.length) {
-          if (state.decoder)
-            ret = state.buffer.join("");
-          else if (state.buffer.length === 1)
-            ret = state.buffer.first();
-          else
-            ret = state.buffer.concat(state.length);
+          if (state.decoder) ret = state.buffer.join("");
+          else if (state.buffer.length === 1) ret = state.buffer.first();
+          else ret = state.buffer.concat(state.length);
           state.buffer.clear();
         } else {
           ret = state.buffer.consume(n, state.decoder);
@@ -5867,8 +5629,7 @@
       };
       var webStreamsAdapters;
       function lazyWebStreams() {
-        if (webStreamsAdapters === void 0)
-          webStreamsAdapters = {};
+        if (webStreamsAdapters === void 0) webStreamsAdapters = {};
         return webStreamsAdapters;
       }
       Readable2.fromWeb = function(readableStream, options) {
@@ -5933,11 +5694,9 @@
       }
       var kOnFinished = Symbol2("kOnFinished");
       function WritableState(options, stream, isDuplex) {
-        if (typeof isDuplex !== "boolean")
-          isDuplex = stream instanceof require_duplex();
+        if (typeof isDuplex !== "boolean") isDuplex = stream instanceof require_duplex();
         this.objectMode = !!(options && options.objectMode);
-        if (isDuplex)
-          this.objectMode = this.objectMode || !!(options && options.writableObjectMode);
+        if (isDuplex) this.objectMode = this.objectMode || !!(options && options.writableObjectMode);
         this.highWaterMark = options ? getHighWaterMark(this, options, "writableHighWaterMark", isDuplex) : getDefaultHighWaterMark(false);
         this.finalCalled = false;
         this.needDrain = false;
@@ -5986,22 +5745,15 @@
       });
       function Writable(options) {
         const isDuplex = this instanceof require_duplex();
-        if (!isDuplex && !FunctionPrototypeSymbolHasInstance(Writable, this))
-          return new Writable(options);
+        if (!isDuplex && !FunctionPrototypeSymbolHasInstance(Writable, this)) return new Writable(options);
         this._writableState = new WritableState(options, this, isDuplex);
         if (options) {
-          if (typeof options.write === "function")
-            this._write = options.write;
-          if (typeof options.writev === "function")
-            this._writev = options.writev;
-          if (typeof options.destroy === "function")
-            this._destroy = options.destroy;
-          if (typeof options.final === "function")
-            this._final = options.final;
-          if (typeof options.construct === "function")
-            this._construct = options.construct;
-          if (options.signal)
-            addAbortSignal(options.signal, this);
+          if (typeof options.write === "function") this._write = options.write;
+          if (typeof options.writev === "function") this._writev = options.writev;
+          if (typeof options.destroy === "function") this._destroy = options.destroy;
+          if (typeof options.final === "function") this._final = options.final;
+          if (typeof options.construct === "function") this._construct = options.construct;
+          if (options.signal) addAbortSignal(options.signal, this);
         }
         Stream.call(this, options);
         destroyImpl.construct(this, () => {
@@ -6015,10 +5767,8 @@
       ObjectDefineProperty(Writable, SymbolHasInstance, {
         __proto__: null,
         value: function(object) {
-          if (FunctionPrototypeSymbolHasInstance(this, object))
-            return true;
-          if (this !== Writable)
-            return false;
+          if (FunctionPrototypeSymbolHasInstance(this, object)) return true;
+          if (this !== Writable) return false;
           return object && object._writableState instanceof WritableState;
         }
       });
@@ -6031,12 +5781,9 @@
           cb = encoding;
           encoding = state.defaultEncoding;
         } else {
-          if (!encoding)
-            encoding = state.defaultEncoding;
-          else if (encoding !== "buffer" && !Buffer3.isEncoding(encoding))
-            throw new ERR_UNKNOWN_ENCODING(encoding);
-          if (typeof cb !== "function")
-            cb = nop;
+          if (!encoding) encoding = state.defaultEncoding;
+          else if (encoding !== "buffer" && !Buffer3.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding);
+          if (typeof cb !== "function") cb = nop;
         }
         if (chunk === null) {
           throw new ERR_STREAM_NULL_VALUES();
@@ -6079,15 +5826,12 @@
         const state = this._writableState;
         if (state.corked) {
           state.corked--;
-          if (!state.writing)
-            clearBuffer(this, state);
+          if (!state.writing) clearBuffer(this, state);
         }
       };
       Writable.prototype.setDefaultEncoding = function setDefaultEncoding(encoding) {
-        if (typeof encoding === "string")
-          encoding = StringPrototypeToLowerCase(encoding);
-        if (!Buffer3.isEncoding(encoding))
-          throw new ERR_UNKNOWN_ENCODING(encoding);
+        if (typeof encoding === "string") encoding = StringPrototypeToLowerCase(encoding);
+        if (!Buffer3.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding);
         this._writableState.defaultEncoding = encoding;
         return this;
       };
@@ -6095,8 +5839,7 @@
         const len = state.objectMode ? 1 : chunk.length;
         state.length += len;
         const ret = state.length < state.highWaterMark;
-        if (!ret)
-          state.needDrain = true;
+        if (!ret) state.needDrain = true;
         if (state.writing || state.corked || state.errored || !state.constructed) {
           state.buffered.push({
             chunk,
@@ -6124,12 +5867,9 @@
         state.writecb = cb;
         state.writing = true;
         state.sync = true;
-        if (state.destroyed)
-          state.onwrite(new ERR_STREAM_DESTROYED("write"));
-        else if (writev)
-          stream._writev(chunk, state.onwrite);
-        else
-          stream._write(chunk, encoding, state.onwrite);
+        if (state.destroyed) state.onwrite(new ERR_STREAM_DESTROYED("write"));
+        else if (writev) stream._writev(chunk, state.onwrite);
+        else stream._write(chunk, encoding, state.onwrite);
         state.sync = false;
       }
       function onwriteError(stream, state, er, cb) {
@@ -6466,8 +6206,7 @@
           __proto__: null,
           get() {
             const wState = this._writableState;
-            if (!wState)
-              return false;
+            if (!wState) return false;
             return !wState.destroyed && !wState.ending && wState.needDrain;
           }
         },
@@ -6522,8 +6261,7 @@
       };
       var webStreamsAdapters;
       function lazyWebStreams() {
-        if (webStreamsAdapters === void 0)
-          webStreamsAdapters = {};
+        if (webStreamsAdapters === void 0) webStreamsAdapters = {};
         return webStreamsAdapters;
       }
       Writable.fromWeb = function(writableStream, options) {
@@ -6727,14 +6465,13 @@
         const ac = new AbortController();
         const signal = ac.signal;
         const value = fn(
-          async function* () {
+          (async function* () {
             while (true) {
               const _promise = promise;
               promise = null;
               const { chunk, done, cb } = await _promise;
               process.nextTick(cb);
-              if (done)
-                return;
+              if (done) return;
               if (signal.aborted)
                 throw new AbortError(void 0, {
                   cause: signal.reason
@@ -6742,7 +6479,7 @@
               ({ promise, resolve } = createDeferredPromise());
               yield chunk;
             }
-          }(),
+          })(),
           {
             signal
           }
@@ -6902,13 +6639,11 @@
         const keys = ObjectKeys(Writable.prototype);
         for (let i = 0; i < keys.length; i++) {
           const method = keys[i];
-          if (!Duplex.prototype[method])
-            Duplex.prototype[method] = Writable.prototype[method];
+          if (!Duplex.prototype[method]) Duplex.prototype[method] = Writable.prototype[method];
         }
       }
       function Duplex(options) {
-        if (!(this instanceof Duplex))
-          return new Duplex(options);
+        if (!(this instanceof Duplex)) return new Duplex(options);
         Readable2.call(this, options);
         Writable.call(this, options);
         if (options) {
@@ -6983,8 +6718,7 @@
       });
       var webStreamsAdapters;
       function lazyWebStreams() {
-        if (webStreamsAdapters === void 0)
-          webStreamsAdapters = {};
+        if (webStreamsAdapters === void 0) webStreamsAdapters = {};
         return webStreamsAdapters;
       }
       Duplex.fromWeb = function(pair, options) {
@@ -7016,8 +6750,7 @@
       ObjectSetPrototypeOf(Transform3, Duplex);
       var kCallback = Symbol2("kCallback");
       function Transform3(options) {
-        if (!(this instanceof Transform3))
-          return new Transform3(options);
+        if (!(this instanceof Transform3)) return new Transform3(options);
         const readableHighWaterMark = options ? getHighWaterMark(this, options, "readableHighWaterMark", true) : null;
         if (readableHighWaterMark === 0) {
           options = {
@@ -7035,10 +6768,8 @@
         this._readableState.sync = false;
         this[kCallback] = null;
         if (options) {
-          if (typeof options.transform === "function")
-            this._transform = options.transform;
-          if (typeof options.flush === "function")
-            this._flush = options.flush;
+          if (typeof options.transform === "function") this._transform = options.transform;
+          if (typeof options.flush === "function") this._flush = options.flush;
         }
         this.on("prefinish", prefinish);
       }
@@ -7118,8 +6849,7 @@
       ObjectSetPrototypeOf(PassThrough.prototype, Transform3.prototype);
       ObjectSetPrototypeOf(PassThrough, Transform3);
       function PassThrough(options) {
-        if (!(this instanceof PassThrough))
-          return new PassThrough(options);
+        if (!(this instanceof PassThrough)) return new PassThrough(options);
         Transform3.call(this, options);
       }
       PassThrough.prototype._transform = function(chunk, encoding, cb) {
@@ -7180,8 +6910,7 @@
         );
         return {
           destroy: (err) => {
-            if (finished)
-              return;
+            if (finished) return;
             finished = true;
             destroyImpl.destroyer(stream, err || new ERR_STREAM_DESTROYED("pipe"));
           },
@@ -7971,8 +7700,7 @@
           await fn(value, options2);
           return kEmpty;
         }
-        for await (const unused of map.call(this, forEachFn, options))
-          ;
+        for await (const unused of map.call(this, forEachFn, options)) ;
       }
       function filter(fn, options) {
         if (typeof fn !== "function") {
@@ -8354,6 +8082,20 @@
   });
 
   // node_modules/@muze-nl/oldm/src/oldm.mjs
+  var oldm_exports = {};
+  __export(oldm_exports, {
+    BlankNode: () => BlankNode,
+    Collection: () => Collection,
+    Context: () => Context,
+    Graph: () => Graph,
+    NamedNode: () => NamedNode,
+    default: () => oldm,
+    first: () => first,
+    many: () => many,
+    one: () => one,
+    prefixes: () => prefixes,
+    rdfType: () => rdfType
+  });
   function oldm(options) {
     return new Context(options);
   }
@@ -8364,6 +8106,38 @@
     schema: "http://schema.org/",
     vcard: "http://www.w3.org/2006/vcard/ns#"
   };
+  function one(values, whichOne = "last") {
+    let result2 = values;
+    if (Array.isArray(values)) {
+      if (whichOne == "last") {
+        result2 = values[values.length - 1];
+      } else if (whichOne == "first") {
+        result2 = values[0];
+      } else if (typeof whichOne == "function") {
+        result2 = whichOne(values);
+      } else {
+        throw new Error("Unknown value for whichOne parameter");
+      }
+    }
+    return result2;
+  }
+  function many(values) {
+    if (Array.isArray(values)) {
+      return values;
+    }
+    if (values == null) {
+      return [];
+    }
+    return [values];
+  }
+  function first(...values) {
+    for (const value of values) {
+      if (value !== null && value !== void 0) {
+        return value;
+      }
+    }
+    return null;
+  }
   var Context = class {
     constructor(options) {
       this.prefixes = { ...prefixes, ...options?.prefixes };
@@ -8382,12 +8156,11 @@
           let prefixURL = prefixes3[prefix2];
           if (prefixURL.match(/^http(s?):\/\/$/i)) {
             prefixURL += url.substring(prefixURL.length);
-          } else
-            try {
-              prefixURL = new URL(prefixes3[prefix2], url).href;
-            } catch (err) {
-              console.error("Could not parse prefix", prefixes3[prefix2], err.message);
-            }
+          } else try {
+            prefixURL = new URL(prefixes3[prefix2], url).href;
+          } catch (err) {
+            console.error("Could not parse prefix", prefixes3[prefix2], err.message);
+          }
           if (!this.prefixes[prefix2]) {
             this.prefixes[prefix2] = prefixURL;
           }
@@ -8793,6 +8566,7 @@
               }
               break;
             }
+          // Fall through in case the type is an IRI
           case "<":
             if (match = this._unescapedIri.exec(input))
               type = "IRI", value = match[1];
@@ -8807,10 +8581,8 @@
               type = "<<", matchLength = 2;
             else if (this._n3Mode && input.length > 1 && input[1] === "=") {
               matchLength = 2;
-              if (this._isImpliedBy)
-                type = "abbreviation", value = "<";
-              else
-                type = "inverse", value = ">";
+              if (this._isImpliedBy) type = "abbreviation", value = "<";
+              else type = "inverse", value = ">";
             }
             break;
           case ">":
@@ -8865,6 +8637,7 @@
               matchLength = 1;
               break;
             }
+          // Fall through to numerical case (could be a decimal dot)
           case "0":
           case "1":
           case "2":
@@ -9071,8 +8844,7 @@
           const tokens = [];
           let error;
           this._tokenizeToEnd((e, t) => e ? error = e : tokens.push(t), true);
-          if (error)
-            throw error;
+          if (error) throw error;
           return tokens;
         }
       } else {
@@ -9521,23 +9293,28 @@
     // ### `_readInTopContext` reads a token when in the top context
     _readInTopContext(token) {
       switch (token.type) {
+        // If an EOF token arrives in the top context, signal that we're done
         case "eof":
           if (this._graph !== null)
             return this._error("Unclosed graph", token);
           delete this._prefixes._;
           return this._callback(null, null, this._prefixes);
+        // It could be a prefix declaration
         case "PREFIX":
           this._sparqlStyle = true;
         case "@prefix":
           return this._readPrefix;
+        // It could be a base declaration
         case "BASE":
           this._sparqlStyle = true;
         case "@base":
           return this._readBaseIRI;
+        // It could be a version declaration
         case "VERSION":
           this._sparqlStyle = true;
         case "@version":
           return this._readVersion;
+        // It could be a graph
         case "{":
           if (this._supportsNamedGraphs) {
             this._graph = "";
@@ -9547,6 +9324,7 @@
         case "GRAPH":
           if (this._supportsNamedGraphs)
             return this._readNamedGraphLabel;
+        // Otherwise, the next token must be a subject
         default:
           return this._readSubject(token);
       }
@@ -9555,6 +9333,7 @@
     _readEntity(token, quantifier) {
       let value;
       switch (token.type) {
+        // Read a relative or absolute IRI
         case "IRI":
         case "typeIRI":
           const iri = this._resolveIRI(token.value);
@@ -9562,6 +9341,7 @@
             return this._error("Invalid IRI", token);
           value = this._factory.namedNode(iri);
           break;
+        // Read a prefixed name
         case "type":
         case "prefixed":
           const prefix2 = this._prefixes[token.prefix];
@@ -9569,12 +9349,15 @@
             return this._error(`Undefined prefix "${token.prefix}:"`, token);
           value = this._factory.namedNode(prefix2 + token.value);
           break;
+        // Read a blank node
         case "blank":
           value = this._factory.blankNode(this._prefixes[token.prefix] + token.value);
           break;
+        // Read a variable
         case "var":
           value = this._factory.variable(token.value.substr(1));
           break;
+        // Everything else is not an entity
         default:
           return this._error(`Expected entity but got ${token.type}`, token);
       }
@@ -9906,17 +9689,18 @@
       let literal2 = this._factory.literal(this._literalValue);
       let readCb;
       switch (token.type) {
+        // Create a datatyped literal
         case "type":
         case "typeIRI":
           const datatype = this._readEntity(token);
-          if (datatype === void 0)
-            return;
+          if (datatype === void 0) return;
           if (datatype.value === IRIs_default.rdf.langString || datatype.value === IRIs_default.rdf.dirLangString) {
             return this._error("Detected illegal (directional) languaged-tagged string with explicit datatype", token);
           }
           literal2 = this._factory.literal(this._literalValue, datatype);
           token = null;
           break;
+        // Create a language-tagged string
         case "langcode":
           if (token.value.split("-").some((t) => t.length > 8))
             return this._error("Detected language tag with subtag longer than 8 characters", token);
@@ -9984,35 +9768,41 @@
       let next, graph = this._graph, startingAnnotation = false;
       const subject = this._subject, inversePredicate = this._inversePredicate;
       switch (token.type) {
+        // A closing brace ends a graph
         case "}":
           if (this._graph === null)
             return this._error("Unexpected graph closing", token);
           if (this._n3Mode)
             return this._readFormulaTail(token);
           this._graph = null;
+        // A dot just ends the statement, without sharing anything with the next
         case ".":
           this._subject = null;
           this._tripleTerm = null;
           next = this._contextStack.length ? this._readSubject : this._readInTopContext;
-          if (inversePredicate)
-            this._inversePredicate = false;
+          if (inversePredicate) this._inversePredicate = false;
           break;
+        // Semicolon means the subject is shared; predicate and object are different
         case ";":
           next = this._readPredicate;
           break;
+        // Comma means both the subject and predicate are shared; the object is different
         case ",":
           next = this._readObject;
           break;
+        // ~ is allowed in the annotation syntax
         case "~":
           next = this._readReifierInAnnotation;
           startingAnnotation = true;
           break;
+        // {| means that the current triple is annotated with predicate-object pairs.
         case "{|":
           this._subject = this._readTripleTerm();
           this._validAnnotation = false;
           startingAnnotation = true;
           next = this._readPredicate;
           break;
+        // |} means that the current reified triple in annotation syntax is finalized.
         case "|}":
           if (!this._annotation)
             return this._error("Unexpected annotation syntax closing", token);
@@ -10045,9 +9835,11 @@
     _readBlankNodePunctuation(token) {
       let next;
       switch (token.type) {
+        // Semicolon means the subject is shared; predicate and object are different
         case ";":
           next = this._readPredicate;
           break;
+        // Comma means both the subject and predicate are shared; the object is different
         case ",":
           next = this._readObject;
           break;
@@ -10185,10 +9977,13 @@
     // ### `_readPath` reads a potential path
     _readPath(token) {
       switch (token.type) {
+        // Forward path
         case "!":
           return this._readForwardPath;
+        // Backward path
         case "^":
           return this._readBackwardPath;
+        // Not a path; resume reading where we left off
         default:
           const stack = this._contextStack, parent = stack.length && stack[stack.length - 1];
           if (parent && parent.type === "item") {
@@ -10344,12 +10139,16 @@
       if (!iri.length)
         return this._base;
       switch (iri[0]) {
+        // Resolve relative fragment IRIs against the base IRI
         case "#":
           return this._base + iri;
+        // Resolve relative query string IRIs by replacing the query string
         case "?":
           return this._base.replace(/(?:\?.*)?$/, iri);
+        // Resolve root-relative IRIs at the root of the base IRI
         case "/":
           return (iri[1] === "/" ? this._baseScheme : this._baseRoot) + this._removeDotSegments(iri);
+        // Resolve all other IRIs at the base IRI's path
         default:
           return /^[^/:]*:/.test(iri) ? null : this._removeDotSegments(this._basePath + iri);
       }
@@ -10362,6 +10161,7 @@
       let result2 = "", i = -1, pathStart = -1, segmentStart = 0, next = "/";
       while (i < length) {
         switch (next) {
+          // The path starts with the first slash after the authority
           case ":":
             if (pathStart < 0) {
               if (iri[++i] === "/" && iri[++i] === "/")
@@ -10369,22 +10169,27 @@
                   i = pathStart;
             }
             break;
+          // Don't modify a query string or fragment
           case "?":
           case "#":
             i = length;
             break;
+          // Handle '/.' or '/..' path segments
           case "/":
             if (iri[i + 1] === ".") {
               next = iri[++i + 1];
               switch (next) {
+                // Remove a '/.' segment
                 case "/":
                   result2 += iri.substring(segmentStart, i - 1);
                   segmentStart = i + 1;
                   break;
+                // Remove a trailing '/.' segment
                 case void 0:
                 case "?":
                 case "#":
                   return result2 + iri.substring(segmentStart, i) + iri.substr(i + 1);
+                // Remove a '/..' segment
                 case ".":
                   next = iri[++i + 1];
                   if (next === void 0 || next === "/" || next === "?" || next === "#") {
@@ -10433,8 +10238,7 @@
         this._lexer.tokenize(input).every((token) => {
           return this._readCallback = this._readCallback(token);
         });
-        if (error)
-          throw error;
+        if (error) throw error;
         return quads;
       }
       let processNextToken = (error, token) => {
@@ -10861,12 +10665,15 @@
       else if (!("length" in predicate))
         children = [predicate];
       switch (length = children.length) {
+        // Generate an empty blank node
         case 0:
           return new SerializedTerm("[]");
+        // Generate a non-nested one-triple blank node
         case 1:
           child = children[0];
           if (!(child.object instanceof SerializedTerm))
             return new SerializedTerm(`[ ${this._encodePredicate(child.predicate)} ${this._encodeObject(child.object)} ]`);
+        // Generate a multi-triple or nested blank node
         default:
           let contents = "[";
           for (let i = 0; i < length; i++) {
@@ -10924,7 +10731,7 @@
 
   // node_modules/n3/src/N3Store.js
   var import_readable_stream = __toESM(require_browser3());
-  var ITERATOR = Symbol("iter");
+  var ITERATOR = /* @__PURE__ */ Symbol("iter");
   function merge(target, source, depth = 4) {
     if (depth === 0)
       return Object.assign(target, source);
@@ -11063,11 +10870,9 @@
     _removeFromIndex(index0, key0, key1, key2) {
       const index1 = index0[key0], index2 = index1[key1];
       delete index2[key2];
-      for (const key in index2)
-        return;
+      for (const key in index2) return;
       delete index1[key1];
-      for (const key in index1)
-        return;
+      for (const key in index1) return;
       delete index0[key0];
     }
     // ### `_findInIndex` finds a set of quads in a three-layered index.
@@ -11082,13 +10887,11 @@
       const entityKeys = this._entities;
       const graph = this._termFromId(entityKeys[graphId]);
       const parts = { subject: null, predicate: null, object: null };
-      if (key0)
-        (tmp = index0, index0 = {})[key0] = tmp[key0];
+      if (key0) (tmp = index0, index0 = {})[key0] = tmp[key0];
       for (const value0 in index0) {
         if (index1 = index0[value0]) {
           parts[name0] = this._termFromId(entityKeys[value0]);
-          if (key1)
-            (tmp = index1, index1 = {})[key1] = tmp[key1];
+          if (key1) (tmp = index1, index1 = {})[key1] = tmp[key1];
           for (const value1 in index1) {
             if (index2 = index1[value1]) {
               parts[name1] = this._termFromId(entityKeys[value1]);
@@ -11137,18 +10940,14 @@
     // Any of these keys can be undefined, which is interpreted as a wildcard.
     _countInIndex(index0, key0, key1, key2) {
       let count = 0, tmp, index1, index2;
-      if (key0)
-        (tmp = index0, index0 = {})[key0] = tmp[key0];
+      if (key0) (tmp = index0, index0 = {})[key0] = tmp[key0];
       for (const value0 in index0) {
         if (index1 = index0[value0]) {
-          if (key1)
-            (tmp = index1, index1 = {})[key1] = tmp[key1];
+          if (key1) (tmp = index1, index1 = {})[key1] = tmp[key1];
           for (const value1 in index1) {
             if (index2 = index1[value1]) {
-              if (key2)
-                key2 in index2 && count++;
-              else
-                count += Object.keys(index2).length;
+              if (key2) key2 in index2 && count++;
+              else count += Object.keys(index2).length;
             }
           }
         }
@@ -11237,10 +11036,8 @@
       this._removeFromIndex(graphItem.subjects, subject, predicate, object);
       this._removeFromIndex(graphItem.predicates, predicate, object, subject);
       this._removeFromIndex(graphItem.objects, object, subject, predicate);
-      if (this._size !== null)
-        this._size--;
-      for (subject in graphItem.subjects)
-        return true;
+      if (this._size !== null) this._size--;
+      for (subject in graphItem.subjects) return true;
       delete graphs[graph];
       return true;
     }
@@ -11528,9 +11325,9 @@
     // and returns the items per list.
     extractLists({ remove = false, ignoreErrors = false } = {}) {
       const lists = {};
-      const onError = ignoreErrors ? () => true : (node, message) => {
+      const onError = ignoreErrors ? (() => true) : ((node, message) => {
         throw new Error(`${node.value} ${message}`);
-      };
+      });
       const tails = this.getQuads(null, IRIs_default.rdf.rest, IRIs_default.rdf.nil, null);
       const toRemove = remove ? [...tails] : [];
       tails.forEach((tailQuad) => {
@@ -11543,7 +11340,7 @@
         while (current && !malformed) {
           const objectQuads = this.getQuads(null, null, current, null);
           const subjectQuads = this.getQuads(current, null, null, null);
-          let quad2, first = null, rest = null, parent = null;
+          let quad2, first2 = null, rest = null, parent = null;
           for (let i = 0; i < subjectQuads.length && !malformed; i++) {
             quad2 = subjectQuads[i];
             if (!quad2.graph.equals(graph))
@@ -11551,10 +11348,10 @@
             else if (head)
               malformed = onError(current, "has non-list arcs out");
             else if (quad2.predicate.value === IRIs_default.rdf.first) {
-              if (first)
+              if (first2)
                 malformed = onError(current, "has multiple rdf:first arcs");
               else
-                toRemove.push(first = quad2);
+                toRemove.push(first2 = quad2);
             } else if (quad2.predicate.value === IRIs_default.rdf.rest) {
               if (rest)
                 malformed = onError(current, "has multiple rdf:rest arcs");
@@ -11581,10 +11378,10 @@
               headPos = "object";
             }
           }
-          if (!first)
+          if (!first2)
             malformed = onError(current, "has no list head");
           else
-            items.unshift(first.object);
+            items.unshift(first2.object);
           current = parent && parent.subject;
         }
         if (malformed)
@@ -11634,18 +11431,14 @@
       const g1 = this._graphs, g2 = other._graphs;
       let s1, s2, p1, p2, o1;
       for (const graph in g2) {
-        if (!(s1 = g1[graph]))
-          return false;
+        if (!(s1 = g1[graph])) return false;
         s1 = s1.subjects;
         for (const subject in s2 = g2[graph].subjects) {
-          if (!(p1 = s1[subject]))
-            return false;
+          if (!(p1 = s1[subject])) return false;
           for (const predicate in p2 = s2[subject]) {
-            if (!(o1 = p1[predicate]))
-              return false;
+            if (!(o1 = p1[predicate])) return false;
             for (const object in p2[predicate])
-              if (!(object in o1))
-                return false;
+              if (!(object in o1)) return false;
           }
         }
       }
@@ -11964,8 +11757,7 @@
       this._store = store;
     }
     _add(subject, predicate, object, graphItem, cb) {
-      if (!this._store._addToIndex(graphItem.subjects, subject, predicate, object))
-        return;
+      if (!this._store._addToIndex(graphItem.subjects, subject, predicate, object)) return;
       this._store._addToIndex(graphItem.predicates, predicate, object, subject);
       this._store._addToIndex(graphItem.objects, object, subject, predicate);
       cb();
@@ -11977,17 +11769,14 @@
       const v0 = !(value = val0.value);
       for (value in v0 ? index : { [value]: index[value] }) {
         if (index1 = index[value]) {
-          if (v0)
-            val0.value = Number(value);
+          if (v0) val0.value = Number(value);
           v1 = !(value = val1.value);
           for (value in v1 ? index1 : { [value]: index1[value] }) {
             if (index2 = index1[value]) {
-              if (v1)
-                val1.value = Number(value);
+              if (v1) val1.value = Number(value);
               v2 = !(value = val2.value);
               for (value in v2 ? index2 : { [value]: index2[value] }) {
-                if (v2)
-                  val2.value = Number(value);
+                if (v2) val2.value = Number(value);
                 if (i === rule.premise.length - 1)
                   rule.conclusion.forEach((c) => {
                     this._add(c.subject.value, c.predicate.value, c.object.value, content, () => {
@@ -11997,16 +11786,13 @@
                 else
                   this._evaluatePremise(rule, content, cb, i + 1);
               }
-              if (v2)
-                val2.value = null;
+              if (v2) val2.value = null;
             }
           }
-          if (v1)
-            val1.value = null;
+          if (v1) val1.value = null;
         }
       }
-      if (v0)
-        val0.value = null;
+      if (v0) val0.value = null;
     }
     _evaluateRules(rules, content, cb) {
       for (let i = 0; i < rules.length; i++) {
@@ -12035,25 +11821,19 @@
       while ((r = newRules.pop()) !== void 0) {
         const [subject, predicate, object, rule] = r;
         const v1 = rule.basePremise.subject.value;
-        if (!v1)
-          rule.basePremise.subject.value = subject;
+        if (!v1) rule.basePremise.subject.value = subject;
         const v2 = rule.basePremise.predicate.value;
-        if (!v2)
-          rule.basePremise.predicate.value = predicate;
+        if (!v2) rule.basePremise.predicate.value = predicate;
         const v3 = rule.basePremise.object.value;
-        if (!v3)
-          rule.basePremise.object.value = object;
+        if (!v3) rule.basePremise.object.value = object;
         if (rule.premise.length === 0) {
           addConclusions(rule.conclusion);
         } else {
           this._evaluatePremise(rule, content, addRule);
         }
-        if (!v1)
-          rule.basePremise.subject.value = null;
-        if (!v2)
-          rule.basePremise.predicate.value = null;
-        if (!v3)
-          rule.basePremise.object.value = null;
+        if (!v1) rule.basePremise.subject.value = null;
+        if (!v2) rule.basePremise.predicate.value = null;
+        if (!v3) rule.basePremise.object.value = null;
       }
     }
     _createRule({ premise, conclusion }) {
@@ -12414,6 +12194,7 @@
   // node_modules/@muze-nl/oldm/src/index.mjs
   var oldm2 = {
     context: oldm,
+    ...oldm_exports,
     ...oldm_n3_exports
   };
   globalThis.oldm = oldm2;
@@ -12501,7 +12282,7 @@
 
   // src/index.mjs
   globalThis.oldmmw = oldmmw;
-  var src_default3 = oldmmw;
+  var index_default = oldmmw;
 })();
 /*! Bundled license information:
 
