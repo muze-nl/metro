@@ -23,20 +23,18 @@ export function handleRedirect(origin = null) {
 		// There is no parent, either the page was opened directly or the user closed the calling window.
 		console.error('No parent window found, cannot post authorization code (or error)')
 	} else {
+		let message
+
 		if (params.has('code')) {
-			parent.postMessage({
-				authorization_code: params.get('code')
-			}, origin)
 			success = true
+			message = { authorization_code: params.get('code') }
 		} else if (params.has('error')) {
-			parent.postMessage({
-				error: params.get('error')
-			}, origin)
+			message = { error: params.get('error') }
 		} else {
-			parent.postMessage({
-				error: 'Could not find an authorization_code',
-			}, origin)
+			message = { error: 'Could not find an authorization_code' }
 		}
+
+		parent.postMessage(message, origin)
 	}
 
 	return success
