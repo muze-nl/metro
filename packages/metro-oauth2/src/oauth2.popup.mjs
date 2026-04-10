@@ -7,7 +7,9 @@
  * opener window must have a strict match with the origin of the
  * popup page.
  */
-export function handleRedirect() {
+export function handleRedirect(origin = null) {
+	origin = origin || window.location.origin
+
 	let params = new URLSearchParams(window.location.search)
 	if (!params.has('code') && window.location.hash) {
 		let query = window.location.hash.substr(1)
@@ -17,15 +19,15 @@ export function handleRedirect() {
 	if (params.has('code')) {
 		parent.postMessage({
 			authorization_code: params.get('code')
-		}, window.location.origin)
+		}, origin)
 	} else if (params.has('error')) {
 		parent.postMessage({
 			error: params.get('error')
-		}, window.location.origin)
+		}, origin)
 	} else {
 		parent.postMessage({
 			error: 'Could not find an authorization_code'
-		}, window.location.origin)
+		}, origin)
 	}
 }
 
