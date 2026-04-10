@@ -7,26 +7,39 @@
  * opener window must have a strict match with the origin of the
  * popup page.
  */
-export function handleRedirect() {
+export function handleRedirect(origin = null) {
+	let success = false
+
+	origin = origin || window.location.origin
+
 	let params = new URLSearchParams(window.location.search)
 	if (!params.has('code') && window.location.hash) {
 		let query = window.location.hash.substr(1)
 		params = new URLSearchParams('?'+query)
 	}
+
 	let parent = (window.parent !== window) ? window.parent : window.opener
-	if (params.has('code')) {
-		parent.postMessage({
-			authorization_code: params.get('code')
-		}, window.location.origin)
-	} else if (params.has('error')) {
-		parent.postMessage({
-			error: params.get('error')
-		}, window.location.origin)
+	if (! parent) {
+		// There is no parent, either the page was opened directly or the user closed the calling window.
+		console.error('No parent window found, cannot post authorization code (or error)')
 	} else {
-		parent.postMessage({
-			error: 'Could not find an authorization_code'
-		}, window.location.origin)
+		if (params.has('code')) {
+			parent.postMessage({
+				authorization_code: params.get('code')
+			}, origin)
+			success = true
+		} else if (params.has('error')) {
+			parent.postMessage({
+				error: params.get('error')
+			}, origin)
+		} else {
+			parent.postMessage({
+				error: 'Could not find an authorization_code',
+			}, origin)
+		}
 	}
+
+	return success
 }
 
 /**
