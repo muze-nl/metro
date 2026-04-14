@@ -686,6 +686,8 @@
 
   // src/api.mjs
   var API = class extends Client {
+    #methods = null;
+    #base = "";
     constructor(base, methods, bind = null) {
       if (base instanceof Client) {
         super(base.clientOptions, throwermw(), getdatamw());
@@ -695,15 +697,20 @@
       if (!bind) {
         bind = this;
       }
+      this.#methods = methods;
+      this.#base = base;
       for (const methodName in methods) {
         if (typeof methods[methodName] == "function") {
           this[methodName] = methods[methodName].bind(bind);
-        } else if (methods[methodName] && typeof methods[methodName] == "object") {
+        } else if (methods[methodName] && typeof methods[methodName] == "object" && (Object.getPrototypeOf(methods[methodName]) === null || Object.getPrototypeOf(methods[methodName]).constructor === Object)) {
           this[methodName] = new this.constructor(base, methods[methodName], bind);
         } else {
           this[methodName] = methods[methodName];
         }
       }
+    }
+    extend(methods) {
+      return new this.constructor(this.#base, Object.assign({}, this.#methods, methods));
     }
   };
   var JsonAPI = class extends API {
