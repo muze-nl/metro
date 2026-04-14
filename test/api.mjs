@@ -35,3 +35,19 @@ tap.test('nested api', async t => {
 	t.same(body, {foo:"bar"})
 	t.end()	
 })
+
+tap.test('api with objects', async t => {
+	let baseURL = 'http://localhost:3000/'
+	let myApi = jsonApi(
+		metro.client(baseURL).with(echomw()),
+		{
+			foo: new Date()
+		}
+	)
+	let bar = new Date()
+	console.log(bar, bar.prototype, bar.prototype?.constructor)
+	let foo = myApi.foo
+	console.log(foo)
+	t.ok(foo instanceof Date)
+	t.end()
+})

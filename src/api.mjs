@@ -18,6 +18,9 @@ import getdatamw from './mw/getdata.mjs'
  */
 export class API extends metro.Client
 {
+	#methods = null
+	#base    = ''
+
 	constructor(base, methods, bind=null)
 	{
 		if (base instanceof metro.Client) {
@@ -28,20 +31,29 @@ export class API extends metro.Client
 		if (!bind) {
 			bind = this
 		}
+		this.#methods = methods
+		this.#base = base
 		for (const methodName in methods) {
 			if (typeof methods[methodName] == 'function') {
 				// all methods have a this pointing to the (root) API class
 				// so that you can do this.get()/this.post() or this.section.method()
 				// inside an API method
 				this[methodName] = methods[methodName].bind(bind)
-			} else if (methods[methodName] && typeof methods[methodName] == 'object') {
+			} else if (methods[methodName] && typeof methods[methodName] == 'object' 
+				&& (Object.getPrototypeOf(methods[methodName])===null 
+					|| Object.getPrototypeOf(methods[methodName]).constructor===Object) 
+			) {
 				// allows for api.section.method()
 				this[methodName] = new this.constructor(base, methods[methodName], bind)
 			} else { 
-				// allows you to set string/number values in the client api
+				// allows you to set any other values in the client api
 				this[methodName] = methods[methodName]
 			}
 		}		
+	}
+
+	extend(methods) {
+		return new this.constructor(this.#base, Object.assign({}, this.#methods, methods))
 	}
 }
 
