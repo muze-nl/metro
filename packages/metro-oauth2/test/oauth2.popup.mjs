@@ -1,5 +1,5 @@
 import tap from 'tap'
-import { handleRedirect } from '../src/oauth2.popup.mjs'
+import { handleRedirect, authorizePopup } from '../src/oauth2.popup.mjs'
 
 tap.test('handleRedirect SHOULD complain WHEN called without Window existing', async t => {
     globalThis.window = undefined
@@ -108,6 +108,44 @@ tap.test('handleRedirect SHOULD post received code WHEN called with parent with 
     t.ok(actual)
     t.end()
 })
+
+tap.test('authorizePopup SHOULD reject with error message WHEN message posted without error or code', async t => {
+    globalThis.window = { open: (authorizationCodeURL) => t.equal(authorizationCodeURL, 'mockUrl') }
+    globalThis.addEventListener = createEventListener(t, { })
+
+    const actual = await t.rejects(authorizePopup('mockUrl'))
+
+    t.equal(actual, 'Unknown authorization error')
+    t.end()
+})
+
+tap.test('authorizePopup SHOULD reject with received error message WHEN message posted with error', async t => {
+    globalThis.window = { open: (authorizationCodeURL) => t.equal(authorizationCodeURL, 'mockUrl') }
+    globalThis.addEventListener = createEventListener(t, { error: 'mockError' })
+
+    const actual = await t.rejects(authorizePopup('mockUrl'))
+
+    t.equal(actual, 'mockError')
+    t.end()
+})
+
+tap.test('authorizePopup SHOULD resolve with received code WHEN message posted with code', async t => {
+    globalThis.window = { open: (authorizationCodeURL) => t.equal(authorizationCodeURL, 'mockUrl') }
+    globalThis.addEventListener = createEventListener(t, { authorization_code: 'mockCode' })
+
+    const actual = await authorizePopup('mockUrl')
+
+    t.equal(actual, 'mockCode')
+    t.end()
+})
+
+function createEventListener(t, data) {
+    return function eventListener(event, callback, options) {
+        t.equal(event, 'message')
+        t.ok(options.once)
+        callback({ data: data })
+    }
+}
 
 function createPostMessage(t, expectedOrigin, expectedMessage) {
     return function postMessage(message, origin) {
