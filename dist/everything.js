@@ -729,6 +729,27 @@
     return new JsonAPI(...deepClone(options));
   }
 
+  // src/hashparams.mjs
+  var hashparams_exports = {};
+  __export(hashparams_exports, {
+    append: () => append,
+    parse: () => parse
+  });
+  function parse(url2) {
+    const hash = url(url2).hash.substr(1);
+    const query = /\?[^#]*/.exec(hash)?.[0];
+    return new URLSearchParams(query);
+  }
+  function append(url2, params) {
+    url2 = url(url2);
+    if (!(params instanceof URLSearchParams)) {
+      params = new URLSearchParams(params);
+    }
+    let hash = url2.hash || "#";
+    hash += "?" + params;
+    return url2.with({ hash });
+  }
+
   // src/everything.mjs
   var metro = Object.assign({}, metro_exports, {
     mw: {
@@ -737,7 +758,8 @@
       getdata: getdatamw
     },
     api,
-    jsonApi
+    jsonApi,
+    hashParams: hashparams_exports
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
