@@ -30,7 +30,7 @@ The metro.api() automatically adds the thrower and getdata middleware to the met
 ## metro.jsonApi
 
 ```javascript
-metro.jsonApi(base, mehtods): API
+metro.jsonApi(base, methods): API
 ```
 
 This creates a new API with the presumption that all API methods should send JSON as the body and parse the result again as JSON. It adds 'Content-Type: application/json' and 'Accept: application/json' headers, unless Content-Type or Accept headers are already present.
