@@ -46,3 +46,22 @@ tap.test('clear', t => {
 	t.equal(cleared, 'https://example.com/#foobar#barfoo')
 	t.end()
 })
+
+tap.test('encode #', t => {
+	const params = {
+		foo: '#bar',
+		bar: 'foo'
+	}
+	const url = metro.url('https://example.com')
+	const hashUrl = hashParams.append(url, params)
+	t.equal(hashUrl.hash, '#?foo=%23bar&bar=foo')
+	t.end()	
+})
+
+tap.test('parse encoded #', t => {
+	const paramsStr = '#?foo=%23bar&bar=foo'
+	const params = hashParams.parse(paramsStr)
+	t.equal(params.get('foo'), '#bar')
+	t.equal(params.get('bar'), 'foo')
+	t.end()
+})
