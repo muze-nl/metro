@@ -733,6 +733,7 @@
   var hashparams_exports = {};
   __export(hashparams_exports, {
     append: () => append,
+    clear: () => clear,
     parse: () => parse
   });
   function parse(url2) {
@@ -747,6 +748,11 @@
     }
     let hash = url2.hash || "#";
     hash += "?" + params;
+    return url2.with({ hash });
+  }
+  function clear(url2) {
+    url2 = url(url2);
+    let hash = url2.hash.replace(/\?[^#]*/, "");
     return url2.with({ hash });
   }
 
