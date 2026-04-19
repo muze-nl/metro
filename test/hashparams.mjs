@@ -39,3 +39,10 @@ tap.test('append with extra hash', t => {
 	t.equal(hashUrl.hash, '#foobar?foo=bar&bar=foo')
 	t.end()
 })
+
+tap.test('clear', t => {
+	const url = metro.url('https://example.com/#foobar?foo=bar&bar=foo#barfoo')
+	const cleared = hashParams.clear(url)+''
+	t.equal(cleared, 'https://example.com/#foobar#barfoo')
+	t.end()
+})
