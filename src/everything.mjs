@@ -3,6 +3,7 @@ import { api, jsonApi } from './api.mjs'
 import json from './mw/json.mjs'
 import thrower from './mw/thrower.mjs'
 import getdata from './mw/getdata.mjs'
+import * as hashParams from './hashparams.mjs'
 
 const metro = Object.assign({}, m, {
 	mw: {
@@ -11,7 +12,8 @@ const metro = Object.assign({}, m, {
 		getdata
 	},
 	api,
-	jsonApi
+	jsonApi,
+	hashParams
 })
 
 if (!globalThis.metro) {
