@@ -1,3 +1,5 @@
+import * as hashParams from './hashparams.mjs'
+
 /**
  * base URL used to link to more information about an error message
  */
@@ -490,9 +492,10 @@ function appendSearchParams(url, params)
  */
 export function url(...options)
 {
-	let validParams = ['hash','host','hostname','href',
-		'password','pathname','port','protocol','username','search','searchParams']
+	let validParams = ['hash','fragment','host','hostname','href',
+		'password','pathname','port','protocol','username','search','searchParams','hashParams']
 	let u = new URL('https://localhost/')
+	let hParams = null
 	for (let option of options) {
 		if (typeof option == 'string' || option instanceof String) {
 			// option is a relative or absolute url
@@ -521,6 +524,16 @@ export function url(...options)
 						if (!validParams.includes(param)) {
 							throw metroError('metro.url: unknown url parameter '+metroURL+'url/unknown-param-name/', param)
 						}
+						if (param=='fragment') {
+							let fragment = option.fragment
+							if (fragment && typeof fragment == 'string' && fragment[0]!='#') {
+								fragment = '#'+fragment
+							}
+							option.hash = fragment
+							param = 'hash'
+						} else if (param=='hashParams') {
+							hParams = option.hashParams; // add at the end
+						}
 						if (typeof option[param] == 'function') {
 							option[param](u[param], u)
 						} else if (
@@ -539,6 +552,16 @@ export function url(...options)
 			}
 		} else {
 			throw metroError('metro.url: unsupported option value '+metroURL+'url/unsupported-option-value/', option)
+		}
+	}
+	if (hParams) {
+		if (!u.hash) {
+			u.hash = '#'
+		}
+		if (typeof hParams=='string') {
+			u.hash += hParams
+		} else {
+			u = hashParams.append(u, hParams)[Symbol.metroSource]
 		}
 	}
 	Object.freeze(u)

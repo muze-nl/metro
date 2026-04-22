@@ -138,3 +138,14 @@ tap.test('absolute path', t => {
 	t.equal(url.href, 'https://example.com/baz.html')
 	t.end()
 })
+
+tap.test('hashParams', t => {
+	let url = metro.url('https://example.com/#foo')
+		.with({
+			hashParams:{
+				foo: 'bar'
+			}
+		})
+	t.equal(url.href, 'https://example.com/#foo?foo=bar')
+	t.end()
+})
