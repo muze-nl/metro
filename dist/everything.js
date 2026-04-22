@@ -18,6 +18,38 @@
     trace: () => trace,
     url: () => url
   });
+
+  // src/hashparams.mjs
+  var hashparams_exports = {};
+  __export(hashparams_exports, {
+    append: () => append,
+    clear: () => clear,
+    parse: () => parse
+  });
+  function parse(url2) {
+    const hash = url(url2).hash.substr(1);
+    const query = /\?[^#]*/.exec(hash)?.[0];
+    return new URLSearchParams(query);
+  }
+  function append(url2, params) {
+    url2 = url(url2);
+    if (!(params instanceof URLSearchParams)) {
+      params = new URLSearchParams(params);
+    }
+    let hash = url2.hash || "#";
+    hash += "?" + params;
+    return url2.with({ hash });
+  }
+  function clear(url2) {
+    url2 = url(url2);
+    let hash = url2.hash.replace(/\?[^#]*/, "");
+    if (hash.substr(0, 2) === "##") {
+      hash = hash.substr(1);
+    }
+    return url2.with({ hash });
+  }
+
+  // src/metro.mjs
   var metroURL = "https://metro.muze.nl/details/";
   if (!Symbol.metroProxy) {
     Symbol.metroProxy = Symbol("isProxy");
@@ -356,6 +388,7 @@
   function url(...options) {
     let validParams = [
       "hash",
+      "fragment",
       "host",
       "hostname",
       "href",
@@ -365,9 +398,11 @@
       "protocol",
       "username",
       "search",
-      "searchParams"
+      "searchParams",
+      "hashParams"
     ];
     let u = new URL("https://localhost/");
+    let hParams = null;
     for (let option of options) {
       if (typeof option == "string" || option instanceof String) {
         u = new URL(option, u);
@@ -392,6 +427,16 @@
               if (!validParams.includes(param)) {
                 throw metroError("metro.url: unknown url parameter " + metroURL + "url/unknown-param-name/", param);
               }
+              if (param == "fragment") {
+                let fragment = option.fragment;
+                if (fragment && typeof fragment == "string" && fragment[0] != "#") {
+                  fragment = "#" + fragment;
+                }
+                option.hash = fragment;
+                param = "hash";
+              } else if (param == "hashParams") {
+                hParams = option.hashParams;
+              }
               if (typeof option[param] == "function") {
                 option[param](u[param], u);
               } else if (typeof option[param] == "string" || option[param] instanceof String || typeof option[param] == "number" || option[param] instanceof Number || typeof option[param] == "boolean" || option[param] instanceof Boolean) {
@@ -406,6 +451,16 @@
         }
       } else {
         throw metroError("metro.url: unsupported option value " + metroURL + "url/unsupported-option-value/", option);
+      }
+    }
+    if (hParams) {
+      if (!u.hash) {
+        u.hash = "#";
+      }
+      if (typeof hParams == "string") {
+        u.hash += hParams;
+      } else {
+        u = append(u, hParams)[Symbol.metroSource];
       }
     }
     Object.freeze(u);
@@ -727,33 +782,6 @@
   }
   function jsonApi(...options) {
     return new JsonAPI(...deepClone(options));
-  }
-
-  // src/hashparams.mjs
-  var hashparams_exports = {};
-  __export(hashparams_exports, {
-    append: () => append,
-    clear: () => clear,
-    parse: () => parse
-  });
-  function parse(url2) {
-    const hash = url(url2).hash.substr(1);
-    const query = /\?[^#]*/.exec(hash)?.[0];
-    return new URLSearchParams(query);
-  }
-  function append(url2, params) {
-    url2 = url(url2);
-    if (!(params instanceof URLSearchParams)) {
-      params = new URLSearchParams(params);
-    }
-    let hash = url2.hash || "#";
-    hash += "?" + params;
-    return url2.with({ hash });
-  }
-  function clear(url2) {
-    url2 = url(url2);
-    let hash = url2.hash.replace(/\?[^#]*/, "");
-    return url2.with({ hash });
   }
 
   // src/everything.mjs
