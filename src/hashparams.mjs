@@ -19,5 +19,8 @@ export function append(url, params) {
 export function clear(url) {
 	url = metroUrl(url)
 	let hash = url.hash.replace(/\?[^#]*/, '')
+	if (hash.substr(0,2)==='##') {
+		hash = hash.substr(1)
+	}
 	return url.with({hash})
 }

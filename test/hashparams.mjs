@@ -40,12 +40,20 @@ tap.test('append with extra hash', t => {
 	t.end()
 })
 
-tap.test('clear', t => {
-	const url = metro.url('https://example.com/#foobar?foo=bar&bar=foo#barfoo')
+tap.test('clear end', t => {
+	const url = metro.url('https://example.com/#foobar?foo=bar&bar=foo')
 	const cleared = hashParams.clear(url)+''
-	t.equal(cleared, 'https://example.com/#foobar#barfoo')
+	t.equal(cleared, 'https://example.com/#foobar')
 	t.end()
 })
+
+tap.test('clear start', t => {
+	const url = metro.url('https://example.com/#?foo=bar&bar=foo#barfoo')
+	const cleared = hashParams.clear(url)+''
+	t.equal(cleared, 'https://example.com/#barfoo')
+	t.end()
+})
+
 
 tap.test('encode #', t => {
 	const params = {
