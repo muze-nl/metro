@@ -1,166 +1,195 @@
-# Metro Oauth2 middleware
+# Metro OAuth2 middleware
 
 [![Project stage: Experimental][project-stage-badge: Experimental]][project-stage-page]
 
-The Oauth2 middleware allows you to configure the metro client to handle OAuth2 connections, fetching and refreshing tokens automatically:
+The OAuth2 middleware allows a Metro client to fetch, store, refresh and apply OAuth2 access tokens automatically. It currently supports the client-side parts Metro needs most:
+
+- authorization-code flow
+- PKCE
+- refresh-token flow
+- client-credentials flow
+- bearer and DPoP-style token types
+- popup or full-page authorization callbacks
+
+It intentionally does **not** support implicit flow or resource-owner-password flow.
+
+## Recommended browser flow
+
+For browser applications, prefer a public-client authorization-code flow with PKCE and **no client secret**:
 
 ```javascript
-import oauth2mw from '@muze-nl/metro-oauth2'
-const client = metro.client('https://oauth2api.example.com')
-.with( oauth2mw({
-	client_id: myClientId,
-	client_secret: myClientSecret
-}) )
+import metro from '@muze-nl/metro'
+import oauth2 from '@muze-nl/metro-oauth2'
 
-function fetchSomething(url) {
-	return client.get(url)
-}
-````
+const client = metro.client('https://api.example.com')
+	.with(oauth2.oauth2mw({
+		site: 'https://issuer.example/',
+		oauth2_configuration: {
+			client_id: myClientId,
+			token_endpoint_auth_method: 'none',
+			authorization_endpoint: 'https://issuer.example/authorize',
+			token_endpoint: 'https://issuer.example/token',
+			redirect_uri: `${location.origin}/oauth2-callback.html`,
+			scope: 'read write'
+		}
+	}))
 
-You pass the OAuth2 configuration options to the `oauth2mw()` function. This returns the middleware function for the metro client.
+const response = await client.get('/protected/')
+```
 
-The oauth2 protocol can redirect the browser page to the oauth2 servers login page. When logged in, the browser is then redirected back to your clients `redirect_uri`, with the `authorization_code` either in the URL's search query, or in its fragment or hash. The `redirect_uri` is set to your `document.location.href` by default, but you can override this if you want to.
+PKCE is enabled by default. You can provide your own `code_verifier`, but normally you do not need to.
 
-To handle this redirect, use the provided `isRedirected` function like this:
+## Confidential/server clients
+
+If you are using Metro in a server-side or otherwise confidential client, you may configure a client secret. The middleware supports these token endpoint authentication methods:
+
+- `none`
+- `client_secret_post`
+- `client_secret_basic`
+
+For backwards compatibility, if `client_secret` is present and no explicit method is configured, Metro uses `client_secret_post`. If there is no `client_secret`, Metro uses `none`.
 
 ```javascript
-import oauth2mw, {isRedirected} from '@muze-nl/metro-oauth2'
+const client = metro.client('https://api.example.com')
+	.with(oauth2.oauth2mw({
+		oauth2_configuration: {
+			client_id: myClientId,
+			client_secret: myClientSecret,
+			token_endpoint_auth_method: 'client_secret_basic',
+			authorization_endpoint: 'https://issuer.example/authorize',
+			token_endpoint: 'https://issuer.example/token',
+			redirect_uri: 'https://server.example/oauth2/callback'
+		}
+	}))
+```
 
-const client = metro.client('https://oauth2api.example.com')
-.with( oauth2mw({
-	client_id: myClientId,
-	client_secret: myClientSecret
-}) )
+Do not put a real client secret in browser code.
 
-function fetchMovies() {
-	return client.get('movies.ttl')
-}
+## Redirect handling
 
-if (isRedirected()) {
-	movies = await fetchMovies()
+The OAuth2 server redirects the browser back to your `redirect_uri` with an authorization code and state. Metro stores the expected state and rejects callbacks with the wrong state.
+
+To handle a full-page redirect:
+
+```javascript
+import oauth2 from '@muze-nl/metro-oauth2'
+
+if (oauth2.isRedirected()) {
+	const response = await client.get('/protected/')
 }
 ```
 
-If your application calls the fetchMovies() function, and the browser is redirected to allow the user to login, then, when the browser is redirected back to your application, the isRedirected() function will return true. Now the user is logged in, so the fetchMovies() call will succeed.
+## Popup authorization
 
-This does mean that your application will reload and lose its state. That is often undesirable, so you can opt to create your own authorize_callback function, that could open a new tab to log the user in, and then close it and return the authorization_code as a Promise instead. Since this is so common, this function is provided for you as `authorizePopup`:
+For single-page applications, you can use the popup helper:
 
 ```javascript
-import oauth2mw, {authorizePopup} from '@muze-nl/metro-oauth2'
+import oauth2 from '@muze-nl/metro-oauth2'
 
-const client = metro.client('https://oauth2api.example.com')
-.with( oauth2mw({
-	authorize_callback: authorizePopup,
-	client_id: myClientId,
-	client_secret: myClientSecret
-}) )
-````
+const client = metro.client('https://api.example.com')
+	.with(oauth2.oauth2mw({
+		authorize_callback: oauth2.authorizePopup,
+		oauth2_configuration: {
+			client_id: myClientId,
+			token_endpoint_auth_method: 'none',
+			authorization_endpoint: 'https://issuer.example/authorize',
+			token_endpoint: 'https://issuer.example/token',
+			redirect_uri: `${location.origin}/oauth2-callback.html`
+		}
+	}))
+```
 
-However, it does require that you create a separate page as your `redirect_uri`, that will send the authorization_code to your application, e.g.:
+Your callback page should call `popupHandleRedirect()` and then close itself:
 
 ```html
-<script src="metro-oidc/dist/browser.js"></script>
-<script>
-	metro.oauth2.popupHandleRedirect()
+<script type="module">
+	import oauth2 from '@muze-nl/metro-oauth2'
+	oauth2.popupHandleRedirect()
 	window.close()
 </script>
 ```
 
-You can also use an iframe to show the login screen of and OAuth2 Provider, however, not all providers allow their login screens to be shown inside an iframe. However, if they do, use something like this as your `authorize_callback`:
-
-```javascript
-	function authorizeIframe(authorizeURL) {
-		return new Promise((resolve, reject) => {
-			window.addEventListener('message', (event) => {
-				if (event.data.authorization_code) {
-					resolve(event.data.authorization_code)
-				} else {
-					reject('Error: '.event.data.error)
-				}
-				document.getElementById('authorize').close()
-			})
-			document.getElementById('authorizeIframe').src=authorizeURL
-			document.getElementById('authorize').showModal()
-		})
-	}
-```
-
-This code assumes you have a dialog and iframe like this:
-
-```html
-<dialog id="authorize">
-	<iframe id="authorizeIframe"></iframe>
-</dialog>
-```
-
-You can still use the same redirect page as for `authorizePopup`, it will automatically determine it is running in an iframe instead of a new window.
+The popup helper validates message origin and OAuth state before resolving the authorization code.
 
 ## Configuration
 
-Valid configuration options are:
-- `authorize_callback` - Allows you to set a callback function for the `authorize` step, e.g. by doing a full page redirect or using a new window. The callback function takes one parameter, the authorization URL to use and can optionally return a Promise with the `authorization_code`. By default this redirects the current page to the authorize URL.
-- `client` - sets the base metro client to use by the OAuth2 middleware. Default is a clean `metro.client()`.
-- `force_authorization` - if not set or `false`, the OAuth2 middleware will only use OAuth2 if a normal--unauthorized--fetch doesn't work. If set to `true`, all requests will use OAuth2. Default value is `false`.
-- `site` - URL of the identity provider, used to store token specific for that provider
-- `state` - How to store the state parameter, defaults to `localStorage`
-- `tokens` - How to store tokens. Either a normal object, or a Map-like object.
-- `oauth2_configuration` - OAuth2 standard parameters
-	- `access_token` - if you've stored an OAuth2 access token, you can set it here
-	- `authorization_code` - if you've retrieved an OAuth2 authorization code, set it here
-	- `client_id` - the OAuth2 client id
-	- `client_secret` - the OAuth2 client secret
-	- `code_verifier` - the PKCE code verifier, code_challenge is automatically calculated
-	- `grant_type` - currently only `authorization_code` is implemented
-	- `redirect_uri` - The URL the OAuth2 authorization server will redirect back to
-	- `refresh_token` - sets the refresh token to use when the access token must be refreshed
-	- `token_endpoint` - URL of the access and refresh token endpoint
-	- `authorization_endpoint` - URL of the authorize endpoint
+Top-level options:
 
-## Defaults
+- `authorize_callback` - function called with the authorization URL. It may redirect the page, open a popup, or return an authorization code. The default redirects the current page.
+- `client` - base Metro client to use for token endpoint requests. Default is `metro.client()`.
+- `force_authorization` - if `true`, every request uses OAuth2. If `false`, Metro first tries the request and authorizes only after an authentication failure. Default is `false`.
+- `site` - identity-provider key used for token and state storage.
+- `state` - Map-like state store. Defaults to localStorage when available.
+- `tokens` - Map-like token store. Defaults to localStorage when available.
+- `oauth2_configuration` - OAuth2 protocol settings.
 
-Only the `client_id` and `client_secret` don't have valid defaults. The defaults are:
+`oauth2_configuration` options:
 
-- `grant_type`: `authorization_code`
-- `force_authorization`: false
-- `redirect_uri`: `document.location`
-- `state`:`localStorage`
-- `tokens`: `localStorage`
-- `client`: `metro.client().with(jsonmw())`
-- `authorize_callback`: `url => document.location = url`
-- `authorization_endpoint`: `/authorize`
-- `token_endpoint`: `/token`
+- `access_token` - existing access token, if already known.
+- `authorization_code` - existing authorization code, if already known.
+- `authorization_endpoint` - URL of the authorization endpoint.
+- `client_id` - OAuth2 client id.
+- `client_secret` - OAuth2 client secret for confidential clients only.
+- `code_verifier` - PKCE code verifier. Defaults to a generated verifier; set to `false` to disable PKCE.
+- `grant_type` - `authorization_code` or `client_credentials`.
+- `redirect_uri` - redirect URL registered with the authorization server.
+- `refresh_token` - existing refresh token.
+- `scope` - requested scopes.
+- `token_endpoint` - URL of the token endpoint.
+- `token_endpoint_auth_method` - `none`, `client_secret_post`, or `client_secret_basic`.
 
-## OAuth2 Mock-server Middleware
+## Token handling
 
-The `oauth2mockserver` middleware implements a mock of an OAuth2 server for tests and examples. It does not call `fetch()` or `next()`, so no network requests are made. Instead it parses the request and implements OAuth2 authorization-code, refresh-token, and client-credentials test flows. The mock server is intentionally exported from `@muze-nl/metro-oauth2/testing` rather than the production browser bundle.
+Metro validates token responses before storing them:
+
+- `access_token` is required.
+- `token_type` is required.
+- `Bearer` and `DPoP` token types are understood.
+- `expires_in` is optional; when missing, expiry is treated as unknown.
+- A refresh response may omit a new `refresh_token`; in that case the existing refresh token remains available.
+
+When a resource server returns a Bearer/DPoP `WWW-Authenticate` challenge with `error="insufficient_scope"`, Metro surfaces the response instead of silently retrying authorization.
+
+## OAuth2 mock-server middleware
+
+The `oauth2mockserver` middleware implements a mock OAuth2 server for tests and examples. It does not call `fetch()` or `next()`, so no network requests are made. The mock server is exported from `@muze-nl/metro-oauth2/testing` rather than the production browser bundle.
 
 ```javascript
-import oauth2mw from '@muze-nl/metro-oauth2'
+import metro from '@muze-nl/metro'
+import oauth2 from '@muze-nl/metro-oauth2'
 import oauth2mockserver from '@muze-nl/metro-oauth2/testing'
+
 const client = metro.client('https://oauth2api.example.com')
-	.with( oauth2mockserver() )
-	.with( oauth2mw({
-		client_id: 'mockClientId',
-		client_secret: 'mockClientSecret'
+	.with(oauth2mockserver())
+	.with(oauth2.oauth2mw({
+		oauth2_configuration: {
+			client_id: 'mockClientId',
+			client_secret: 'mockClientSecret',
+			authorization_endpoint: '/authorize/',
+			token_endpoint: '/token/',
+			redirect_uri: 'https://client.example/callback'
+		}
 	}))
 ```
 
-The `oauth2mock` server handles requests with the following pathnames--regardless of the domain used.
+The mock server handles these paths:
 
-- `/authorize/` - returns an authorization_code
-- `/token/` - returns an access_token
-- `/protected/` - requires an access_token, or returns 401 Forbidden
-- `/public/` - doesn't require an access_token
+- `/authorize/` - validates the authorization request and returns an authorization code.
+- `/token/` - handles authorization-code, refresh-token, and client-credentials token requests.
+- `/protected/` - requires an access token.
+- `/insufficient-scope/` - returns an insufficient-scope challenge.
+- `/public/` - does not require an access token.
 
-Any other requests will return a 404 Not Found response.
+Useful mock options include:
 
-The OAuth2 mock server expects/provides the following values for the OAuth2 settings:
-
-- `client_id`: `mockClientId`
-- `client_secret`: `mockClientSecret`
-- `authorization_code`: `mockAuthorizeToken`
-- `refresh_token`: `mockRefreshToken`
-- `access_token`: `mockAccessToken`
+- `client_id`
+- `client_secret`
+- `redirect_uri`
+- `requirePKCE`
+- `issueRefreshToken`
+- `includeExpiresIn`
+- `acceptedAuthMethods`
+- `token_type`
 
 [project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
 [project-stage-page]: https://blog.pother.ca/project-stages/

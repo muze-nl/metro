@@ -51,7 +51,7 @@ metro-oauth2 is useful and fits the Metro middleware model, but it sits in a sec
 
 **Suggested direction:** Make the first examples use `client_id` + PKCE only. Move `client_secret` to a clearly marked confidential-client/server section, or omit it until that use case is explicitly supported.
 
-**Status:** Open
+**Status:** Partly addressed. The README now leads with a public-client PKCE flow and explicitly warns against browser client secrets.
 
 ### 2. Make PKCE and browser security the default documentation path
 
@@ -63,7 +63,7 @@ metro-oauth2 is useful and fits the Metro middleware model, but it sits in a sec
 
 **Suggested direction:** Add a “Recommended browser flow” section: authorization-code + PKCE, no client secret, redirect URI rules, storage tradeoffs, and what the middleware handles.
 
-**Status:** Open
+**Status:** Partly addressed. The README now documents the PKCE-first browser flow and popup state/origin checks; deeper storage guidance remains open.
 
 ### 3. Separate protocol core from UI flow helpers
 
@@ -75,7 +75,7 @@ metro-oauth2 is useful and fits the Metro middleware model, but it sits in a sec
 
 **Suggested direction:** Consider submodules: `oauth2mw` core, `authorizePopup`, `popupHandleRedirect`, `mockserver`. At minimum document these as layers rather than one conceptual API.
 
-**Status:** Open
+**Status:** Partly addressed. Mock servers now live under explicit testing entries; popup helpers remain in the main package because they are part of common browser OAuth usage.
 
 ### 4. Document token and state storage tradeoffs
 

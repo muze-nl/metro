@@ -811,7 +811,8 @@
     getExpires: () => getExpires,
     isAuthorized: () => isAuthorized,
     isExpired: () => isExpired,
-    isRedirected: () => isRedirected
+    isRedirected: () => isRedirected,
+    parseBearerChallenge: () => parseBearerChallenge
   });
 
   // ../../node_modules/@muze-nl/assert/src/assert.mjs
@@ -1087,6 +1088,15 @@
   }
 
   // src/oauth2.mjs
+  var SUPPORTED_TOKEN_TYPES = /* @__PURE__ */ new Map([
+    ["bearer", "Bearer"],
+    ["dpop", "DPoP"]
+  ]);
+  var SUPPORTED_TOKEN_ENDPOINT_AUTH_METHODS = /* @__PURE__ */ new Set([
+    "none",
+    "client_secret_post",
+    "client_secret_basic"
+  ]);
   function oauth2mw(options) {
     const defaultOptions = {
       client: client(),
@@ -1131,7 +1141,7 @@
         case "access_token":
         case "authorization_code":
         case "refresh_token":
-          options.tokens.set(option, oauth22[option]);
+          options.tokens.set(option, normalizeInitialToken(option, oauth22[option]));
           break;
       }
     }
@@ -1139,32 +1149,11 @@
       if (options.force_authorization) {
         return oauth2authorized(req, next);
       }
-      let res;
-      try {
-        res = await next(req);
-        if (res.ok) {
-          return res;
-        }
-      } catch (err) {
-        switch (res?.status) {
-          case 400:
-          // Oauth2.1 RFC 3.2.4
-          case 401:
-            return oauth2authorized(req, next);
-            break;
-        }
-        throw err;
+      const res = await next(req);
+      if (res.ok || !shouldAuthorizeResponse(res)) {
+        return res;
       }
-      if (!res.ok) {
-        switch (res.status) {
-          case 400:
-          // Oauth2.1 RFC 3.2.4
-          case 401:
-            return oauth2authorized(req, next);
-            break;
-        }
-      }
-      return res;
+      return oauth2authorized(req, next);
     };
     async function oauth2authorized(req, next) {
       getTokensFromLocation();
@@ -1172,23 +1161,15 @@
       const refreshToken = options.tokens.get("refresh_token");
       const tokenIsExpired = isExpired(accessToken);
       if (!accessToken || tokenIsExpired && !refreshToken) {
-        try {
-          let token = await fetchAccessToken();
-          if (!token) {
-            return response("false");
-          }
-        } catch (e) {
-          throw e;
+        const token = await fetchAccessToken();
+        if (!token) {
+          return response("false");
         }
         return oauth2authorized(req, next);
       } else if (tokenIsExpired && refreshToken) {
-        try {
-          let token = await refreshAccessToken();
-          if (!token) {
-            return response("false");
-          }
-        } catch (e) {
-          throw e;
+        const token = await refreshAccessToken();
+        if (!token) {
+          return response("false");
         }
         return oauth2authorized(req, next);
       } else {
@@ -1204,7 +1185,7 @@
       if (typeof window !== "undefined" && window?.location) {
         let url2 = url(window.location);
         let code, state, params;
-        if (url2.searchParams.has("code")) {
+        if (url2.searchParams.has("code") || url2.searchParams.has("error")) {
           params = url2.searchParams;
           url2 = url2.with({ search: "" });
           history.pushState({}, "", url2.href);
@@ -1215,12 +1196,12 @@
           history.pushState({}, "", url2.href);
         }
         if (params) {
+          if (params.has("error")) {
+            throw metroError("oauth2mw: authorization failed: " + params.get("error") + (params.get("error_description") ? " (" + params.get("error_description") + ")" : ""));
+          }
           code = params.get("code");
           state = params.get("state");
-          let storedState = options.state.get("metro/state");
-          if (!state || state !== storedState) {
-            return;
-          }
+          validateState(state);
           if (code) {
             options.tokens.set("authorization_code", code);
           }
@@ -1233,9 +1214,9 @@
         if (!options.authorize_callback || typeof options.authorize_callback !== "function") {
           throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.authorize_callback");
         }
-        let token = await options.authorize_callback(authReqURL);
-        if (token) {
-          options.tokens.set("authorization_code", token);
+        let authorization = await options.authorize_callback(authReqURL);
+        if (authorization) {
+          storeAuthorizationResult(authorization);
         } else {
           return false;
         }
@@ -1247,18 +1228,7 @@
         throw metroError("OAuth2mw: fetch access_token: " + response2.status + ": " + response2.statusText + " (" + msg + ")", { cause: tokenReq });
       }
       let data = await response2.json();
-      options.tokens.set("access_token", {
-        value: data.access_token,
-        expires: getExpires(data.expires_in),
-        type: data.token_type,
-        scope: data.scope
-      });
-      if (data.refresh_token) {
-        let token = {
-          value: data.refresh_token
-        };
-        options.tokens.set("refresh_token", token);
-      }
+      storeTokenResponse(data);
       options.tokens.delete("authorization_code");
       return data;
     }
@@ -1266,23 +1236,11 @@
       let refreshTokenReq = getAccessTokenRequest("refresh_token");
       let response2 = await options.client.post(refreshTokenReq);
       if (!response2.ok) {
-        throw metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText, { cause: refreshTokenReq });
+        let msg = await response2.text();
+        throw metroError("OAuth2mw: refresh access_token: " + response2.status + ": " + response2.statusText + " (" + msg + ")", { cause: refreshTokenReq });
       }
       let data = await response2.json();
-      options.tokens.set("access_token", {
-        value: data.access_token,
-        expires: getExpires(data.expires_in),
-        type: data.token_type,
-        scope: data.scope
-      });
-      if (data.refresh_token) {
-        let token = {
-          value: data.refresh_token
-        };
-        options.tokens.set("refresh_token", token);
-      } else {
-        return false;
-      }
+      storeTokenResponse(data);
       return data;
     }
     async function getAuthorizationCodeURL() {
@@ -1297,11 +1255,9 @@
       });
       let search = {
         response_type: "code",
-        // implicit flow uses 'token' here, but is not considered safe, so not supported
         client_id: oauth22.client_id,
         redirect_uri: oauth22.redirect_uri,
         state: oauth22.state || createState(40)
-        // OAuth2.1 RFC says optional, but its a good idea to always add/check it
       };
       if (oauth22.response_type) {
         search.response_type = oauth22.response_type;
@@ -1310,9 +1266,6 @@
         search.response_mode = oauth22.response_mode;
       }
       options.state.set(search.state);
-      if (oauth22.client_secret) {
-        search.client_secret = oauth22.client_secret;
-      }
       if (oauth22.code_verifier) {
         options.tokens.set("code_verifier", oauth22.code_verifier);
         search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
@@ -1339,12 +1292,10 @@
       }
       let url2 = url(oauth22.token_endpoint, { hash: "" });
       let params = {
-        grant_type: grant_type || oauth22.grant_type,
-        client_id: oauth22.client_id
+        grant_type: grant_type || oauth22.grant_type
       };
-      if (oauth22.client_secret) {
-        params.client_secret = oauth22.client_secret;
-      }
+      let headers = {};
+      applyTokenEndpointAuthentication(params, headers);
       if (oauth22.scope) {
         params.scope = oauth22.scope;
       }
@@ -1360,18 +1311,140 @@
         case "client_credentials":
           break;
         case "refresh_token":
-          params.refresh_token = options.tokens.get("refresh_token");
+          params.refresh_token = tokenValue(options.tokens.get("refresh_token"));
           break;
         default:
-          throw new Error("Unknown grant_type: ".oauth2.grant_type);
+          throw new Error("Unknown grant_type: " + params.grant_type);
           break;
       }
-      return request(url2, { method: "POST", body: new URLSearchParams(params) });
+      return request(url2, { method: "POST", headers, body: new URLSearchParams(params) });
     }
+    function applyTokenEndpointAuthentication(params, headers) {
+      const method = tokenEndpointAuthMethod(oauth22);
+      if (method === "none") {
+        params.client_id = oauth22.client_id;
+        return;
+      }
+      if (!oauth22.client_secret) {
+        throw metroError("oauth2mw: token_endpoint_auth_method " + method + " requires oauth2_configuration.client_secret");
+      }
+      if (method === "client_secret_post") {
+        params.client_id = oauth22.client_id;
+        params.client_secret = oauth22.client_secret;
+        return;
+      }
+      if (method === "client_secret_basic") {
+        headers.Authorization = basicAuth(oauth22.client_id, oauth22.client_secret);
+        return;
+      }
+    }
+    function storeAuthorizationResult(authorization) {
+      let code = authorization;
+      if (authorization && typeof authorization === "object") {
+        if (authorization.error) {
+          throw metroError("oauth2mw: authorization failed: " + authorization.error);
+        }
+        validateState(authorization.state);
+        code = authorization.authorization_code || authorization.code;
+      }
+      if (!code) {
+        throw metroError("oauth2mw: authorization callback did not return an authorization code");
+      }
+      options.tokens.set("authorization_code", code);
+    }
+    function validateState(state) {
+      let storedState = options.state.get();
+      if (!state || state !== storedState) {
+        throw metroError("oauth2mw: authorization state mismatch");
+      }
+    }
+    function storeTokenResponse(data) {
+      const token = validateTokenResponse(data);
+      options.tokens.set("access_token", token);
+      if (data.refresh_token) {
+        options.tokens.set("refresh_token", { value: data.refresh_token });
+      }
+    }
+  }
+  function shouldAuthorizeResponse(res) {
+    if (!res) {
+      return false;
+    }
+    if (res.status === 400) {
+      return true;
+    }
+    const challenge = parseBearerChallenge(res.headers?.get("WWW-Authenticate"));
+    if (challenge?.error === "insufficient_scope") {
+      return false;
+    }
+    return res.status === 401;
+  }
+  function normalizeInitialToken(name, token) {
+    if (name === "access_token" && token && typeof token === "object") {
+      return token;
+    }
+    if (name === "access_token") {
+      return { value: token, type: "Bearer", expires: null };
+    }
+    if (name === "refresh_token" && token && typeof token === "object") {
+      return token;
+    }
+    return token;
+  }
+  function validateTokenResponse(data) {
+    if (!data || typeof data !== "object") {
+      throw metroError("OAuth2mw: token endpoint did not return a JSON object");
+    }
+    if (!data.access_token) {
+      throw metroError("OAuth2mw: token response did not include access_token");
+    }
+    if (!data.token_type) {
+      throw metroError("OAuth2mw: token response did not include token_type");
+    }
+    const tokenType = normalizeTokenType(data.token_type);
+    return {
+      value: data.access_token,
+      expires: data.expires_in === void 0 ? null : getExpires(data.expires_in),
+      type: tokenType,
+      scope: data.scope
+    };
+  }
+  function normalizeTokenType(type) {
+    const normalized = SUPPORTED_TOKEN_TYPES.get(String(type).toLowerCase());
+    if (!normalized) {
+      throw metroError("OAuth2mw: unsupported token_type " + type);
+    }
+    return normalized;
+  }
+  function tokenEndpointAuthMethod(oauth22) {
+    const method = oauth22.token_endpoint_auth_method || (oauth22.client_secret ? "client_secret_post" : "none");
+    if (!SUPPORTED_TOKEN_ENDPOINT_AUTH_METHODS.has(method)) {
+      throw metroError("oauth2mw: unsupported token_endpoint_auth_method " + method);
+    }
+    return method;
+  }
+  function basicAuth(clientId, clientSecret) {
+    const value = formEncode(clientId) + ":" + formEncode(clientSecret);
+    return "Basic " + base64_encode(value);
+  }
+  function formEncode(value) {
+    return encodeURIComponent(value).replace(/%20/g, "+");
+  }
+  function base64_encode(value) {
+    if (typeof btoa === "function") {
+      return btoa(value);
+    }
+    return Buffer.from(value, "binary").toString("base64");
+  }
+  function tokenValue(token) {
+    return token && typeof token === "object" ? token.value : token;
   }
   function isExpired(token) {
     if (!token) {
       return true;
+    }
+    if (!token.expires) {
+      return false;
     }
     let expires = new Date(token.expires);
     let now = /* @__PURE__ */ new Date();
@@ -1404,6 +1477,11 @@
     return btoa(byteString).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
   function createState(length) {
+    const bytes = new Uint8Array(Math.ceil(length * 3 / 4) + 1);
+    if (globalThis.crypto?.getRandomValues) {
+      globalThis.crypto.getRandomValues(bytes);
+      return base64url_encode(bytes).slice(0, length);
+    }
     const validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let randomState = "";
     let counter = 0;
@@ -1440,6 +1518,29 @@
       return true;
     }
     return false;
+  }
+  function parseBearerChallenge(value) {
+    if (!value || typeof value !== "string") {
+      return null;
+    }
+    const trimmed = value.trim();
+    const index = trimmed.search(/\s/);
+    const scheme = index < 0 ? trimmed : trimmed.slice(0, index);
+    const rest = index < 0 ? "" : trimmed.slice(index + 1);
+    if (!["bearer", "dpop"].includes(scheme.toLowerCase())) {
+      return null;
+    }
+    const result = { scheme };
+    const pattern = /([A-Za-z][A-Za-z0-9_-]*)=("(?:[^"\\]|\\.)*"|[^,\s]*)/g;
+    let match;
+    while (match = pattern.exec(rest)) {
+      let value2 = match[2];
+      if (value2.startsWith('"') && value2.endsWith('"')) {
+        value2 = value2.slice(1, -1).replace(/\\"/g, '"');
+      }
+      result[match[1]] = value2;
+    }
+    return result;
   }
 
   // src/oauth2.discovery.mjs
@@ -1515,7 +1616,7 @@
     let success = false;
     origin = origin || window.location.origin;
     let params = new URLSearchParams(window.location.search);
-    if (!params.has("code") && window.location.hash) {
+    if (!params.has("code") && !params.has("error") && window.location.hash) {
       let query = window.location.hash.substring(1);
       params = new URLSearchParams("?" + query);
     }
@@ -1526,9 +1627,16 @@
       let message;
       if (params.has("code")) {
         success = true;
-        message = { authorization_code: params.get("code") };
+        message = {
+          authorization_code: params.get("code"),
+          state: params.get("state")
+        };
       } else if (params.has("error")) {
-        message = { error: params.get("error") };
+        message = {
+          error: params.get("error"),
+          error_description: params.get("error_description"),
+          state: params.get("state")
+        };
       } else {
         message = { error: "Could not find an authorization_code" };
       }
@@ -1537,16 +1645,42 @@
     return success;
   }
   function authorizePopup(authorizationCodeURL) {
+    const url2 = new URL(authorizationCodeURL, window.location.href);
+    const expectedState = url2.searchParams.get("state");
+    const redirectUri = url2.searchParams.get("redirect_uri");
+    const expectedOrigin = redirectUri ? new URL(redirectUri, window.location.href).origin : window.location.origin;
     return new Promise((resolve, reject) => {
-      addEventListener("message", (event) => {
+      const cleanup = () => {
+        if (typeof removeEventListener === "function") {
+          removeEventListener("message", handler);
+        }
+      };
+      const handler = (event) => {
+        if (event.origin && event.origin !== expectedOrigin) {
+          return;
+        }
         if (event.data.authorization_code) {
+          if (expectedState && event.data.state !== expectedState) {
+            cleanup();
+            reject("OAuth2 authorization state mismatch");
+            return;
+          }
+          cleanup();
           resolve(event.data.authorization_code);
         } else if (event.data.error) {
-          reject(event.data.error);
+          if (expectedState && event.data.state && event.data.state !== expectedState) {
+            cleanup();
+            reject("OAuth2 authorization state mismatch");
+            return;
+          }
+          cleanup();
+          reject(event.data.error_description || event.data.error);
         } else {
+          cleanup();
           reject("Unknown authorization error");
         }
-      }, { once: true });
+      };
+      addEventListener("message", handler);
       window.open(authorizationCodeURL);
     });
   }

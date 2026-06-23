@@ -2,18 +2,20 @@ import metro from '@muze-nl/metro'
 import { generateCodeChallenge } from './oauth2.mjs'
 
 const jsonHeaders = {
-	'Content-Type': 'application/json'
+	'Content-Type': 'application/json',
+	'Cache-Control': 'no-store',
+	'Pragma': 'no-cache'
 }
 
 const textHeaders = {
 	'Content-Type': 'text/plain'
 }
 
-function jsonResponse(body, status = 200, statusText = 'OK') {
+function jsonResponse(body, status = 200, statusText = 'OK', headers = {}) {
 	return metro.response({
 		status,
 		statusText,
-		headers: jsonHeaders,
+		headers: Object.assign({}, jsonHeaders, headers),
 		body: JSON.stringify(body)
 	})
 }
@@ -61,13 +63,37 @@ function randomToken(prefix) {
 	return `${prefix}-${Math.random().toString(36).slice(2)}`
 }
 
+function parseBasicAuth(header) {
+	if (!header?.startsWith('Basic ')) {
+		return null
+	}
+	const raw = atob(header.slice('Basic '.length))
+	const index = raw.indexOf(':')
+	if (index < 0) {
+		return null
+	}
+	return {
+		client_id: formDecode(raw.slice(0, index)),
+		client_secret: formDecode(raw.slice(index + 1))
+	}
+}
+
+function formDecode(value) {
+	return decodeURIComponent(value.replace(/\+/g, '%20'))
+}
+
+function bearerChallenge({ scheme = 'Bearer', error = 'invalid_token', description = 'access token is missing or invalid' } = {}) {
+	return `${scheme} realm="mock", error="${error}", error_description="${description}"`
+}
+
 /**
  * Small OAuth2 authorization server mock for Metro tests and examples.
  *
- * The mock intentionally models the parts of the OAuth2 authorization-code,
- * refresh-token and client-credentials flows that Metro middleware depends on:
- * authorization request validation, one-use authorization codes, PKCE matching,
- * token requests, refresh requests and protected-resource bearer-token checks.
+ * The mock intentionally models the client-relevant parts of the OAuth2
+ * authorization-code, refresh-token and client-credentials flows that Metro
+ * middleware depends on: authorization request validation, one-use authorization
+ * codes, PKCE matching, token endpoint client authentication, refresh requests
+ * and protected-resource bearer-token checks.
  */
 export default function oauth2mockserver(options = {}) {
 	const defaultOptions = {
@@ -81,9 +107,16 @@ export default function oauth2mockserver(options = {}) {
 		expires_in: 3600,
 		requirePKCE: false,
 		issueRefreshToken: true,
+		includeExpiresIn: true,
+		acceptedAuthMethods: null,
 		id_token: null
 	}
 	options = Object.assign({}, defaultOptions, options)
+	if (!options.acceptedAuthMethods) {
+		options.acceptedAuthMethods = options.client_secret
+			? ['client_secret_post', 'client_secret_basic']
+			: ['none']
+	}
 
 	const authorizationCodes = new Map()
 	const accessTokens = new Set([options.access_token])
@@ -101,6 +134,9 @@ export default function oauth2mockserver(options = {}) {
 			case '/protected/':
 			case '/protected':
 				return protectedResource(req)
+			case '/insufficient-scope/':
+			case '/insufficient-scope':
+				return insufficientScopeResource()
 			case '/public/':
 			case '/public':
 				return jsonResponse({ result: 'Success' })
@@ -123,6 +159,9 @@ export default function oauth2mockserver(options = {}) {
 		for (const name of ['response_type', 'client_id', 'redirect_uri', 'state']) {
 			error = required(params, name)
 			if (error) return oauthError('invalid_request', error)
+		}
+		if (params.has('client_secret')) {
+			return oauthError('invalid_request', 'client_secret must not be sent to the authorization endpoint')
 		}
 		error = same(paramValue(params, 'response_type'), 'code', 'response_type')
 			|| same(paramValue(params, 'client_id'), options.client_id, 'client_id')
@@ -166,11 +205,16 @@ export default function oauth2mockserver(options = {}) {
 		}
 
 		const body = await requestData(req)
+		const auth = authenticateClient(req, body)
+		if (auth.error) {
+			return oauthError(auth.error, auth.description, auth.status)
+		}
+		body.client_id = auth.client_id
+		body.client_secret = auth.client_secret
+
 		const grantType = body.grant_type
-		let error = required(body, 'grant_type') || required(body, 'client_id')
+		let error = required(body, 'grant_type')
 		if (error) return oauthError('invalid_request', error)
-		error = same(body.client_id, options.client_id, 'client_id')
-		if (error) return oauthError('invalid_client', error, 401)
 
 		switch (grantType) {
 			case 'authorization_code':
@@ -182,6 +226,33 @@ export default function oauth2mockserver(options = {}) {
 			default:
 				return oauthError('unsupported_grant_type', `unsupported grant_type ${grantType}`)
 		}
+	}
+
+	function authenticateClient(req, body) {
+		const basic = parseBasicAuth(req.headers.get('Authorization'))
+		const method = basic ? 'client_secret_basic' : body.client_secret ? 'client_secret_post' : 'none'
+		if (!options.acceptedAuthMethods.includes(method)) {
+			return {
+				error: 'invalid_client',
+				description: `token endpoint auth method ${method} is not accepted`,
+				status: 401
+			}
+		}
+		const client_id = basic?.client_id || body.client_id
+		const client_secret = basic?.client_secret || body.client_secret
+		if (!client_id) {
+			return { error: 'invalid_request', description: 'client_id is required', status: 400 }
+		}
+		if (client_id !== options.client_id) {
+			return { error: 'invalid_client', description: 'client_id is invalid', status: 401 }
+		}
+		if (options.client_secret && client_secret !== options.client_secret) {
+			return { error: 'invalid_client', description: 'client_secret is invalid', status: 401 }
+		}
+		if (!options.client_secret && client_secret) {
+			return { error: 'invalid_client', description: 'public client must not send a client_secret', status: 401 }
+		}
+		return { client_id, client_secret, method }
 	}
 
 	async function authorizationCodeGrant(body) {
@@ -215,16 +286,13 @@ export default function oauth2mockserver(options = {}) {
 	async function refreshTokenGrant(body) {
 		let error = required(body, 'refresh_token')
 		if (error) return oauthError('invalid_request', error)
-		if (!refreshTokens.has(body.refresh_token?.value || body.refresh_token)) {
+		if (!refreshTokens.has(body.refresh_token)) {
 			return oauthError('invalid_grant', 'refresh_token is invalid')
 		}
 		return issueToken(body.scope || options.scope, { grant_type: 'refresh_token' })
 	}
 
 	async function clientCredentialsGrant(body) {
-		if (options.client_secret && body.client_secret !== options.client_secret) {
-			return oauthError('invalid_client', 'client_secret is invalid', 401)
-		}
 		return issueToken(body.scope || options.scope, { refresh: false })
 	}
 
@@ -234,9 +302,11 @@ export default function oauth2mockserver(options = {}) {
 		const body = {
 			access_token: token,
 			token_type: options.token_type,
-			expires_in: options.expires_in,
 			scope,
 			example_parameter: 'mockExampleValue'
+		}
+		if (options.includeExpiresIn) {
+			body.expires_in = options.expires_in
 		}
 		const includeRefresh = tokenOptions.refresh !== false && options.issueRefreshToken
 		if (includeRefresh) {
@@ -258,10 +328,27 @@ export default function oauth2mockserver(options = {}) {
 			return metro.response({
 				status: 401,
 				statusText: 'Unauthorized',
-				headers: textHeaders,
+				headers: Object.assign({}, textHeaders, {
+					'WWW-Authenticate': bearerChallenge({ scheme: options.token_type })
+				}),
 				body: '401 Unauthorized'
 			})
 		}
 		return jsonResponse({ result: 'Success' })
+	}
+
+	function insufficientScopeResource() {
+		return metro.response({
+			status: 403,
+			statusText: 'Forbidden',
+			headers: Object.assign({}, textHeaders, {
+				'WWW-Authenticate': bearerChallenge({
+					scheme: options.token_type,
+					error: 'insufficient_scope',
+					description: 'the token does not have the required scope'
+				})
+			}),
+			body: '403 Forbidden'
+		})
 	}
 }
