@@ -5,7 +5,7 @@
       __defProp(target, name, { get: all[name], enumerable: true });
   };
 
-  // node_modules/@muze-nl/metro/src/metro.mjs
+  // ../metro/src/metro.mjs
   var metro_exports = {};
   __export(metro_exports, {
     Client: () => Client,
@@ -18,12 +18,44 @@
     trace: () => trace,
     url: () => url
   });
+
+  // ../metro/src/hashparams.mjs
+  var hashparams_exports = {};
+  __export(hashparams_exports, {
+    append: () => append,
+    clear: () => clear,
+    parse: () => parse
+  });
+  function parse(url2) {
+    const hash = url(url2).hash.substr(1);
+    const query = /\?[^#]*/.exec(hash)?.[0];
+    return new URLSearchParams(query);
+  }
+  function append(url2, params) {
+    url2 = url(url2);
+    if (!(params instanceof URLSearchParams)) {
+      params = new URLSearchParams(params);
+    }
+    let hash = url2.hash || "#";
+    hash += "?" + params;
+    return url2.with({ hash });
+  }
+  function clear(url2) {
+    url2 = url(url2);
+    let hash = url2.hash.replace(/\?[^#]*/, "");
+    if (hash.substr(0, 2) === "##") {
+      hash = hash.substr(1);
+    }
+    return url2.with({ hash });
+  }
+
+  // ../metro/src/metro.mjs
   var metroURL = "https://metro.muze.nl/details/";
   if (!Symbol.metroProxy) {
-    Symbol.metroProxy = Symbol("isProxy");
+    Symbol.metroProxy = /* @__PURE__ */ Symbol("isProxy");
   }
   if (!Symbol.metroSource) {
-    Symbol.metroSource = Symbol("source");
+    Symbol.metroSource = /* @__PURE__ */ Symbol("source");
   }
   var Client = class _Client {
     clientOptions = {
@@ -115,7 +147,7 @@
       options = Object.assign({}, this.clientOptions, options);
       let next;
       for (let middleware of middlewares) {
-        next = /* @__PURE__ */ function(next2, middleware2) {
+        next = /* @__PURE__ */ (function(next2, middleware2) {
           return async function(req2) {
             let res;
             let tracers = Object.values(_Client.tracers);
@@ -132,7 +164,7 @@
             }
             return res;
           };
-        }(next, middleware);
+        })(next, middleware);
       }
       return next(req);
     }
@@ -356,6 +388,7 @@
   function url(...options) {
     let validParams = [
       "hash",
+      "fragment",
       "host",
       "hostname",
       "href",
@@ -365,9 +398,11 @@
       "protocol",
       "username",
       "search",
-      "searchParams"
+      "searchParams",
+      "hashParams"
     ];
     let u = new URL("https://localhost/");
+    let hParams = null;
     for (let option of options) {
       if (typeof option == "string" || option instanceof String) {
         u = new URL(option, u);
@@ -392,6 +427,16 @@
               if (!validParams.includes(param)) {
                 throw metroError("metro.url: unknown url parameter " + metroURL + "url/unknown-param-name/", param);
               }
+              if (param == "fragment") {
+                let fragment = option.fragment;
+                if (fragment && typeof fragment == "string" && fragment[0] != "#") {
+                  fragment = "#" + fragment;
+                }
+                option.hash = fragment;
+                param = "hash";
+              } else if (param == "hashParams") {
+                hParams = option.hashParams;
+              }
               if (typeof option[param] == "function") {
                 option[param](u[param], u);
               } else if (typeof option[param] == "string" || option[param] instanceof String || typeof option[param] == "number" || option[param] instanceof Number || typeof option[param] == "boolean" || option[param] instanceof Boolean) {
@@ -406,6 +451,16 @@
         }
       } else {
         throw metroError("metro.url: unsupported option value " + metroURL + "url/unsupported-option-value/", option);
+      }
+    }
+    if (hParams) {
+      if (!u.hash) {
+        u.hash = "#";
+      }
+      if (typeof hParams == "string") {
+        u.hash += hParams;
+      } else {
+        u = append(u, hParams)[Symbol.metroSource];
       }
     }
     Object.freeze(u);
@@ -600,7 +655,7 @@
     return object;
   }
 
-  // node_modules/@muze-nl/metro/src/mw/json.mjs
+  // ../metro/src/mw/json.mjs
   function jsonmw(options) {
     options = Object.assign({
       contentType: "application/json",
@@ -656,7 +711,7 @@
     return /^text\/plain\b/.exec(contentType);
   }
 
-  // node_modules/@muze-nl/metro/src/mw/thrower.mjs
+  // ../metro/src/mw/thrower.mjs
   function throwermw(options) {
     return async function thrower(req, next) {
       let res = await next(req);
@@ -673,7 +728,7 @@
     };
   }
 
-  // node_modules/@muze-nl/metro/src/mw/getdata.mjs
+  // ../metro/src/mw/getdata.mjs
   function getdatamw() {
     return async function getdata(req, next) {
       let res = await next(req);
@@ -684,8 +739,10 @@
     };
   }
 
-  // node_modules/@muze-nl/metro/src/api.mjs
+  // ../metro/src/api.mjs
   var API = class extends Client {
+    #methods = null;
+    #base = "";
     constructor(base, methods, bind = null) {
       if (base instanceof Client) {
         super(base.clientOptions, throwermw(), getdatamw());
@@ -695,15 +752,20 @@
       if (!bind) {
         bind = this;
       }
+      this.#methods = methods;
+      this.#base = base;
       for (const methodName in methods) {
         if (typeof methods[methodName] == "function") {
           this[methodName] = methods[methodName].bind(bind);
-        } else if (methods[methodName] && typeof methods[methodName] == "object") {
+        } else if (methods[methodName] && typeof methods[methodName] == "object" && (Object.getPrototypeOf(methods[methodName]) === null || Object.getPrototypeOf(methods[methodName]).constructor === Object)) {
           this[methodName] = new this.constructor(base, methods[methodName], bind);
         } else {
           this[methodName] = methods[methodName];
         }
       }
+    }
+    extend(methods) {
+      return new this.constructor(this.#base, Object.assign({}, this.#methods, methods));
     }
   };
   var JsonAPI = class extends API {
@@ -722,7 +784,7 @@
     return new JsonAPI(...deepClone(options));
   }
 
-  // node_modules/@muze-nl/metro/src/everything.mjs
+  // ../metro/src/everything.mjs
   var metro = Object.assign({}, metro_exports, {
     mw: {
       json: jsonmw,
@@ -730,7 +792,8 @@
       getdata: getdatamw
     },
     api,
-    jsonApi
+    jsonApi,
+    hashParams: hashparams_exports
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
@@ -751,7 +814,7 @@
     isRedirected: () => isRedirected
   });
 
-  // node_modules/@muze-nl/assert/src/assert.mjs
+  // ../../node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
   function enable() {
     globalThis.assertEnabled = true;
@@ -1381,143 +1444,227 @@
   __export(oauth2_mockserver_exports, {
     default: () => oauth2mockserver
   });
-  var baseResponse = {
-    status: 200,
-    statusText: "OK",
-    headers: {
-      "Content-Type": "application/json"
+  var jsonHeaders = {
+    "Content-Type": "application/json"
+  };
+  var textHeaders = {
+    "Content-Type": "text/plain"
+  };
+  function jsonResponse(body, status = 200, statusText = "OK") {
+    return everything_default.response({
+      status,
+      statusText,
+      headers: jsonHeaders,
+      body: JSON.stringify(body)
+    });
+  }
+  function oauthError(error2, description, status = 400) {
+    return jsonResponse({
+      error: error2,
+      error_description: description
+    }, status, status === 401 ? "Unauthorized" : "Bad Request");
+  }
+  async function requestData(req) {
+    if (req.data instanceof URLSearchParams) {
+      return Object.fromEntries(req.data.entries());
     }
-  };
-  var badRequest = (error3) => {
-    return {
-      status: 400,
-      statusText: "Bad Request",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        error: "invalid_request",
-        error_description: error3
-      })
-    };
-  };
-  var error2;
-  var pkce = {};
+    if (req.data && typeof req.data === "object") {
+      return req.data;
+    }
+    if (!req.body) {
+      return {};
+    }
+    const text = await req.clone().text();
+    return Object.fromEntries(new URLSearchParams(text).entries());
+  }
+  function paramValue(params, name) {
+    return typeof params.get === "function" ? params.get(name) : params[name];
+  }
+  function required(params, name) {
+    if (!paramValue(params, name)) {
+      return `${name} is required`;
+    }
+    return null;
+  }
+  function same(value, expected, name) {
+    if (expected !== void 0 && value !== expected) {
+      return `${name} must be ${expected}`;
+    }
+    return null;
+  }
+  function randomToken(prefix) {
+    return `${prefix}-${Math.random().toString(36).slice(2)}`;
+  }
   function oauth2mockserver(options = {}) {
     const defaultOptions = {
-      "PKCE": false,
-      "DPoP": false
+      client_id: "mockClientId",
+      client_secret: "mockClientSecret",
+      redirect_uri: "https://client.example/callback",
+      scope: "read write",
+      token_type: "Bearer",
+      access_token: "mockAccessToken",
+      refresh_token: "mockRefreshToken",
+      expires_in: 3600,
+      requirePKCE: false,
+      issueRefreshToken: true,
+      id_token: null
     };
     options = Object.assign({}, defaultOptions, options);
+    const authorizationCodes = /* @__PURE__ */ new Map();
+    const accessTokens = /* @__PURE__ */ new Set([options.access_token]);
+    const refreshTokens = /* @__PURE__ */ new Set([options.refresh_token]);
     return async (req, next) => {
-      let url2 = everything_default.url(req.url);
+      const url2 = everything_default.url(req.url);
       switch (url2.pathname) {
         case "/authorize/":
-          if (error2 = fails(url2.searchParams, {
-            response_type: "code",
-            client_id: "mockClientId",
-            state: Optional(/.*/)
-          })) {
-            return everything_default.response(badRequest(error2));
-          }
-          if (url2.searchParams.has("code_challenge")) {
-            if (!url2.searchParams.has("code_challenge_method")) {
-              return everything_default.response(badRequest("missing code_challenge_method"));
-            }
-            pkce.code_challenge = url2.searchParams.get("code_challenge");
-            pkce.code_challenge_method = url2.searchParams.get("code_challenge_method");
-          }
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              code: "mockAuthorizeToken",
-              state: url2.searchParams.get("state")
-            })
-          });
-          break;
+        case "/authorize":
+          return authorize(url2);
         case "/token/":
-          if (req.data instanceof URLSearchParams) {
-            let body = {};
-            req.data.forEach((value, key) => body[key] = value);
-            req = req.with({ body });
-          }
-          if (error2 = fails(req, {
-            method: "POST",
-            data: {
-              grant_type: oneOf("refresh_token", "authorization_code")
-            }
-          })) {
-            return everything_default.response(badRequest(error2));
-          }
-          switch (req.data.grant_type) {
-            case "refresh_token":
-              if (error2 = fails(req.data, oneOf({
-                refresh_token: "mockRefreshToken",
-                client_id: "mockClientId",
-                client_secret: "mockClientSecret"
-              }, {
-                refresh_token: "mockRefreshToken",
-                client_id: "mockClientId",
-                code_verifier: /.+/
-              }))) {
-                return everything_default.response(badRequest(error2));
-              }
-              break;
-            case "access_token":
-              if (error2 = fails(req.data, oneOf({
-                client_id: "mockClientId",
-                client_secret: "mockClientSecret"
-              }, {
-                client_id: "mockClientId",
-                code_challenge: /.*/,
-                //FIXME: check that this matches code_verifier
-                code_challenge_method: "S256"
-              }))) {
-                return everything_default.response(badRequest(error2));
-              }
-              break;
-          }
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              access_token: "mockAccessToken",
-              token_type: "mockExample",
-              expires_in: 3600,
-              refresh_token: "mockRefreshToken",
-              example_parameter: "mockExampleValue"
-            })
-          });
-          break;
+        case "/token":
+          return token(req);
         case "/protected/":
-          let auth = req.headers.get("Authorization");
-          let [type, token] = auth ? auth.split(" ") : [];
-          if (!token || token !== "mockAccessToken") {
-            return everything_default.response({
-              status: 401,
-              statusText: "Forbidden",
-              body: "401 Forbidden"
-            });
-          }
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              result: "Success"
-            })
-          });
-          break;
+        case "/protected":
+          return protectedResource(req);
         case "/public/":
-          return everything_default.response(baseResponse, {
-            body: JSON.stringify({
-              result: "Success"
-            })
-          });
-          break;
+        case "/public":
+          return jsonResponse({ result: "Success" });
         default:
+          if (next) {
+            return next(req);
+          }
           return everything_default.response({
             status: 404,
-            statusText: "not found",
-            body: "404 Not Found " + url2
+            statusText: "Not Found",
+            headers: textHeaders,
+            body: `404 Not Found ${url2.href}`
           });
-          break;
       }
     };
+    function authorize(url2) {
+      const params = url2.searchParams;
+      let error2;
+      for (const name of ["response_type", "client_id", "redirect_uri", "state"]) {
+        error2 = required(params, name);
+        if (error2) return oauthError("invalid_request", error2);
+      }
+      error2 = same(paramValue(params, "response_type"), "code", "response_type") || same(paramValue(params, "client_id"), options.client_id, "client_id") || same(paramValue(params, "redirect_uri"), options.redirect_uri, "redirect_uri");
+      if (error2) return oauthError("invalid_request", error2);
+      const codeChallenge = paramValue(params, "code_challenge");
+      const codeChallengeMethod = paramValue(params, "code_challenge_method");
+      if (options.requirePKCE && !codeChallenge) {
+        return oauthError("invalid_request", "code_challenge is required");
+      }
+      if (codeChallenge && !codeChallengeMethod) {
+        return oauthError("invalid_request", "code_challenge_method is required");
+      }
+      if (codeChallengeMethod && !["S256", "plain"].includes(codeChallengeMethod)) {
+        return oauthError("invalid_request", "unsupported code_challenge_method");
+      }
+      const code = randomToken("mockAuthorizeCode");
+      authorizationCodes.set(code, {
+        client_id: paramValue(params, "client_id"),
+        redirect_uri: paramValue(params, "redirect_uri"),
+        scope: paramValue(params, "scope") || options.scope,
+        code_challenge: codeChallenge,
+        code_challenge_method: codeChallengeMethod,
+        used: false
+      });
+      return jsonResponse({
+        code,
+        state: paramValue(params, "state"),
+        redirect_uri: paramValue(params, "redirect_uri")
+      });
+    }
+    async function token(req) {
+      if (req.method !== "POST") {
+        return oauthError("invalid_request", "token endpoint requires POST");
+      }
+      const body = await requestData(req);
+      const grantType = body.grant_type;
+      let error2 = required(body, "grant_type") || required(body, "client_id");
+      if (error2) return oauthError("invalid_request", error2);
+      error2 = same(body.client_id, options.client_id, "client_id");
+      if (error2) return oauthError("invalid_client", error2, 401);
+      switch (grantType) {
+        case "authorization_code":
+          return authorizationCodeGrant(body);
+        case "refresh_token":
+          return refreshTokenGrant(body);
+        case "client_credentials":
+          return clientCredentialsGrant(body);
+        default:
+          return oauthError("unsupported_grant_type", `unsupported grant_type ${grantType}`);
+      }
+    }
+    async function authorizationCodeGrant(body) {
+      let error2 = required(body, "code") || required(body, "redirect_uri");
+      if (error2) return oauthError("invalid_request", error2);
+      const code = authorizationCodes.get(body.code);
+      if (!code || code.used) {
+        return oauthError("invalid_grant", "authorization code is invalid or already used");
+      }
+      if (code.client_id !== body.client_id || code.redirect_uri !== body.redirect_uri) {
+        return oauthError("invalid_grant", "authorization code was not issued for this client or redirect_uri");
+      }
+      if (code.code_challenge) {
+        if (!body.code_verifier) {
+          return oauthError("invalid_request", "code_verifier is required");
+        }
+        const expectedChallenge = code.code_challenge_method === "S256" ? await generateCodeChallenge(body.code_verifier) : body.code_verifier;
+        if (expectedChallenge !== code.code_challenge) {
+          return oauthError("invalid_grant", "code_verifier does not match code_challenge");
+        }
+      }
+      code.used = true;
+      return issueToken(code.scope);
+    }
+    function refreshTokenGrant(body) {
+      let error2 = required(body, "refresh_token");
+      if (error2) return oauthError("invalid_request", error2);
+      if (!refreshTokens.has(body.refresh_token?.value || body.refresh_token)) {
+        return oauthError("invalid_grant", "refresh_token is invalid");
+      }
+      return issueToken(body.scope || options.scope);
+    }
+    function clientCredentialsGrant(body) {
+      if (options.client_secret && body.client_secret !== options.client_secret) {
+        return oauthError("invalid_client", "client_secret is invalid", 401);
+      }
+      return issueToken(body.scope || options.scope, { refresh: false });
+    }
+    function issueToken(scope, tokenOptions = {}) {
+      const token2 = options.access_token;
+      accessTokens.add(token2);
+      const body = {
+        access_token: token2,
+        token_type: options.token_type,
+        expires_in: options.expires_in,
+        scope,
+        example_parameter: "mockExampleValue"
+      };
+      const includeRefresh = tokenOptions.refresh !== false && options.issueRefreshToken;
+      if (includeRefresh) {
+        refreshTokens.add(options.refresh_token);
+        body.refresh_token = options.refresh_token;
+      }
+      if (options.id_token) {
+        body.id_token = options.id_token;
+      }
+      return jsonResponse(body);
+    }
+    function protectedResource(req) {
+      const auth = req.headers.get("Authorization");
+      const [type, token2] = auth ? auth.split(" ") : [];
+      if (type !== options.token_type || !accessTokens.has(token2)) {
+        return everything_default.response({
+          status: 401,
+          statusText: "Unauthorized",
+          headers: textHeaders,
+          body: "401 Unauthorized"
+        });
+      }
+      return jsonResponse({ result: "Success" });
+    }
   }
 
   // src/oauth2.discovery.mjs
@@ -1594,27 +1741,23 @@
     origin = origin || window.location.origin;
     let params = new URLSearchParams(window.location.search);
     if (!params.has("code") && window.location.hash) {
-      let query = window.location.hash.substr(1);
+      let query = window.location.hash.substring(1);
       params = new URLSearchParams("?" + query);
     }
     let parent = window.parent !== window ? window.parent : window.opener;
     if (!parent) {
       console.error("No parent window found, cannot post authorization code (or error)");
     } else {
+      let message;
       if (params.has("code")) {
-        parent.postMessage({
-          authorization_code: params.get("code")
-        }, origin);
         success = true;
+        message = { authorization_code: params.get("code") };
       } else if (params.has("error")) {
-        parent.postMessage({
-          error: params.get("error")
-        }, origin);
+        message = { error: params.get("error") };
       } else {
-        parent.postMessage({
-          error: "Could not find an authorization_code"
-        }, origin);
+        message = { error: "Could not find an authorization_code" };
       }
+      parent.postMessage(message, origin);
     }
     return success;
   }
@@ -1684,7 +1827,7 @@
     });
   }
 
-  // node_modules/dpop/build/index.js
+  // ../../node_modules/dpop/build/index.js
   var encoder = new TextEncoder();
   var decoder = new TextDecoder();
   function buf(input) {

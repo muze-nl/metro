@@ -29,9 +29,9 @@
     mod
   ));
 
-  // node_modules/base64-js/index.js
+  // ../../node_modules/base64-js/index.js
   var require_base64_js = __commonJS({
-    "node_modules/base64-js/index.js"(exports) {
+    "../../node_modules/base64-js/index.js"(exports) {
       "use strict";
       exports.byteLength = byteLength;
       exports.toByteArray = toByteArray;
@@ -130,9 +130,9 @@
     }
   });
 
-  // node_modules/ieee754/index.js
+  // ../../node_modules/ieee754/index.js
   var require_ieee754 = __commonJS({
-    "node_modules/ieee754/index.js"(exports) {
+    "../../node_modules/ieee754/index.js"(exports) {
       exports.read = function(buffer, offset, isLE, mLen, nBytes) {
         var e, m;
         var eLen = nBytes * 8 - mLen - 1;
@@ -213,9 +213,9 @@
     }
   });
 
-  // node_modules/buffer/index.js
+  // ../../node_modules/buffer/index.js
   var require_buffer = __commonJS({
-    "node_modules/buffer/index.js"(exports) {
+    "../../node_modules/buffer/index.js"(exports) {
       "use strict";
       var base64 = require_base64_js();
       var ieee754 = require_ieee754();
@@ -1805,9 +1805,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/ours/primordials.js
+  // ../../node_modules/readable-stream/lib/ours/primordials.js
   var require_primordials = __commonJS({
-    "node_modules/readable-stream/lib/ours/primordials.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/ours/primordials.js"(exports, module) {
       "use strict";
       var AggregateError = class extends Error {
         constructor(errors) {
@@ -1926,9 +1926,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/ours/util/inspect.js
+  // ../../node_modules/readable-stream/lib/ours/util/inspect.js
   var require_inspect = __commonJS({
-    "node_modules/readable-stream/lib/ours/util/inspect.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/ours/util/inspect.js"(exports, module) {
       "use strict";
       module.exports = {
         format(format, ...args) {
@@ -1977,9 +1977,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/ours/errors.js
+  // ../../node_modules/readable-stream/lib/ours/errors.js
   var require_errors = __commonJS({
-    "node_modules/readable-stream/lib/ours/errors.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/ours/errors.js"(exports, module) {
       "use strict";
       var { format, inspect } = require_inspect();
       var { AggregateError: CustomAggregateError } = require_primordials();
@@ -2295,9 +2295,9 @@
     }
   });
 
-  // node_modules/abort-controller/browser.js
+  // ../../node_modules/abort-controller/browser.js
   var require_browser = __commonJS({
-    "node_modules/abort-controller/browser.js"(exports, module) {
+    "../../node_modules/abort-controller/browser.js"(exports, module) {
       "use strict";
       var { AbortController, AbortSignal } = typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : (
         /* otherwise */
@@ -2309,9 +2309,9 @@
     }
   });
 
-  // node_modules/events/events.js
+  // ../../node_modules/events/events.js
   var require_events = __commonJS({
-    "node_modules/events/events.js"(exports, module) {
+    "../../node_modules/events/events.js"(exports, module) {
       "use strict";
       var R = typeof Reflect === "object" ? Reflect : null;
       var ReflectApply = R && typeof R.apply === "function" ? R.apply : function ReflectApply2(target, receiver, args) {
@@ -2678,9 +2678,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/ours/util.js
+  // ../../node_modules/readable-stream/lib/ours/util.js
   var require_util = __commonJS({
-    "node_modules/readable-stream/lib/ours/util.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/ours/util.js"(exports, module) {
       "use strict";
       var bufferModule = require_buffer();
       var { format, inspect } = require_inspect();
@@ -2817,9 +2817,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/validators.js
+  // ../../node_modules/readable-stream/lib/internal/validators.js
   var require_validators = __commonJS({
-    "node_modules/readable-stream/lib/internal/validators.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/validators.js"(exports, module) {
       "use strict";
       var {
         ArrayIsArray,
@@ -3081,9 +3081,9 @@
     }
   });
 
-  // node_modules/process/browser.js
+  // ../../node_modules/process/browser.js
   var require_browser2 = __commonJS({
-    "node_modules/process/browser.js"(exports, module) {
+    "../../node_modules/process/browser.js"(exports, module) {
       var process = module.exports = {};
       var cachedSetTimeout;
       var cachedClearTimeout;
@@ -3243,9 +3243,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/utils.js
+  // ../../node_modules/readable-stream/lib/internal/streams/utils.js
   var require_utils = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/utils.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/utils.js"(exports, module) {
       "use strict";
       var { SymbolAsyncIterator, SymbolIterator, SymbolFor } = require_primordials();
       var kIsDestroyed = SymbolFor("nodejs.stream.destroyed");
@@ -3452,9 +3452,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/end-of-stream.js
+  // ../../node_modules/readable-stream/lib/internal/streams/end-of-stream.js
   var require_end_of_stream = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/end-of-stream.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/end-of-stream.js"(exports, module) {
       "use strict";
       var process = require_browser2();
       var { AbortError, codes } = require_errors();
@@ -3704,9 +3704,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/destroy.js
+  // ../../node_modules/readable-stream/lib/internal/streams/destroy.js
   var require_destroy = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/destroy.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/destroy.js"(exports, module) {
       "use strict";
       var process = require_browser2();
       var {
@@ -3969,9 +3969,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/legacy.js
+  // ../../node_modules/readable-stream/lib/internal/streams/legacy.js
   var require_legacy = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/legacy.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/legacy.js"(exports, module) {
       "use strict";
       var { ArrayIsArray, ObjectSetPrototypeOf } = require_primordials();
       var { EventEmitter: EE } = require_events();
@@ -4047,9 +4047,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/add-abort-signal.js
+  // ../../node_modules/readable-stream/lib/internal/streams/add-abort-signal.js
   var require_add_abort_signal = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/add-abort-signal.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/add-abort-signal.js"(exports, module) {
       "use strict";
       var { SymbolDispose } = require_primordials();
       var { AbortError, codes } = require_errors();
@@ -4098,9 +4098,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/buffer_list.js
+  // ../../node_modules/readable-stream/lib/internal/streams/buffer_list.js
   var require_buffer_list = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/buffer_list.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/buffer_list.js"(exports, module) {
       "use strict";
       var { StringPrototypeSlice, SymbolIterator, TypedArrayPrototypeSet, Uint8Array: Uint8Array2 } = require_primordials();
       var { Buffer: Buffer3 } = require_buffer();
@@ -4253,9 +4253,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/state.js
+  // ../../node_modules/readable-stream/lib/internal/streams/state.js
   var require_state = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/state.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/state.js"(exports, module) {
       "use strict";
       var { MathFloor, NumberIsInteger } = require_primordials();
       var { validateInteger } = require_validators();
@@ -4295,9 +4295,9 @@
     }
   });
 
-  // node_modules/safe-buffer/index.js
+  // ../../node_modules/safe-buffer/index.js
   var require_safe_buffer = __commonJS({
-    "node_modules/safe-buffer/index.js"(exports, module) {
+    "../../node_modules/safe-buffer/index.js"(exports, module) {
       var buffer = require_buffer();
       var Buffer3 = buffer.Buffer;
       function copyProps(src, dst) {
@@ -4353,9 +4353,9 @@
     }
   });
 
-  // node_modules/string_decoder/lib/string_decoder.js
+  // ../../node_modules/string_decoder/lib/string_decoder.js
   var require_string_decoder = __commonJS({
-    "node_modules/string_decoder/lib/string_decoder.js"(exports) {
+    "../../node_modules/string_decoder/lib/string_decoder.js"(exports) {
       "use strict";
       var Buffer3 = require_safe_buffer().Buffer;
       var isEncoding = Buffer3.isEncoding || function(encoding) {
@@ -4591,9 +4591,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/from.js
+  // ../../node_modules/readable-stream/lib/internal/streams/from.js
   var require_from = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/from.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/from.js"(exports, module) {
       "use strict";
       var process = require_browser2();
       var { PromisePrototypeThen, SymbolAsyncIterator, SymbolIterator } = require_primordials();
@@ -4686,9 +4686,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/readable.js
+  // ../../node_modules/readable-stream/lib/internal/streams/readable.js
   var require_readable = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/readable.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/readable.js"(exports, module) {
       "use strict";
       var process = require_browser2();
       var {
@@ -5652,9 +5652,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/writable.js
+  // ../../node_modules/readable-stream/lib/internal/streams/writable.js
   var require_writable = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/writable.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/writable.js"(exports, module) {
       "use strict";
       var process = require_browser2();
       var {
@@ -6273,9 +6273,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/duplexify.js
+  // ../../node_modules/readable-stream/lib/internal/streams/duplexify.js
   var require_duplexify = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/duplexify.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/duplexify.js"(exports, module) {
       var process = require_browser2();
       var bufferModule = require_buffer();
       var {
@@ -6620,9 +6620,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/duplex.js
+  // ../../node_modules/readable-stream/lib/internal/streams/duplex.js
   var require_duplex = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/duplex.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/duplex.js"(exports, module) {
       "use strict";
       var {
         ObjectDefineProperties,
@@ -6737,9 +6737,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/transform.js
+  // ../../node_modules/readable-stream/lib/internal/streams/transform.js
   var require_transform = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/transform.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/transform.js"(exports, module) {
       "use strict";
       var { ObjectSetPrototypeOf, Symbol: Symbol2 } = require_primordials();
       module.exports = Transform3;
@@ -6839,9 +6839,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/passthrough.js
+  // ../../node_modules/readable-stream/lib/internal/streams/passthrough.js
   var require_passthrough = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/passthrough.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/passthrough.js"(exports, module) {
       "use strict";
       var { ObjectSetPrototypeOf } = require_primordials();
       module.exports = PassThrough;
@@ -6858,9 +6858,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/pipeline.js
+  // ../../node_modules/readable-stream/lib/internal/streams/pipeline.js
   var require_pipeline = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/pipeline.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/pipeline.js"(exports, module) {
       var process = require_browser2();
       var { ArrayIsArray, Promise: Promise2, SymbolAsyncIterator, SymbolDispose } = require_primordials();
       var eos = require_end_of_stream();
@@ -7286,9 +7286,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/compose.js
+  // ../../node_modules/readable-stream/lib/internal/streams/compose.js
   var require_compose = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/compose.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/compose.js"(exports, module) {
       "use strict";
       var { pipeline } = require_pipeline();
       var Duplex = require_duplex();
@@ -7479,9 +7479,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/internal/streams/operators.js
+  // ../../node_modules/readable-stream/lib/internal/streams/operators.js
   var require_operators = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/operators.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/internal/streams/operators.js"(exports, module) {
       "use strict";
       var AbortController = globalThis.AbortController || require_browser().AbortController;
       var {
@@ -7884,9 +7884,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/stream/promises.js
+  // ../../node_modules/readable-stream/lib/stream/promises.js
   var require_promises = __commonJS({
-    "node_modules/readable-stream/lib/stream/promises.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/stream/promises.js"(exports, module) {
       "use strict";
       var { ArrayPrototypePop, Promise: Promise2 } = require_primordials();
       var { isIterable, isNodeStream, isWebStream } = require_utils();
@@ -7926,9 +7926,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/stream.js
+  // ../../node_modules/readable-stream/lib/stream.js
   var require_stream = __commonJS({
-    "node_modules/readable-stream/lib/stream.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/stream.js"(exports, module) {
       "use strict";
       var { Buffer: Buffer3 } = require_buffer();
       var { ObjectDefineProperty, ObjectKeys, ReflectApply } = require_primordials();
@@ -8045,9 +8045,9 @@
     }
   });
 
-  // node_modules/readable-stream/lib/ours/browser.js
+  // ../../node_modules/readable-stream/lib/ours/browser.js
   var require_browser3 = __commonJS({
-    "node_modules/readable-stream/lib/ours/browser.js"(exports, module) {
+    "../../node_modules/readable-stream/lib/ours/browser.js"(exports, module) {
       "use strict";
       var CustomStream = require_stream();
       var promises = require_promises();
@@ -8081,7 +8081,7 @@
     }
   });
 
-  // node_modules/@muze-nl/oldm/src/oldm.mjs
+  // ../../node_modules/@muze-nl/oldm/src/oldm.mjs
   var oldm_exports = {};
   __export(oldm_exports, {
     BlankNode: () => BlankNode,
@@ -8410,17 +8410,17 @@
     }
   };
 
-  // node_modules/@muze-nl/oldm/src/oldm-n3.mjs
+  // ../../node_modules/@muze-nl/oldm/src/oldm-n3.mjs
   var oldm_n3_exports = {};
   __export(oldm_n3_exports, {
     n3Parser: () => n3Parser,
     n3Writer: () => n3Writer
   });
 
-  // node_modules/n3/src/N3Lexer.js
+  // ../../node_modules/n3/src/N3Lexer.js
   var import_buffer = __toESM(require_buffer());
 
-  // node_modules/n3/src/IRIs.js
+  // ../../node_modules/n3/src/IRIs.js
   var RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
   var XSD = "http://www.w3.org/2001/XMLSchema#";
   var SWAP = "http://www.w3.org/2000/10/swap/";
@@ -8454,7 +8454,7 @@
     }
   };
 
-  // node_modules/n3/src/N3Lexer.js
+  // ../../node_modules/n3/src/N3Lexer.js
   var { xsd } = IRIs_default;
   var escapeSequence = /\\u([a-fA-F0-9]{4})|\\U([a-fA-F0-9]{8})|\\([^])/g;
   var escapeReplacements = {
@@ -8487,6 +8487,9 @@
     "%": "%"
   };
   var illegalIriChars = /[\x00-\x20<>\\"\{\}\|\^\`]/;
+  function isSurrogateCodePoint(charCode) {
+    return charCode >= 55296 && charCode <= 57343;
+  }
   var lineModeRegExps = {
     _iri: true,
     _unescapedIri: true,
@@ -8792,10 +8795,20 @@
     _unescape(item) {
       let invalid = false;
       const replaced = item.replace(escapeSequence, (sequence, unicode4, unicode8, escapedChar) => {
-        if (typeof unicode4 === "string")
-          return String.fromCharCode(Number.parseInt(unicode4, 16));
+        if (typeof unicode4 === "string") {
+          const charCode = Number.parseInt(unicode4, 16);
+          if (isSurrogateCodePoint(charCode)) {
+            invalid = true;
+            return "";
+          }
+          return String.fromCharCode(charCode);
+        }
         if (typeof unicode8 === "string") {
           let charCode = Number.parseInt(unicode8, 16);
+          if (isSurrogateCodePoint(charCode)) {
+            invalid = true;
+            return "";
+          }
           return charCode <= 65535 ? String.fromCharCode(Number.parseInt(unicode8, 16)) : String.fromCharCode(55296 + ((charCode -= 65536) >> 10), 56320 + (charCode & 1023));
         }
         if (escapedChar in escapeReplacements)
@@ -8891,7 +8904,7 @@
     }
   };
 
-  // node_modules/n3/src/N3DataFactory.js
+  // ../../node_modules/n3/src/N3DataFactory.js
   var { rdf, xsd: xsd2 } = IRIs_default;
   var DEFAULTGRAPH;
   var _blankNodeCounter = 0;
@@ -9216,7 +9229,7 @@
     return quad(fromTerm(inQuad.subject), fromTerm(inQuad.predicate), fromTerm(inQuad.object), fromTerm(inQuad.graph));
   }
 
-  // node_modules/n3/src/N3Parser.js
+  // ../../node_modules/n3/src/N3Parser.js
   var blankNodePrefix = 0;
   var N3Parser = class _N3Parser {
     constructor(options) {
@@ -10304,7 +10317,7 @@
   ];
   initDataFactory(N3Parser.prototype, N3DataFactory_default);
 
-  // node_modules/n3/src/N3Util.js
+  // ../../node_modules/n3/src/N3Util.js
   var N3Util_exports = {};
   __export(N3Util_exports, {
     inDefaultGraph: () => inDefaultGraph,
@@ -10360,12 +10373,12 @@
     return processPrefix;
   }
 
-  // node_modules/n3/src/Util.js
+  // ../../node_modules/n3/src/Util.js
   function escapeRegex(regex) {
     return regex.replace(/[\]\/\(\)\*\+\?\.\\\$]/g, "\\$&");
   }
 
-  // node_modules/n3/src/BaseIRI.js
+  // ../../node_modules/n3/src/BaseIRI.js
   var BASE_UNSUPPORTED = /^:?[^:?#]*(?:[?#]|$)|^file:|^[^:]*:\/*[^?#]+?\/(?:\.\.?(?:\/|$)|\/)/i;
   var SUFFIX_SUPPORTED = /^(?:(?:[^/?#]{3,}|\.?[^/?#.]\.?)(?:\/[^/?#]{3,}|\.?[^/?#.]\.?)*\/?)?(?:[?#]|$)/;
   var CURRENT = "./";
@@ -10437,7 +10450,7 @@
     }
   };
 
-  // node_modules/n3/src/N3Writer.js
+  // ../../node_modules/n3/src/N3Writer.js
   var DEFAULTGRAPH2 = N3DataFactory_default.defaultGraph();
   var { rdf: rdf2, xsd: xsd3 } = IRIs_default;
   var escape = /["\\\t\n\r\b\f\u0000-\u0019\ud800-\udbff]/;
@@ -10743,7 +10756,7 @@
     return result2;
   }
 
-  // node_modules/n3/src/N3Store.js
+  // ../../node_modules/n3/src/N3Store.js
   var import_readable_stream = __toESM(require_browser3());
   var ITERATOR = /* @__PURE__ */ Symbol("iter");
   function merge(target, source, depth = 4) {
@@ -11749,14 +11762,14 @@
     }
   };
 
-  // node_modules/n3/src/N3StoreFactory.js
+  // ../../node_modules/n3/src/N3StoreFactory.js
   var N3DatasetCoreFactory = class {
     dataset(quads) {
       return new N3Store(quads);
     }
   };
 
-  // node_modules/n3/src/N3Reasoner.js
+  // ../../node_modules/n3/src/N3Reasoner.js
   function getRulesFromDataset(dataset) {
     const rules = [];
     for (const { subject, object } of dataset.match(null, N3DataFactory_default.namedNode("http://www.w3.org/2000/10/swap/log#implies"), null, N3DataFactory_default.defaultGraph())) {
@@ -11926,7 +11939,7 @@
     return t1.value === t2.value;
   }
 
-  // node_modules/n3/src/N3StreamParser.js
+  // ../../node_modules/n3/src/N3StreamParser.js
   var import_readable_stream2 = __toESM(require_browser3());
   var N3StreamParser = class extends import_readable_stream2.Transform {
     constructor(options) {
@@ -11984,7 +11997,7 @@
     }
   };
 
-  // node_modules/n3/src/N3StreamWriter.js
+  // ../../node_modules/n3/src/N3StreamWriter.js
   var import_readable_stream3 = __toESM(require_browser3());
   var N3StreamWriter = class extends import_readable_stream3.Transform {
     constructor(options) {
@@ -12024,7 +12037,7 @@
     }
   };
 
-  // node_modules/n3/src/index.js
+  // ../../node_modules/n3/src/index.js
   var src_default = {
     Lexer: N3Lexer,
     Parser: N3Parser,
@@ -12050,7 +12063,7 @@
     termToId
   };
 
-  // node_modules/@muze-nl/oldm/src/oldm-n3.mjs
+  // ../../node_modules/@muze-nl/oldm/src/oldm-n3.mjs
   var n3Parser = (input, uri, type) => {
     const parser = new src_default.Parser({
       baseIRI: uri,
@@ -12205,7 +12218,7 @@
     });
   };
 
-  // node_modules/@muze-nl/oldm/src/index.mjs
+  // ../../node_modules/@muze-nl/oldm/src/index.mjs
   var oldm2 = {
     context: oldm,
     ...oldm_exports,
@@ -12292,6 +12305,9 @@
       }
     }
     return false;
+  }
+  function isPlainText(contentType) {
+    return /^text\/plain\b/.exec(contentType);
   }
 
   // src/index.mjs

@@ -18,7 +18,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node -e \"console.log('No tests yet for @muze-nl/metro-oidc')\"",
+    "test": "tap --disable-coverage test/*.mjs",
     "tap": "tap",
     "build": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --minify --sourcemap",
     "build-dev": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap",
@@ -36,7 +36,10 @@
   },
   "homepage": "https://github.com/muze-nl/metro/tree/main/packages/metro-oidc#readme",
   "devDependencies": {
-    "eslint": "^8.13.0"
+    "eslint": "^8.13.0",
+    "tap": "^21.7.0",
+    "@eslint/js": "^9.17.0",
+    "globals": "^15.14.0"
   },
   "engines": {
     "node": ">=20.0.0"

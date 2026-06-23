@@ -86,3 +86,6 @@ function isLinkedData(contentType) {
 	}
 	return false
 }
+function isPlainText(contentType) {
+	return /^text\/plain\b/.exec(contentType)
+}

@@ -56,7 +56,8 @@ export default function oidcmw(options={}) {
 		}
 		if (!options.openid_configuration) {
 			options.openid_configuration = await discover({
-				issuer: options.issuer
+				issuer: options.issuer,
+				client: options.client.with(options.issuer)
 			})
 			options.store.set('openid_configuration', options.openid_configuration)
 		}
@@ -67,6 +68,7 @@ export default function oidcmw(options={}) {
 			}
 			options.client_info = await register({
 				registration_endpoint: options.openid_configuration.registration_endpoint,
+				client: options.client,
 				client_info: options.client_info
 			})
 			options.store.set('client_info', options.client_info)
@@ -131,8 +133,8 @@ export default function oidcmw(options={}) {
 				dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
 			}
 			oauth2client = oauth2client.with(dpopmw(dpopOptions)) // add DPoP headers in requests with Authorization headers
-			oauth2Options.client = oauth2client // make sure oath2 token request use dpop
 		}
+		oauth2Options.client = oauth2client // make sure token requests use the OIDC token-observing stack
 
 		oauth2client = oauth2client.with(oauth2mw(oauth2Options))
 

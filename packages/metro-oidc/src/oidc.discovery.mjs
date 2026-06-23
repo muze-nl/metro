@@ -29,6 +29,7 @@ export default async function oidcDiscovery(options={}) {
 	}
 
 	options = Object.assign({},defaultOptions,options)
+	options.client = options.client.with(throwermw()).with(jsonmw())
 
 	const TestSucceeded = false
 	function MustUseHTTPS(url) {

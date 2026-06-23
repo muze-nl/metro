@@ -60,6 +60,7 @@ export default async function register(options)
 	}
 
 	options = Object.assign({}, defaultOptions, options)
+	options.client = options.client.with(throwermw()).with(jsonmw())
 	if (!options.client_info) {
 		options.client_info = {}
 	} 
