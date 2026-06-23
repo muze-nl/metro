@@ -30,19 +30,20 @@ It will then configure the correct OAuth2 settings and handle the request with [
 
 ## Security features
 
-metro.oidc uses OAuth2.1 by default, including PKCE and DPoP. The Keypair used in DPoP is created non-extractable, so they cannot be leaked. This means that the access_token and refresh_token, even if leaked, cannot be used anywhere else.
+metro.oidc uses the OAuth2 authorization-code flow with PKCE and DPoP by default. DPoP is part of the normal OIDC middleware path because Solid identity and storage servers commonly require sender-constrained tokens. The key pair used for DPoP is created non-extractable where the runtime supports that.
 
 You can disable PKCE by setting `options.client_info.code_verifier` to false.
-You can disable DPoP by setting `options.use_dpop` to false.
+You can disable DPoP by setting `options.use_dpop` to false, but this is mainly useful for providers or tests that do not support DPoP.
 
 ## id_token
 
-The metro oidc middleware doesn't use the id_token, or verify any of its contents. This is left up to you, if you need it. You can retrieve the id_token by calling the `idToken` function, after the user is logged in:
+The metro OIDC middleware validates the `id_token` before storing it. Validation uses the issuer JWKS and checks the token signature, issuer, audience, expiry, required claims, and nonce. You can retrieve the raw `id_token` or the validated claims after the user is logged in:
 
 ```javascript
 	import oidc from '@muze-nl/metro-oidc'
 
 	let id_token = oidc.idToken({issuer:"oidc issuer url"})
+	let claims = oidc.idTokenClaims({issuer:"oidc issuer url"})
 ```
 
 `idToken()` expects either the store or the issuer option that you passed on to the `oidcmw()` function.
@@ -50,3 +51,13 @@ The metro oidc middleware doesn't use the id_token, or verify any of its content
 
 [project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
 [project-stage-page]: https://blog.pother.ca/project-stages/
+
+## OIDC Mock-server Middleware
+
+The OIDC mock server is intended for tests and examples, not for production browser bundles. Import it from the explicit testing entry:
+
+```javascript
+import oidcmockserver from '@muze-nl/metro-oidc/testing'
+```
+
+The mock server exposes discovery metadata, dynamic client registration, JWKS, signed ID Tokens, userinfo, and OAuth2-backed protected-resource behavior.

@@ -800,20 +800,6 @@
   }
   var everything_default = metro;
 
-  // ../metro-oauth2/src/oauth2.mjs
-  var oauth2_exports = {};
-  __export(oauth2_exports, {
-    base64url_encode: () => base64url_encode,
-    createState: () => createState,
-    default: () => oauth2mw,
-    generateCodeChallenge: () => generateCodeChallenge,
-    generateCodeVerifier: () => generateCodeVerifier,
-    getExpires: () => getExpires,
-    isAuthorized: () => isAuthorized,
-    isExpired: () => isExpired,
-    isRedirected: () => isRedirected
-  });
-
   // ../../node_modules/@muze-nl/assert/src/assert.mjs
   globalThis.assertEnabled = false;
   function enable() {
@@ -1054,6 +1040,170 @@
     fails
   };
 
+  // src/oidc.util.mjs
+  var MustHave = (...options) => (value, root) => {
+    if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
+      return false;
+    }
+    return error("root data must have all of", root, options);
+  };
+  var MustInclude = (...options) => (value) => {
+    if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
+      return false;
+    } else {
+      return error("data must be an array which includes", value, options);
+    }
+  };
+  var validJWA = [
+    "HS256",
+    "HS384",
+    "HS512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "ES256",
+    "ES384",
+    "ES512"
+  ];
+  var validAuthMethods = [
+    "none",
+    "client_secret_post",
+    "client_secret_basic",
+    "client_secret_jwt",
+    "private_key_jwt"
+  ];
+
+  // src/oidc.discovery.mjs
+  async function oidcDiscovery(options = {}) {
+    assert(options, {
+      client: Optional(instanceOf(everything_default.client().constructor)),
+      issuer: Required(validURL)
+    });
+    const defaultOptions = {
+      client: everything_default.client().with(throwermw()).with(jsonmw()),
+      requireDynamicRegistration: false
+    };
+    options = Object.assign({}, defaultOptions, options);
+    options.client = options.client.with(throwermw()).with(jsonmw());
+    const TestSucceeded = false;
+    function MustUseHTTPS(url2) {
+      return TestSucceeded;
+    }
+    const openid_provider_metadata = {
+      issuer: Required(allOf(options.issuer, MustUseHTTPS)),
+      authorization_endpoint: Required(validURL),
+      token_endpoint: Required(validURL),
+      userinfo_endpoint: Recommended(validURL),
+      // todo: test for https protocol
+      jwks_uri: Required(validURL),
+      registration_endpoint: options.requireDynamicRegistration ? Required(validURL) : Recommended(validURL),
+      scopes_supported: Recommended(MustInclude("openid")),
+      response_types_supported: options.requireDynamicRegistration ? Required(MustInclude("code", "id_token", "id_token token")) : Required([]),
+      response_modes_supported: Optional([]),
+      grant_types_supported: options.requireDynamicRegistration ? Optional(MustInclude("authorization_code")) : Optional([]),
+      acr_values_supported: Optional([]),
+      subject_types_supported: Required([]),
+      id_token_signing_alg_values_supported: Required(MustInclude("RS256")),
+      id_token_encryption_alg_values_supported: Optional([]),
+      id_token_encryption_enc_values_supported: Optional([]),
+      userinfo_signing_alg_values_supported: Optional([]),
+      userinfo_encryption_alg_values_supported: Optional([]),
+      userinfo_encryption_enc_values_supported: Optional([]),
+      request_object_signing_alg_values_supported: Optional(MustInclude("RS256")),
+      // not testing for 'none'
+      request_object_encryption_alg_values_supported: Optional([]),
+      request_object_encryption_enc_values_supported: Optional([]),
+      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods)),
+      token_endpoint_auth_signing_alg_values_supported: Optional(MustInclude("RS256"), not(MustInclude("none"))),
+      display_values_supported: Optional(anyOf("page", "popup", "touch", "wap")),
+      claim_types_supported: Optional(anyOf("normal", "aggregated", "distributed")),
+      claims_supported: Recommended([]),
+      service_documentation: Optional(validURL),
+      claims_locales_supported: Optional([]),
+      ui_locales_supported: Optional([]),
+      claims_parameter_supported: Optional(Boolean),
+      request_parameter_supported: Optional(Boolean),
+      request_uri_parameter_supported: Optional(Boolean),
+      op_policy_uri: Optional(validURL),
+      op_tos_uri: Optional(validURL)
+    };
+    const configURL = everything_default.url(options.issuer, ".well-known/openid-configuration");
+    const response2 = await options.client.get(
+      // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
+      // note: this allows path components in the options.issuer url
+      configURL
+    );
+    const openid_config = response2.data;
+    assert(openid_config, openid_provider_metadata);
+    assert(openid_config.issuer, options.issuer);
+    return openid_config;
+  }
+
+  // src/oidc.register.mjs
+  async function register(options) {
+    const openid_client_metadata = {
+      redirect_uris: Required([validURL]),
+      response_types: Optional([]),
+      grant_types: Optional(anyOf("authorization_code", "refresh_token")),
+      //TODO: match response_types with grant_types
+      application_type: Optional(oneOf("native", "web")),
+      contacts: Optional([validEmail]),
+      client_name: Optional(String),
+      logo_uri: Optional(validURL),
+      client_uri: Optional(validURL),
+      policy_uri: Optional(validURL),
+      tos_uri: Optional(validURL),
+      jwks_uri: Optional(validURL, not(MustHave("jwks"))),
+      jwks: Optional(validURL, not(MustHave("jwks_uri"))),
+      sector_identifier_uri: Optional(validURL),
+      subject_type: Optional(String),
+      id_token_signed_response_alg: Optional(oneOf(...validJWA)),
+      id_token_encrypted_response_alg: Optional(oneOf(...validJWA)),
+      id_token_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("id_token_encrypted_response_alg")),
+      userinfo_signed_response_alg: Optional(oneOf(...validJWA)),
+      userinfo_encrypted_response_alg: Optional(oneOf(...validJWA)),
+      userinfo_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("userinfo_encrypted_response_alg")),
+      request_object_signing_alg: Optional(oneOf(...validJWA)),
+      request_object_encryption_alg: Optional(oneOf(...validJWA)),
+      request_object_encryption_enc: Optional(oneOf(...validJWA)),
+      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods)),
+      token_endpoint_auth_signing_alg: Optional(oneOf(...validJWA)),
+      default_max_age: Optional(Number),
+      require_auth_time: Optional(Boolean),
+      default_acr_values: Optional([String]),
+      initiate_login_uri: Optional([validURL]),
+      request_uris: Optional([validURL])
+    };
+    assert(options, {
+      client: Optional(instanceOf(everything_default.client().constructor)),
+      registration_endpoint: validURL,
+      client_info: openid_client_metadata
+    });
+    const defaultOptions = {
+      client: everything_default.client().with(throwermw()).with(jsonmw()),
+      client_info: {
+        redirect_uris: [globalThis.document?.location.href]
+      }
+    };
+    options = Object.assign({}, defaultOptions, options);
+    options.client = options.client.with(throwermw()).with(jsonmw());
+    if (!options.client_info) {
+      options.client_info = {};
+    }
+    if (!options.client_info.redirect_uris) {
+      options.client_info.redirect_uris = [globalThis.document?.location.href];
+    }
+    let response2 = await options.client.post(options.registration_endpoint, {
+      body: options.client_info
+    });
+    let info = response2.data;
+    if (!info.client_id) {
+      throw everything_default.metroError("metro.oidc: Error: dynamic registration of client failed, no client_id returned", response2);
+    }
+    options.client_info = Object.assign(options.client_info, info);
+    return options.client_info;
+  }
+
   // ../metro-oauth2/src/tokenstore.mjs
   function tokenStore(site) {
     let localState, localTokens;
@@ -1107,9 +1257,9 @@
       }
     };
     assert(options, {});
-    const oauth22 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
+    const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
-    options.oauth2_configuration = oauth22;
+    options.oauth2_configuration = oauth2;
     const store = tokenStore(options.site);
     if (!options.tokens) {
       options.tokens = store.tokens;
@@ -1126,12 +1276,12 @@
         redirect_uri: Required(validURL)
       }
     });
-    for (let option in oauth22) {
+    for (let option in oauth2) {
       switch (option) {
         case "access_token":
         case "authorization_code":
         case "refresh_token":
-          options.tokens.set(option, oauth22[option]);
+          options.tokens.set(option, oauth2[option]);
           break;
       }
     }
@@ -1228,7 +1378,7 @@
       }
     }
     async function fetchAccessToken() {
-      if (oauth22.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
+      if (oauth2.grant_type === "authorization_code" && !options.tokens.has("authorization_code")) {
         let authReqURL = await getAuthorizationCodeURL();
         if (!options.authorize_callback || typeof options.authorize_callback !== "function") {
           throw metroError("oauth2mw: oauth2 with grant_type:authorization_code requires a callback function in client options.authorize_callback");
@@ -1286,11 +1436,11 @@
       return data;
     }
     async function getAuthorizationCodeURL() {
-      if (!oauth22.authorization_endpoint) {
+      if (!oauth2.authorization_endpoint) {
         throw metroError("oauth2mw: Missing options.oauth2_configuration.authorization_endpoint");
       }
-      let url2 = url(oauth22.authorization_endpoint, { hash: "" });
-      assert(oauth22, {
+      let url2 = url(oauth2.authorization_endpoint, { hash: "" });
+      assert(oauth2, {
         client_id: /.+/,
         redirect_uri: /.+/,
         scope: /.*/
@@ -1298,59 +1448,59 @@
       let search = {
         response_type: "code",
         // implicit flow uses 'token' here, but is not considered safe, so not supported
-        client_id: oauth22.client_id,
-        redirect_uri: oauth22.redirect_uri,
-        state: oauth22.state || createState(40)
+        client_id: oauth2.client_id,
+        redirect_uri: oauth2.redirect_uri,
+        state: oauth2.state || createState(40)
         // OAuth2.1 RFC says optional, but its a good idea to always add/check it
       };
-      if (oauth22.response_type) {
-        search.response_type = oauth22.response_type;
+      if (oauth2.response_type) {
+        search.response_type = oauth2.response_type;
       }
-      if (oauth22.response_mode) {
-        search.response_mode = oauth22.response_mode;
+      if (oauth2.response_mode) {
+        search.response_mode = oauth2.response_mode;
       }
       options.state.set(search.state);
-      if (oauth22.client_secret) {
-        search.client_secret = oauth22.client_secret;
+      if (oauth2.client_secret) {
+        search.client_secret = oauth2.client_secret;
       }
-      if (oauth22.code_verifier) {
-        options.tokens.set("code_verifier", oauth22.code_verifier);
-        search.code_challenge = await generateCodeChallenge(oauth22.code_verifier);
+      if (oauth2.code_verifier) {
+        options.tokens.set("code_verifier", oauth2.code_verifier);
+        search.code_challenge = await generateCodeChallenge(oauth2.code_verifier);
         search.code_challenge_method = "S256";
       }
-      if (oauth22.scope) {
-        search.scope = oauth22.scope;
+      if (oauth2.scope) {
+        search.scope = oauth2.scope;
       }
-      if (oauth22.prompt) {
-        search.prompt = oauth22.prompt;
+      if (oauth2.prompt) {
+        search.prompt = oauth2.prompt;
       }
-      if (oauth22.nonce) {
-        search.nonce = oauth22.nonce;
+      if (oauth2.nonce) {
+        search.nonce = oauth2.nonce;
       }
       return url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
-      assert(oauth22, {
+      assert(oauth2, {
         client_id: /.+/,
         redirect_uri: /.+/
       });
-      if (!oauth22.token_endpoint) {
+      if (!oauth2.token_endpoint) {
         throw metroError("oauth2mw: Missing options.endpoints.token url");
       }
-      let url2 = url(oauth22.token_endpoint, { hash: "" });
+      let url2 = url(oauth2.token_endpoint, { hash: "" });
       let params = {
-        grant_type: grant_type || oauth22.grant_type,
-        client_id: oauth22.client_id
+        grant_type: grant_type || oauth2.grant_type,
+        client_id: oauth2.client_id
       };
-      if (oauth22.client_secret) {
-        params.client_secret = oauth22.client_secret;
+      if (oauth2.client_secret) {
+        params.client_secret = oauth2.client_secret;
       }
-      if (oauth22.scope) {
-        params.scope = oauth22.scope;
+      if (oauth2.scope) {
+        params.scope = oauth2.scope;
       }
       switch (params.grant_type) {
         case "authorization_code":
-          params.redirect_uri = oauth22.redirect_uri;
+          params.redirect_uri = oauth2.redirect_uri;
           params.code = options.tokens.get("authorization_code");
           const code_verifier = options.tokens.get("code_verifier");
           if (code_verifier) {
@@ -1426,410 +1576,6 @@
       return false;
     }
     return true;
-  }
-  function isAuthorized(tokens) {
-    if (typeof tokens == "string") {
-      tokens = tokenStore(tokens).tokens;
-    }
-    let accessToken = tokens.get("access_token");
-    if (accessToken && !isExpired(accessToken)) {
-      return true;
-    }
-    let refreshToken = tokens.get("refresh_token");
-    if (refreshToken) {
-      return true;
-    }
-    return false;
-  }
-
-  // ../metro-oauth2/src/oauth2.mockserver.mjs
-  var oauth2_mockserver_exports = {};
-  __export(oauth2_mockserver_exports, {
-    default: () => oauth2mockserver
-  });
-  var jsonHeaders = {
-    "Content-Type": "application/json"
-  };
-  var textHeaders = {
-    "Content-Type": "text/plain"
-  };
-  function jsonResponse(body, status = 200, statusText = "OK") {
-    return everything_default.response({
-      status,
-      statusText,
-      headers: jsonHeaders,
-      body: JSON.stringify(body)
-    });
-  }
-  function oauthError(error2, description, status = 400) {
-    return jsonResponse({
-      error: error2,
-      error_description: description
-    }, status, status === 401 ? "Unauthorized" : "Bad Request");
-  }
-  async function requestData(req) {
-    if (req.data instanceof URLSearchParams) {
-      return Object.fromEntries(req.data.entries());
-    }
-    if (req.data && typeof req.data === "object") {
-      return req.data;
-    }
-    if (!req.body) {
-      return {};
-    }
-    const text = await req.clone().text();
-    return Object.fromEntries(new URLSearchParams(text).entries());
-  }
-  function paramValue(params, name) {
-    return typeof params.get === "function" ? params.get(name) : params[name];
-  }
-  function required(params, name) {
-    if (!paramValue(params, name)) {
-      return `${name} is required`;
-    }
-    return null;
-  }
-  function same(value, expected, name) {
-    if (expected !== void 0 && value !== expected) {
-      return `${name} must be ${expected}`;
-    }
-    return null;
-  }
-  function randomToken(prefix) {
-    return `${prefix}-${Math.random().toString(36).slice(2)}`;
-  }
-  function oauth2mockserver(options = {}) {
-    const defaultOptions = {
-      client_id: "mockClientId",
-      client_secret: "mockClientSecret",
-      redirect_uri: "https://client.example/callback",
-      scope: "read write",
-      token_type: "Bearer",
-      access_token: "mockAccessToken",
-      refresh_token: "mockRefreshToken",
-      expires_in: 3600,
-      requirePKCE: false,
-      issueRefreshToken: true,
-      id_token: null
-    };
-    options = Object.assign({}, defaultOptions, options);
-    const authorizationCodes = /* @__PURE__ */ new Map();
-    const accessTokens = /* @__PURE__ */ new Set([options.access_token]);
-    const refreshTokens = /* @__PURE__ */ new Set([options.refresh_token]);
-    return async (req, next) => {
-      const url2 = everything_default.url(req.url);
-      switch (url2.pathname) {
-        case "/authorize/":
-        case "/authorize":
-          return authorize(url2);
-        case "/token/":
-        case "/token":
-          return token(req);
-        case "/protected/":
-        case "/protected":
-          return protectedResource(req);
-        case "/public/":
-        case "/public":
-          return jsonResponse({ result: "Success" });
-        default:
-          if (next) {
-            return next(req);
-          }
-          return everything_default.response({
-            status: 404,
-            statusText: "Not Found",
-            headers: textHeaders,
-            body: `404 Not Found ${url2.href}`
-          });
-      }
-    };
-    function authorize(url2) {
-      const params = url2.searchParams;
-      let error2;
-      for (const name of ["response_type", "client_id", "redirect_uri", "state"]) {
-        error2 = required(params, name);
-        if (error2) return oauthError("invalid_request", error2);
-      }
-      error2 = same(paramValue(params, "response_type"), "code", "response_type") || same(paramValue(params, "client_id"), options.client_id, "client_id") || same(paramValue(params, "redirect_uri"), options.redirect_uri, "redirect_uri");
-      if (error2) return oauthError("invalid_request", error2);
-      const codeChallenge = paramValue(params, "code_challenge");
-      const codeChallengeMethod = paramValue(params, "code_challenge_method");
-      if (options.requirePKCE && !codeChallenge) {
-        return oauthError("invalid_request", "code_challenge is required");
-      }
-      if (codeChallenge && !codeChallengeMethod) {
-        return oauthError("invalid_request", "code_challenge_method is required");
-      }
-      if (codeChallengeMethod && !["S256", "plain"].includes(codeChallengeMethod)) {
-        return oauthError("invalid_request", "unsupported code_challenge_method");
-      }
-      const code = randomToken("mockAuthorizeCode");
-      authorizationCodes.set(code, {
-        client_id: paramValue(params, "client_id"),
-        redirect_uri: paramValue(params, "redirect_uri"),
-        scope: paramValue(params, "scope") || options.scope,
-        nonce: paramValue(params, "nonce"),
-        state: paramValue(params, "state"),
-        code_challenge: codeChallenge,
-        code_challenge_method: codeChallengeMethod,
-        used: false
-      });
-      return jsonResponse({
-        code,
-        state: paramValue(params, "state"),
-        redirect_uri: paramValue(params, "redirect_uri")
-      });
-    }
-    async function token(req) {
-      if (req.method !== "POST") {
-        return oauthError("invalid_request", "token endpoint requires POST");
-      }
-      const body = await requestData(req);
-      const grantType = body.grant_type;
-      let error2 = required(body, "grant_type") || required(body, "client_id");
-      if (error2) return oauthError("invalid_request", error2);
-      error2 = same(body.client_id, options.client_id, "client_id");
-      if (error2) return oauthError("invalid_client", error2, 401);
-      switch (grantType) {
-        case "authorization_code":
-          return authorizationCodeGrant(body);
-        case "refresh_token":
-          return refreshTokenGrant(body);
-        case "client_credentials":
-          return clientCredentialsGrant(body);
-        default:
-          return oauthError("unsupported_grant_type", `unsupported grant_type ${grantType}`);
-      }
-    }
-    async function authorizationCodeGrant(body) {
-      let error2 = required(body, "code") || required(body, "redirect_uri");
-      if (error2) return oauthError("invalid_request", error2);
-      const code = authorizationCodes.get(body.code);
-      if (!code || code.used) {
-        return oauthError("invalid_grant", "authorization code is invalid or already used");
-      }
-      if (code.client_id !== body.client_id || code.redirect_uri !== body.redirect_uri) {
-        return oauthError("invalid_grant", "authorization code was not issued for this client or redirect_uri");
-      }
-      if (code.code_challenge) {
-        if (!body.code_verifier) {
-          return oauthError("invalid_request", "code_verifier is required");
-        }
-        const expectedChallenge = code.code_challenge_method === "S256" ? await generateCodeChallenge(body.code_verifier) : body.code_verifier;
-        if (expectedChallenge !== code.code_challenge) {
-          return oauthError("invalid_grant", "code_verifier does not match code_challenge");
-        }
-      }
-      code.used = true;
-      return issueToken(code.scope, { authorization: code, grant_type: "authorization_code" });
-    }
-    async function refreshTokenGrant(body) {
-      let error2 = required(body, "refresh_token");
-      if (error2) return oauthError("invalid_request", error2);
-      if (!refreshTokens.has(body.refresh_token?.value || body.refresh_token)) {
-        return oauthError("invalid_grant", "refresh_token is invalid");
-      }
-      return issueToken(body.scope || options.scope, { grant_type: "refresh_token" });
-    }
-    async function clientCredentialsGrant(body) {
-      if (options.client_secret && body.client_secret !== options.client_secret) {
-        return oauthError("invalid_client", "client_secret is invalid", 401);
-      }
-      return issueToken(body.scope || options.scope, { refresh: false });
-    }
-    async function issueToken(scope, tokenOptions = {}) {
-      const token2 = options.access_token;
-      accessTokens.add(token2);
-      const body = {
-        access_token: token2,
-        token_type: options.token_type,
-        expires_in: options.expires_in,
-        scope,
-        example_parameter: "mockExampleValue"
-      };
-      const includeRefresh = tokenOptions.refresh !== false && options.issueRefreshToken;
-      if (includeRefresh) {
-        refreshTokens.add(options.refresh_token);
-        body.refresh_token = options.refresh_token;
-      }
-      if (options.id_token) {
-        body.id_token = typeof options.id_token === "function" ? await options.id_token({ scope, ...tokenOptions }) : options.id_token;
-      }
-      return jsonResponse(body);
-    }
-    function protectedResource(req) {
-      const auth = req.headers.get("Authorization");
-      const [type, token2] = auth ? auth.split(" ") : [];
-      if (type !== options.token_type || !accessTokens.has(token2)) {
-        return everything_default.response({
-          status: 401,
-          statusText: "Unauthorized",
-          headers: textHeaders,
-          body: "401 Unauthorized"
-        });
-      }
-      return jsonResponse({ result: "Success" });
-    }
-  }
-
-  // ../metro-oauth2/src/oauth2.discovery.mjs
-  var oauth2_discovery_exports = {};
-  __export(oauth2_discovery_exports, {
-    default: () => makeClient
-  });
-  var validAlgorithms = [
-    "HS256",
-    "HS384",
-    "HS512",
-    "RS256",
-    "RS384",
-    "RS512",
-    "ES256",
-    "ES384",
-    "ES512"
-  ];
-  var validAuthMethods = [
-    "client_secret_post",
-    "client_secret_base",
-    "client_secret_jwt",
-    "private_key_jwt"
-  ];
-  var oauth_authorization_server_metadata = {
-    issuer: Required(validURL),
-    authorization_endpoint: Required(validURL),
-    token_endpoint: Required(validURL),
-    jwks_uri: Optional(validURL),
-    registration_endpoint: Optional(validURL),
-    scopes_supported: Recommended([]),
-    response_types_supported: Required(anyOf("code", "token")),
-    response_modes_supported: Optional([]),
-    grant_types_supported: Optional([]),
-    token_endpoint_auth_methods_supported: Optional([]),
-    token_endpoint_auth_signing_alg_values_supported: Optional([]),
-    service_documentation: Optional(validURL),
-    ui_locales_supported: Optional([]),
-    op_policy_uri: Optional(validURL),
-    op_tos_uri: Optional(validURL),
-    revocation_endpoint: Optional(validURL),
-    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
-    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
-    introspection_endpoint: Optional(validURL),
-    introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
-    introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
-    code_challendge_methods_supported: Optional([])
-  };
-  function makeClient(options = {}) {
-    const defaultOptions = {
-      client: everything_default.client()
-    };
-    options = Object.assign({}, defaultOptions, options);
-    assert(options, {
-      issuer: Required(validURL)
-    });
-    const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer);
-    return options.client.with(options.issuer);
-  }
-  async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
-    let res = client2.get(everything_default.url(issuer, ".wellknown/oauth_authorization_server"));
-    if (res.ok) {
-      assert(res.headers.get("Content-Type"), /application\/json.*/);
-      let configuration = await res.json();
-      assert(configuration, oauth_authorization_server_metadata);
-      return configuration;
-    }
-    throw everything_default.metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
-  }
-
-  // ../metro-oauth2/src/oauth2.popup.mjs
-  function handleRedirect(origin = null) {
-    let success = false;
-    origin = origin || window.location.origin;
-    let params = new URLSearchParams(window.location.search);
-    if (!params.has("code") && window.location.hash) {
-      let query = window.location.hash.substring(1);
-      params = new URLSearchParams("?" + query);
-    }
-    let parent = window.parent !== window ? window.parent : window.opener;
-    if (!parent) {
-      console.error("No parent window found, cannot post authorization code (or error)");
-    } else {
-      let message2;
-      if (params.has("code")) {
-        success = true;
-        message2 = { authorization_code: params.get("code") };
-      } else if (params.has("error")) {
-        message2 = { error: params.get("error") };
-      } else {
-        message2 = { error: "Could not find an authorization_code" };
-      }
-      parent.postMessage(message2, origin);
-    }
-    return success;
-  }
-  function authorizePopup(authorizationCodeURL) {
-    return new Promise((resolve, reject) => {
-      addEventListener("message", (event) => {
-        if (event.data.authorization_code) {
-          resolve(event.data.authorization_code);
-        } else if (event.data.error) {
-          reject(event.data.error);
-        } else {
-          reject("Unknown authorization error");
-        }
-      }, { once: true });
-      window.open(authorizationCodeURL);
-    });
-  }
-
-  // ../metro-oauth2/src/keysstore.mjs
-  function keysStore() {
-    return new Promise((resolve, reject) => {
-      const request2 = globalThis.indexedDB.open("metro", 1);
-      request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
-      request2.onerror = (event) => {
-        reject(event);
-      };
-      request2.onsuccess = (event) => {
-        const db = event.target.result;
-        resolve({
-          set: function(value, key) {
-            return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwrite", { durability: "strict" });
-              const objectStore = tx.objectStore("keyPairs");
-              tx.oncomplete = () => {
-                resolve2();
-              };
-              tx.onerror = reject2;
-              objectStore.put(value, key);
-            });
-          },
-          get: function(key) {
-            return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readonly");
-              const objectStore = tx.objectStore("keyPairs");
-              const request3 = objectStore.get(key);
-              request3.onsuccess = () => {
-                resolve2(request3.result);
-              };
-              request3.onerror = reject2;
-              tx.onerror = reject2;
-            });
-          },
-          clear: function() {
-            return new Promise((resolve2, reject2) => {
-              const tx = db.transaction("keyPairs", "readwrite");
-              const objectStore = tx.objectStore("keyPairs");
-              const request3 = objectStore.clear();
-              request3.onsuccess = () => {
-                resolve2();
-              };
-              request3.onerror = reject2;
-              tx.onerror = reject2;
-            });
-          }
-        });
-      };
-    });
   }
 
   // ../../node_modules/dpop/build/index.js
@@ -2041,6 +1787,57 @@
     return crypto.subtle.generateKey(algorithm, (_a = options === null || options === void 0 ? void 0 : options.extractable) !== null && _a !== void 0 ? _a : false, ["sign", "verify"]);
   }
 
+  // ../metro-oauth2/src/keysstore.mjs
+  function keysStore() {
+    return new Promise((resolve, reject) => {
+      const request2 = globalThis.indexedDB.open("metro", 1);
+      request2.onupgradeneeded = () => request2.result.createObjectStore("keyPairs", { keyPath: "domain" });
+      request2.onerror = (event) => {
+        reject(event);
+      };
+      request2.onsuccess = (event) => {
+        const db = event.target.result;
+        resolve({
+          set: function(value, key) {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readwrite", { durability: "strict" });
+              const objectStore = tx.objectStore("keyPairs");
+              tx.oncomplete = () => {
+                resolve2();
+              };
+              tx.onerror = reject2;
+              objectStore.put(value, key);
+            });
+          },
+          get: function(key) {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readonly");
+              const objectStore = tx.objectStore("keyPairs");
+              const request3 = objectStore.get(key);
+              request3.onsuccess = () => {
+                resolve2(request3.result);
+              };
+              request3.onerror = reject2;
+              tx.onerror = reject2;
+            });
+          },
+          clear: function() {
+            return new Promise((resolve2, reject2) => {
+              const tx = db.transaction("keyPairs", "readwrite");
+              const objectStore = tx.objectStore("keyPairs");
+              const request3 = objectStore.clear();
+              request3.onsuccess = () => {
+                resolve2();
+              };
+              request3.onerror = reject2;
+              tx.onerror = reject2;
+            });
+          }
+        });
+      };
+    });
+  }
+
   // ../metro-oauth2/src/oauth2.dpop.mjs
   function dpopmw(options) {
     assert(options, {
@@ -2092,185 +1889,6 @@
     };
   }
 
-  // ../metro-oauth2/src/browser.mjs
-  var oauth2 = Object.assign({}, oauth2_exports, {
-    oauth2mw,
-    mockserver: oauth2_mockserver_exports,
-    discover: oauth2_discovery_exports,
-    tokenstore: tokenStore,
-    dpopmw,
-    keysstore: keysStore,
-    authorizePopup,
-    popupHandleRedirect: handleRedirect
-  });
-  if (!globalThis.metro.oauth2) {
-    globalThis.metro.oauth2 = oauth2;
-  }
-
-  // src/oidc.util.mjs
-  var MustHave = (...options) => (value, root) => {
-    if (options.filter((o) => root.hasOwnKey(o)).length > 0) {
-      return false;
-    }
-    return error("root data must have all of", root, options);
-  };
-  var MustInclude = (...options) => (value) => {
-    if (Array.isArray(value) && options.filter((o) => !value.includes(o)).length == 0) {
-      return false;
-    } else {
-      return error("data must be an array which includes", value, options);
-    }
-  };
-  var validJWA = [
-    "HS256",
-    "HS384",
-    "HS512",
-    "RS256",
-    "RS384",
-    "RS512",
-    "ES256",
-    "ES384",
-    "ES512"
-  ];
-  var validAuthMethods2 = [
-    "none",
-    "client_secret_post",
-    "client_secret_basic",
-    "client_secret_jwt",
-    "private_key_jwt"
-  ];
-
-  // src/oidc.discovery.mjs
-  async function oidcDiscovery(options = {}) {
-    assert(options, {
-      client: Optional(instanceOf(everything_default.client().constructor)),
-      issuer: Required(validURL)
-    });
-    const defaultOptions = {
-      client: everything_default.client().with(throwermw()).with(jsonmw()),
-      requireDynamicRegistration: false
-    };
-    options = Object.assign({}, defaultOptions, options);
-    options.client = options.client.with(throwermw()).with(jsonmw());
-    const TestSucceeded = false;
-    function MustUseHTTPS(url2) {
-      return TestSucceeded;
-    }
-    const openid_provider_metadata = {
-      issuer: Required(allOf(options.issuer, MustUseHTTPS)),
-      authorization_endpoint: Required(validURL),
-      token_endpoint: Required(validURL),
-      userinfo_endpoint: Recommended(validURL),
-      // todo: test for https protocol
-      jwks_uri: Required(validURL),
-      registration_endpoint: options.requireDynamicRegistration ? Required(validURL) : Recommended(validURL),
-      scopes_supported: Recommended(MustInclude("openid")),
-      response_types_supported: options.requireDynamicRegistration ? Required(MustInclude("code", "id_token", "id_token token")) : Required([]),
-      response_modes_supported: Optional([]),
-      grant_types_supported: options.requireDynamicRegistration ? Optional(MustInclude("authorization_code")) : Optional([]),
-      acr_values_supported: Optional([]),
-      subject_types_supported: Required([]),
-      id_token_signing_alg_values_supported: Required(MustInclude("RS256")),
-      id_token_encryption_alg_values_supported: Optional([]),
-      id_token_encryption_enc_values_supported: Optional([]),
-      userinfo_signing_alg_values_supported: Optional([]),
-      userinfo_encryption_alg_values_supported: Optional([]),
-      userinfo_encryption_enc_values_supported: Optional([]),
-      request_object_signing_alg_values_supported: Optional(MustInclude("RS256")),
-      // not testing for 'none'
-      request_object_encryption_alg_values_supported: Optional([]),
-      request_object_encryption_enc_values_supported: Optional([]),
-      token_endpoint_auth_methods_supported: Optional(anyOf(...validAuthMethods2)),
-      token_endpoint_auth_signing_alg_values_supported: Optional(MustInclude("RS256"), not(MustInclude("none"))),
-      display_values_supported: Optional(anyOf("page", "popup", "touch", "wap")),
-      claim_types_supported: Optional(anyOf("normal", "aggregated", "distributed")),
-      claims_supported: Recommended([]),
-      service_documentation: Optional(validURL),
-      claims_locales_supported: Optional([]),
-      ui_locales_supported: Optional([]),
-      claims_parameter_supported: Optional(Boolean),
-      request_parameter_supported: Optional(Boolean),
-      request_uri_parameter_supported: Optional(Boolean),
-      op_policy_uri: Optional(validURL),
-      op_tos_uri: Optional(validURL)
-    };
-    const configURL = everything_default.url(options.issuer, ".well-known/openid-configuration");
-    const response2 = await options.client.get(
-      // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
-      // note: this allows path components in the options.issuer url
-      configURL
-    );
-    const openid_config = response2.data;
-    assert(openid_config, openid_provider_metadata);
-    assert(openid_config.issuer, options.issuer);
-    return openid_config;
-  }
-
-  // src/oidc.register.mjs
-  async function register(options) {
-    const openid_client_metadata = {
-      redirect_uris: Required([validURL]),
-      response_types: Optional([]),
-      grant_types: Optional(anyOf("authorization_code", "refresh_token")),
-      //TODO: match response_types with grant_types
-      application_type: Optional(oneOf("native", "web")),
-      contacts: Optional([validEmail]),
-      client_name: Optional(String),
-      logo_uri: Optional(validURL),
-      client_uri: Optional(validURL),
-      policy_uri: Optional(validURL),
-      tos_uri: Optional(validURL),
-      jwks_uri: Optional(validURL, not(MustHave("jwks"))),
-      jwks: Optional(validURL, not(MustHave("jwks_uri"))),
-      sector_identifier_uri: Optional(validURL),
-      subject_type: Optional(String),
-      id_token_signed_response_alg: Optional(oneOf(...validJWA)),
-      id_token_encrypted_response_alg: Optional(oneOf(...validJWA)),
-      id_token_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("id_token_encrypted_response_alg")),
-      userinfo_signed_response_alg: Optional(oneOf(...validJWA)),
-      userinfo_encrypted_response_alg: Optional(oneOf(...validJWA)),
-      userinfo_encrypted_response_enc: Optional(oneOf(...validJWA), MustHave("userinfo_encrypted_response_alg")),
-      request_object_signing_alg: Optional(oneOf(...validJWA)),
-      request_object_encryption_alg: Optional(oneOf(...validJWA)),
-      request_object_encryption_enc: Optional(oneOf(...validJWA)),
-      token_endpoint_auth_method: Optional(oneOf(...validAuthMethods2)),
-      token_endpoint_auth_signing_alg: Optional(oneOf(...validJWA)),
-      default_max_age: Optional(Number),
-      require_auth_time: Optional(Boolean),
-      default_acr_values: Optional([String]),
-      initiate_login_uri: Optional([validURL]),
-      request_uris: Optional([validURL])
-    };
-    assert(options, {
-      client: Optional(instanceOf(everything_default.client().constructor)),
-      registration_endpoint: validURL,
-      client_info: openid_client_metadata
-    });
-    const defaultOptions = {
-      client: everything_default.client().with(throwermw()).with(jsonmw()),
-      client_info: {
-        redirect_uris: [globalThis.document?.location.href]
-      }
-    };
-    options = Object.assign({}, defaultOptions, options);
-    options.client = options.client.with(throwermw()).with(jsonmw());
-    if (!options.client_info) {
-      options.client_info = {};
-    }
-    if (!options.client_info.redirect_uris) {
-      options.client_info.redirect_uris = [globalThis.document?.location.href];
-    }
-    let response2 = await options.client.post(options.registration_endpoint, {
-      body: options.client_info
-    });
-    let info = response2.data;
-    if (!info.client_id) {
-      throw everything_default.metroError("metro.oidc: Error: dynamic registration of client failed, no client_id returned", response2);
-    }
-    options.client_info = Object.assign(options.client_info, info);
-    return options.client_info;
-  }
-
   // src/oidc.store.mjs
   function oidcStore(site) {
     let store;
@@ -2318,17 +1936,6 @@
   }
 
   // ../../node_modules/jose/dist/webapi/lib/base64.js
-  function encodeBase64(input) {
-    if (Uint8Array.prototype.toBase64) {
-      return input.toBase64();
-    }
-    const CHUNK_SIZE = 32768;
-    const arr = [];
-    for (let i = 0; i < input.length; i += CHUNK_SIZE) {
-      arr.push(String.fromCharCode.apply(null, input.subarray(i, i + CHUNK_SIZE)));
-    }
-    return btoa(arr.join(""));
-  }
   function decodeBase64(encoded) {
     if (Uint8Array.fromBase64) {
       return Uint8Array.fromBase64(encoded);
@@ -2358,16 +1965,6 @@
     } catch {
       throw new TypeError("The input to be decoded is not correctly encoded.");
     }
-  }
-  function encode2(input) {
-    let unencoded = input;
-    if (typeof unencoded === "string") {
-      unencoded = encoder2.encode(unencoded);
-    }
-    if (Uint8Array.prototype.toBase64) {
-      return unencoded.toBase64({ alphabet: "base64url", omitPadding: true });
-    }
-    return encodeBase64(unencoded).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   }
 
   // ../../node_modules/jose/dist/webapi/lib/crypto_key.js
@@ -2572,11 +2169,6 @@
   var isKeyLike = (key) => isCryptoKey2(key) || isKeyObject(key);
 
   // ../../node_modules/jose/dist/webapi/lib/helpers.js
-  function assertNotSet(value, name) {
-    if (value) {
-      throw new TypeError(`${name} can only be called once`);
-    }
-  }
   function decodeBase64url(value, label, ErrorClass) {
     try {
       return decode(value);
@@ -2674,12 +2266,6 @@
     }
     checkSigCryptoKey(key, alg, usage);
     return key;
-  }
-  async function sign(alg, key, data) {
-    const cryptoKey = await getSigKey(alg, key, "sign");
-    checkKeyLength(alg, cryptoKey);
-    const signature = await crypto.subtle.sign(subtleAlgorithm2(alg, cryptoKey.algorithm), cryptoKey, data);
-    return new Uint8Array(signature);
   }
   async function verify(alg, key, signature, data) {
     const cryptoKey = await getSigKey(alg, key, "verify");
@@ -2995,40 +2581,6 @@
       default:
         throw new JOSENotSupported('Unsupported "kty" (Key Type) Parameter value');
     }
-  }
-
-  // ../../node_modules/jose/dist/webapi/lib/key_to_jwk.js
-  async function keyToJWK(key) {
-    if (isKeyObject(key)) {
-      if (key.type === "secret") {
-        key = key.export();
-      } else {
-        return key.export({ format: "jwk" });
-      }
-    }
-    if (key instanceof Uint8Array) {
-      return {
-        kty: "oct",
-        k: encode2(key)
-      };
-    }
-    if (!isCryptoKey2(key)) {
-      throw new TypeError(invalidKeyInput(key, "CryptoKey", "KeyObject", "Uint8Array"));
-    }
-    if (!key.extractable) {
-      throw new TypeError("non-extractable CryptoKey cannot be exported as a JWK");
-    }
-    const { ext, key_ops, alg, use, ...jwk } = await crypto.subtle.exportKey("jwk", key);
-    if (jwk.kty === "AKP") {
-      ;
-      jwk.alg = alg;
-    }
-    return jwk;
-  }
-
-  // ../../node_modules/jose/dist/webapi/key/export.js
-  async function exportJWK(key) {
-    return keyToJWK(key);
   }
 
   // ../../node_modules/jose/dist/webapi/lib/validate_crit.js
@@ -3363,12 +2915,6 @@
     }
     return numericDate;
   }
-  function validateInput(label, input) {
-    if (!Number.isFinite(input)) {
-      throw new TypeError(`Invalid ${label} input`);
-    }
-    return input;
-  }
   var normalizeTyp = (value) => {
     if (value.includes("/")) {
       return value.toLowerCase();
@@ -3468,68 +3014,6 @@
     }
     return payload;
   }
-  var JWTClaimsBuilder = class {
-    #payload;
-    constructor(payload) {
-      if (!isObject(payload)) {
-        throw new TypeError("JWT Claims Set MUST be an object");
-      }
-      this.#payload = structuredClone(payload);
-    }
-    data() {
-      return encoder2.encode(JSON.stringify(this.#payload));
-    }
-    get iss() {
-      return this.#payload.iss;
-    }
-    set iss(value) {
-      this.#payload.iss = value;
-    }
-    get sub() {
-      return this.#payload.sub;
-    }
-    set sub(value) {
-      this.#payload.sub = value;
-    }
-    get aud() {
-      return this.#payload.aud;
-    }
-    set aud(value) {
-      this.#payload.aud = value;
-    }
-    set jti(value) {
-      this.#payload.jti = value;
-    }
-    set nbf(value) {
-      if (typeof value === "number") {
-        this.#payload.nbf = validateInput("setNotBefore", value);
-      } else if (value instanceof Date) {
-        this.#payload.nbf = validateInput("setNotBefore", epoch(value));
-      } else {
-        this.#payload.nbf = epoch(/* @__PURE__ */ new Date()) + secs(value);
-      }
-    }
-    set exp(value) {
-      if (typeof value === "number") {
-        this.#payload.exp = validateInput("setExpirationTime", value);
-      } else if (value instanceof Date) {
-        this.#payload.exp = validateInput("setExpirationTime", epoch(value));
-      } else {
-        this.#payload.exp = epoch(/* @__PURE__ */ new Date()) + secs(value);
-      }
-    }
-    set iat(value) {
-      if (value === void 0) {
-        this.#payload.iat = epoch(/* @__PURE__ */ new Date());
-      } else if (value instanceof Date) {
-        this.#payload.iat = validateInput("setIssuedAt", epoch(value));
-      } else if (typeof value === "string") {
-        this.#payload.iat = validateInput("setIssuedAt", epoch(/* @__PURE__ */ new Date()) + secs(value));
-      } else {
-        this.#payload.iat = validateInput("setIssuedAt", value);
-      }
-    }
-  };
 
   // ../../node_modules/jose/dist/webapi/jwt/verify.js
   async function jwtVerify(jwt2, key, options) {
@@ -3544,154 +3028,6 @@
     }
     return result;
   }
-
-  // ../../node_modules/jose/dist/webapi/jws/flattened/sign.js
-  var FlattenedSign = class {
-    #payload;
-    #protectedHeader;
-    #unprotectedHeader;
-    constructor(payload) {
-      if (!(payload instanceof Uint8Array)) {
-        throw new TypeError("payload must be an instance of Uint8Array");
-      }
-      this.#payload = payload;
-    }
-    setProtectedHeader(protectedHeader) {
-      assertNotSet(this.#protectedHeader, "setProtectedHeader");
-      this.#protectedHeader = protectedHeader;
-      return this;
-    }
-    setUnprotectedHeader(unprotectedHeader) {
-      assertNotSet(this.#unprotectedHeader, "setUnprotectedHeader");
-      this.#unprotectedHeader = unprotectedHeader;
-      return this;
-    }
-    async sign(key, options) {
-      if (!this.#protectedHeader && !this.#unprotectedHeader) {
-        throw new JWSInvalid("either setProtectedHeader or setUnprotectedHeader must be called before #sign()");
-      }
-      if (!isDisjoint(this.#protectedHeader, this.#unprotectedHeader)) {
-        throw new JWSInvalid("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
-      }
-      const joseHeader = {
-        ...this.#protectedHeader,
-        ...this.#unprotectedHeader
-      };
-      const extensions = validateCrit(JWSInvalid, /* @__PURE__ */ new Map([["b64", true]]), options?.crit, this.#protectedHeader, joseHeader);
-      let b64 = true;
-      if (extensions.has("b64")) {
-        b64 = this.#protectedHeader.b64;
-        if (typeof b64 !== "boolean") {
-          throw new JWSInvalid('The "b64" (base64url-encode payload) Header Parameter must be a boolean');
-        }
-      }
-      const { alg } = joseHeader;
-      if (typeof alg !== "string" || !alg) {
-        throw new JWSInvalid('JWS "alg" (Algorithm) Header Parameter missing or invalid');
-      }
-      checkKeyType(alg, key, "sign");
-      let payloadS;
-      let payloadB;
-      if (b64) {
-        payloadS = encode2(this.#payload);
-        payloadB = encode(payloadS);
-      } else {
-        payloadB = this.#payload;
-        payloadS = "";
-      }
-      let protectedHeaderString;
-      let protectedHeaderBytes;
-      if (this.#protectedHeader) {
-        protectedHeaderString = encode2(JSON.stringify(this.#protectedHeader));
-        protectedHeaderBytes = encode(protectedHeaderString);
-      } else {
-        protectedHeaderString = "";
-        protectedHeaderBytes = new Uint8Array();
-      }
-      const data = concat(protectedHeaderBytes, encode("."), payloadB);
-      const k = await normalizeKey(key, alg);
-      const signature = await sign(alg, k, data);
-      const jws = {
-        signature: encode2(signature),
-        payload: payloadS
-      };
-      if (this.#unprotectedHeader) {
-        jws.header = this.#unprotectedHeader;
-      }
-      if (this.#protectedHeader) {
-        jws.protected = protectedHeaderString;
-      }
-      return jws;
-    }
-  };
-
-  // ../../node_modules/jose/dist/webapi/jws/compact/sign.js
-  var CompactSign = class {
-    #flattened;
-    constructor(payload) {
-      this.#flattened = new FlattenedSign(payload);
-    }
-    setProtectedHeader(protectedHeader) {
-      this.#flattened.setProtectedHeader(protectedHeader);
-      return this;
-    }
-    async sign(key, options) {
-      const jws = await this.#flattened.sign(key, options);
-      if (jws.payload === void 0) {
-        throw new TypeError("use the flattened module for creating JWS with b64: false");
-      }
-      return `${jws.protected}.${jws.payload}.${jws.signature}`;
-    }
-  };
-
-  // ../../node_modules/jose/dist/webapi/jwt/sign.js
-  var SignJWT = class {
-    #protectedHeader;
-    #jwt;
-    constructor(payload = {}) {
-      this.#jwt = new JWTClaimsBuilder(payload);
-    }
-    setIssuer(issuer) {
-      this.#jwt.iss = issuer;
-      return this;
-    }
-    setSubject(subject) {
-      this.#jwt.sub = subject;
-      return this;
-    }
-    setAudience(audience) {
-      this.#jwt.aud = audience;
-      return this;
-    }
-    setJti(jwtId) {
-      this.#jwt.jti = jwtId;
-      return this;
-    }
-    setNotBefore(input) {
-      this.#jwt.nbf = input;
-      return this;
-    }
-    setExpirationTime(input) {
-      this.#jwt.exp = input;
-      return this;
-    }
-    setIssuedAt(input) {
-      this.#jwt.iat = input;
-      return this;
-    }
-    setProtectedHeader(protectedHeader) {
-      this.#protectedHeader = protectedHeader;
-      return this;
-    }
-    async sign(key, options) {
-      const sig = new CompactSign(this.#jwt.data());
-      sig.setProtectedHeader(this.#protectedHeader);
-      if (Array.isArray(this.#protectedHeader?.crit) && this.#protectedHeader.crit.includes("b64") && this.#protectedHeader.b64 === false) {
-        throw new JWTInvalid("JWTs MUST NOT use unencoded payload");
-      }
-      return sig.sign(key, options);
-    }
-  };
 
   // ../../node_modules/jose/dist/webapi/jwks/local.js
   function getKtyFromAlg(alg) {
@@ -3808,104 +3144,6 @@
     return localJWKSet;
   }
 
-  // ../../node_modules/jose/dist/webapi/key/generate_key_pair.js
-  function getModulusLengthOption(options) {
-    const modulusLength = options?.modulusLength ?? 2048;
-    if (typeof modulusLength !== "number" || modulusLength < 2048) {
-      throw new JOSENotSupported("Invalid or unsupported modulusLength option provided, 2048 bits or larger keys must be used");
-    }
-    return modulusLength;
-  }
-  async function generateKeyPair2(alg, options) {
-    let algorithm;
-    let keyUsages;
-    switch (alg) {
-      case "PS256":
-      case "PS384":
-      case "PS512":
-        algorithm = {
-          name: "RSA-PSS",
-          hash: `SHA-${alg.slice(-3)}`,
-          publicExponent: Uint8Array.of(1, 0, 1),
-          modulusLength: getModulusLengthOption(options)
-        };
-        keyUsages = ["sign", "verify"];
-        break;
-      case "RS256":
-      case "RS384":
-      case "RS512":
-        algorithm = {
-          name: "RSASSA-PKCS1-v1_5",
-          hash: `SHA-${alg.slice(-3)}`,
-          publicExponent: Uint8Array.of(1, 0, 1),
-          modulusLength: getModulusLengthOption(options)
-        };
-        keyUsages = ["sign", "verify"];
-        break;
-      case "RSA-OAEP":
-      case "RSA-OAEP-256":
-      case "RSA-OAEP-384":
-      case "RSA-OAEP-512":
-        algorithm = {
-          name: "RSA-OAEP",
-          hash: `SHA-${parseInt(alg.slice(-3), 10) || 1}`,
-          publicExponent: Uint8Array.of(1, 0, 1),
-          modulusLength: getModulusLengthOption(options)
-        };
-        keyUsages = ["decrypt", "unwrapKey", "encrypt", "wrapKey"];
-        break;
-      case "ES256":
-        algorithm = { name: "ECDSA", namedCurve: "P-256" };
-        keyUsages = ["sign", "verify"];
-        break;
-      case "ES384":
-        algorithm = { name: "ECDSA", namedCurve: "P-384" };
-        keyUsages = ["sign", "verify"];
-        break;
-      case "ES512":
-        algorithm = { name: "ECDSA", namedCurve: "P-521" };
-        keyUsages = ["sign", "verify"];
-        break;
-      case "Ed25519":
-      case "EdDSA": {
-        keyUsages = ["sign", "verify"];
-        algorithm = { name: "Ed25519" };
-        break;
-      }
-      case "ML-DSA-44":
-      case "ML-DSA-65":
-      case "ML-DSA-87": {
-        keyUsages = ["sign", "verify"];
-        algorithm = { name: alg };
-        break;
-      }
-      case "ECDH-ES":
-      case "ECDH-ES+A128KW":
-      case "ECDH-ES+A192KW":
-      case "ECDH-ES+A256KW": {
-        keyUsages = ["deriveBits"];
-        const crv = options?.crv ?? "P-256";
-        switch (crv) {
-          case "P-256":
-          case "P-384":
-          case "P-521": {
-            algorithm = { name: "ECDH", namedCurve: crv };
-            break;
-          }
-          case "X25519":
-            algorithm = { name: "X25519" };
-            break;
-          default:
-            throw new JOSENotSupported("Invalid or unsupported crv option provided, supported values are P-256, P-384, P-521, and X25519");
-        }
-        break;
-      }
-      default:
-        throw new JOSENotSupported('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
-    }
-    return crypto.subtle.generateKey(algorithm, options?.extractable ?? false, keyUsages);
-  }
-
   // src/oidc.jwt.mjs
   var jwksCache = /* @__PURE__ */ new WeakMap();
   function keySetFor(jwks) {
@@ -3962,7 +3200,7 @@
     const defaultOptions = {
       client: client(),
       force_authorization: false,
-      use_dpop: false,
+      use_dpop: true,
       authorize_callback: async (url2) => {
         if (window.location.href != url2.href) {
           window.location.replace(url2.href);
@@ -4120,182 +3358,11 @@
     return options.store.get("id_token_claims");
   }
 
-  // src/oidc.mockserver.mjs
-  var defaultIssuer = "https://issuer.example/";
-  var defaultRedirectUri = "https://client.example/callback";
-  var jsonHeaders2 = {
-    "Content-Type": "application/json"
-  };
-  var textHeaders2 = {
-    "Content-Type": "text/plain"
-  };
-  function jsonResponse2(body, status = 200, statusText = "OK") {
-    return everything_default.response({
-      status,
-      statusText,
-      headers: jsonHeaders2,
-      body: JSON.stringify(body)
-    });
-  }
-  function errorResponse(error2, description, status = 400) {
-    return jsonResponse2({
-      error: error2,
-      error_description: description
-    }, status, status === 401 ? "Unauthorized" : "Bad Request");
-  }
-  async function requestData2(req) {
-    if (req.data instanceof URLSearchParams) {
-      return Object.fromEntries(req.data.entries());
-    }
-    if (req.data && typeof req.data === "object") {
-      return req.data;
-    }
-    if (!req.body) {
-      return {};
-    }
-    const text = await req.clone().text();
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      return Object.fromEntries(new URLSearchParams(text).entries());
-    }
-  }
-  function oidcmockserver(options = {}) {
-    options = Object.assign({
-      issuer: defaultIssuer,
-      client_id: "mockClientId",
-      client_secret: "mockClientSecret",
-      redirect_uri: defaultRedirectUri,
-      sub: "mockSubject",
-      alg: "RS256",
-      kid: "mock-signing-key",
-      publishSigningKey: true,
-      idTokenClaims: {}
-    }, options);
-    const issuer = everything_default.url(options.issuer);
-    const keyPair = createSigningKey(options);
-    const oauth22 = oauth2mockserver({
-      client_id: options.client_id,
-      client_secret: options.client_secret,
-      redirect_uri: options.redirect_uri,
-      scope: "openid profile email",
-      id_token: (tokenContext) => idToken2(tokenContext),
-      requirePKCE: options.requirePKCE ?? false
-    });
-    const clients = /* @__PURE__ */ new Map();
-    return async (req, next) => {
-      const url2 = everything_default.url(req.url);
-      switch (url2.pathname) {
-        case "/.well-known/openid-configuration":
-          return discovery();
-        case "/register/":
-        case "/register":
-          return register2(req);
-        case "/userinfo/":
-        case "/userinfo":
-          return userinfo(req);
-        case "/jwks/":
-        case "/jwks":
-          return jwks();
-        default:
-          return oauth22(req, next);
-      }
-    };
-    function endpoint(path) {
-      return everything_default.url(issuer, path).href;
-    }
-    function discovery() {
-      return jsonResponse2({
-        issuer: issuer.href,
-        authorization_endpoint: endpoint("/authorize/"),
-        token_endpoint: endpoint("/token/"),
-        userinfo_endpoint: endpoint("/userinfo/"),
-        jwks_uri: endpoint("/jwks/"),
-        registration_endpoint: endpoint("/register/"),
-        scopes_supported: ["openid", "profile", "email"],
-        response_types_supported: ["code", "id_token", "id_token token"],
-        grant_types_supported: ["authorization_code", "refresh_token"],
-        subject_types_supported: ["public"],
-        id_token_signing_alg_values_supported: [options.alg],
-        claims_supported: ["iss", "sub", "aud", "exp", "iat", "nonce", "name", "email"]
-      });
-    }
-    async function jwks() {
-      if (!options.publishSigningKey) {
-        return jsonResponse2({ keys: [] });
-      }
-      const { publicKey } = await keyPair;
-      const jwk = await exportJWK(publicKey);
-      jwk.kid = options.jwksKid || options.kid;
-      jwk.alg = options.alg;
-      jwk.use = "sig";
-      return jsonResponse2({ keys: [jwk] });
-    }
-    async function register2(req) {
-      if (req.method !== "POST") {
-        return errorResponse("invalid_request", "registration endpoint requires POST");
-      }
-      const body = await requestData2(req);
-      if (!Array.isArray(body.redirect_uris) || body.redirect_uris.length === 0) {
-        return errorResponse("invalid_client_metadata", "redirect_uris is required");
-      }
-      const info = {
-        ...body,
-        client_id: options.client_id,
-        client_id_issued_at: Math.floor(Date.now() / 1e3),
-        token_endpoint_auth_method: options.client_secret ? "client_secret_post" : "none"
-      };
-      if (options.client_secret) {
-        info.client_secret = options.client_secret;
-      }
-      clients.set(info.client_id, info);
-      return jsonResponse2(info, 201, "Created");
-    }
-    function userinfo(req) {
-      const auth = req.headers.get("Authorization");
-      if (auth !== "Bearer mockAccessToken") {
-        return everything_default.response({
-          status: 401,
-          statusText: "Unauthorized",
-          headers: textHeaders2,
-          body: "401 Unauthorized"
-        });
-      }
-      return jsonResponse2({
-        sub: options.sub,
-        name: "Mock User",
-        email: "mock@example.test"
-      });
-    }
-    async function idToken2(tokenContext = {}) {
-      const now = Math.floor(Date.now() / 1e3);
-      const authorization = tokenContext.authorization || {};
-      const claims = {
-        iss: issuer.href,
-        sub: options.sub,
-        aud: options.client_id,
-        exp: now + 3600,
-        iat: now,
-        ...authorization.nonce ? { nonce: authorization.nonce } : {},
-        ...options.idTokenClaims
-      };
-      const { privateKey } = await keyPair;
-      return new SignJWT(claims).setProtectedHeader({ alg: options.alg, kid: options.kid }).sign(privateKey);
-    }
-  }
-  function createSigningKey(options) {
-    return generateKeyPair2(options.alg, {
-      extractable: true,
-      modulusLength: 2048
-    });
-  }
-
   // src/browser.mjs
   var oidc = {
     oidcmw,
     discover: oidcDiscovery,
     register,
-    mockserver: oidcmockserver,
     isRedirected: isRedirected2,
     idToken,
     idTokenClaims
@@ -4303,6 +3370,6 @@
   if (!globalThis.metro.oidc) {
     globalThis.metro.oidc = oidc;
   }
-  var browser_default2 = oidc;
+  var browser_default = oidc;
 })();
 //# sourceMappingURL=browser.js.map

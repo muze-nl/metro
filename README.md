@@ -45,6 +45,13 @@ Build all packages:
 npm run build
 ```
 
+Mock OAuth2/OIDC servers are test helpers. Import them from the explicit testing entries so they do not inflate production browser bundles:
+
+```js
+import oauth2mockserver from '@muze-nl/metro-oauth2/testing'
+import oidcmockserver from '@muze-nl/metro-oidc/testing'
+```
+
 ## Design direction
 
 The package boundaries are deliberate:

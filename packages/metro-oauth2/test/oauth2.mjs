@@ -199,3 +199,16 @@ tap.test('oauth2 utility functions keep their basic contracts', async t => {
 	t.match(createState(40), /^[A-Za-z0-9]{40}$/)
 	t.equal(base64url_encode(new Uint8Array([251, 255, 254])), '-__-')
 })
+
+
+tap.test('production browser export keeps the mock server out of the default API', async t => {
+	const oauth2 = await import('@muze-nl/metro-oauth2')
+	t.notOk(oauth2.default.mockserver)
+	t.type(oauth2.default.dpopmw, 'function')
+})
+
+tap.test('testing entry exports the OAuth2 mock server explicitly', async t => {
+	const testing = await import('@muze-nl/metro-oauth2/testing')
+	t.type(testing.default, 'function')
+	t.type(testing.oauth2mockserver, 'function')
+})

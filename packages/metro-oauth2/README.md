@@ -132,11 +132,11 @@ Only the `client_id` and `client_secret` don't have valid defaults. The defaults
 
 ## OAuth2 Mock-server Middleware
 
-The `oauth2mockserver` middleware implements a mock of an OAuth2 server. It doesn't actually call `fetch()` or `next()`, so no network requests are made. Instead it parses the request and implements a very basic OAuth2 authorization_code flow.
+The `oauth2mockserver` middleware implements a mock of an OAuth2 server for tests and examples. It does not call `fetch()` or `next()`, so no network requests are made. Instead it parses the request and implements OAuth2 authorization-code, refresh-token, and client-credentials test flows. The mock server is intentionally exported from `@muze-nl/metro-oauth2/testing` rather than the production browser bundle.
 
 ```javascript
 import oauth2mw from '@muze-nl/metro-oauth2'
-import oauth2mockserver from '@muze-nl/metro-auth2/src/oauth2.mockserver.mjs'
+import oauth2mockserver from '@muze-nl/metro-oauth2/testing'
 const client = metro.client('https://oauth2api.example.com')
 	.with( oauth2mockserver() )
 	.with( oauth2mw({

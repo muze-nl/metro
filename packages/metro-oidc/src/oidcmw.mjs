@@ -14,7 +14,7 @@ export default function oidcmw(options={}) {
 	const defaultOptions = {
 		client: metro.client(),
 		force_authorization: false,
-		use_dpop: false,
+		use_dpop: true,
 		authorize_callback: async url => {
 			if (window.location.href != url.href) {
 				window.location.replace(url.href)

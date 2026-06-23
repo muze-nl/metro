@@ -178,3 +178,16 @@ tap.test('OIDC userinfo endpoint requires the access token', async t => {
 		name: 'Mock User'
 	})
 })
+
+
+tap.test('production browser export keeps the mock server out of the default OIDC API', async t => {
+	const oidc = await import('@muze-nl/metro-oidc')
+	t.notOk(oidc.default.mockserver)
+	t.type(oidc.default.oidcmw, 'function')
+})
+
+tap.test('testing entry exports the OIDC mock server explicitly', async t => {
+	const testing = await import('@muze-nl/metro-oidc/testing')
+	t.type(testing.default, 'function')
+	t.type(testing.oidcmockserver, 'function')
+})
