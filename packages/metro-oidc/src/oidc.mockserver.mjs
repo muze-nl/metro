@@ -1,5 +1,6 @@
 import metro from '@muze-nl/metro'
 import oauth2mockserver from '@muze-nl/metro-oauth2/src/oauth2.mockserver.mjs'
+import { exportJWK, generateKeyPair, SignJWT } from 'jose'
 
 const defaultIssuer = 'https://issuer.example/'
 const defaultRedirectUri = 'https://client.example/callback'
@@ -47,9 +48,10 @@ async function requestData(req) {
 /**
  * Small OIDC provider mock for Metro tests.
  *
- * It exposes discovery metadata, dynamic client registration, userinfo and
- * delegates the OAuth2 authorization/token/protected-resource endpoints to the
- * OAuth2 mock server. This keeps OIDC tests on the same path as OAuth2 tests.
+ * It exposes discovery metadata, dynamic client registration, userinfo, JWKS
+ * and delegates the OAuth2 authorization/token/protected-resource endpoints to
+ * the OAuth2 mock server. Its token endpoint returns real signed ID Tokens so
+ * the OIDC client tests exercise actual JWT/JWS/JWKS validation.
  */
 export default function oidcmockserver(options = {}) {
 	options = Object.assign({
@@ -57,17 +59,21 @@ export default function oidcmockserver(options = {}) {
 		client_id: 'mockClientId',
 		client_secret: 'mockClientSecret',
 		redirect_uri: defaultRedirectUri,
-		id_token: 'mockHeader.mockPayload.mockSignature',
-		sub: 'mockSubject'
+		sub: 'mockSubject',
+		alg: 'RS256',
+		kid: 'mock-signing-key',
+		publishSigningKey: true,
+		idTokenClaims: {}
 	}, options)
 
 	const issuer = metro.url(options.issuer)
+	const keyPair = createSigningKey(options)
 	const oauth2 = oauth2mockserver({
 		client_id: options.client_id,
 		client_secret: options.client_secret,
 		redirect_uri: options.redirect_uri,
 		scope: 'openid profile email',
-		id_token: options.id_token,
+		id_token: tokenContext => idToken(tokenContext),
 		requirePKCE: options.requirePKCE ?? false
 	})
 	const clients = new Map()
@@ -85,7 +91,7 @@ export default function oidcmockserver(options = {}) {
 				return userinfo(req)
 			case '/jwks/':
 			case '/jwks':
-				return jsonResponse({ keys: [] })
+				return jwks()
 			default:
 				return oauth2(req, next)
 		}
@@ -107,9 +113,21 @@ export default function oidcmockserver(options = {}) {
 			response_types_supported: ['code', 'id_token', 'id_token token'],
 			grant_types_supported: ['authorization_code', 'refresh_token'],
 			subject_types_supported: ['public'],
-			id_token_signing_alg_values_supported: ['RS256'],
-			claims_supported: ['sub', 'name', 'email']
+			id_token_signing_alg_values_supported: [options.alg],
+			claims_supported: ['iss', 'sub', 'aud', 'exp', 'iat', 'nonce', 'name', 'email']
 		})
+	}
+
+	async function jwks() {
+		if (!options.publishSigningKey) {
+			return jsonResponse({ keys: [] })
+		}
+		const { publicKey } = await keyPair
+		const jwk = await exportJWK(publicKey)
+		jwk.kid = options.jwksKid || options.kid
+		jwk.alg = options.alg
+		jwk.use = 'sig'
+		return jsonResponse({ keys: [jwk] })
 	}
 
 	async function register(req) {
@@ -123,9 +141,11 @@ export default function oidcmockserver(options = {}) {
 		const info = {
 			...body,
 			client_id: options.client_id,
-			client_secret: options.client_secret,
 			client_id_issued_at: Math.floor(Date.now() / 1000),
-			token_endpoint_auth_method: 'client_secret_post'
+			token_endpoint_auth_method: options.client_secret ? 'client_secret_post' : 'none'
+		}
+		if (options.client_secret) {
+			info.client_secret = options.client_secret
 		}
 		clients.set(info.client_id, info)
 		return jsonResponse(info, 201, 'Created')
@@ -147,4 +167,29 @@ export default function oidcmockserver(options = {}) {
 			email: 'mock@example.test'
 		})
 	}
+
+	async function idToken(tokenContext = {}) {
+		const now = Math.floor(Date.now() / 1000)
+		const authorization = tokenContext.authorization || {}
+		const claims = {
+			iss: issuer.href,
+			sub: options.sub,
+			aud: options.client_id,
+			exp: now + 3600,
+			iat: now,
+			...(authorization.nonce ? { nonce: authorization.nonce } : {}),
+			...options.idTokenClaims
+		}
+		const { privateKey } = await keyPair
+		return new SignJWT(claims)
+			.setProtectedHeader({ alg: options.alg, kid: options.kid })
+			.sign(privateKey)
+	}
+}
+
+function createSigningKey(options) {
+	return generateKeyPair(options.alg, {
+		extractable: true,
+		modulusLength: 2048
+	})
 }

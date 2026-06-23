@@ -30,5 +30,5 @@ export const validJWA = [
 
 //TODO: add link to spec
 export const validAuthMethods = [
-	'client_secret_post', 'client_secret_basic','client_secret_jwt','private_key_jwt'
+	'none', 'client_secret_post', 'client_secret_basic','client_secret_jwt','private_key_jwt'
 ]

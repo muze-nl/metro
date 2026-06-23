@@ -5,13 +5,16 @@ import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/asser
 import discover from './oidc.discovery.mjs'
 import register from './oidc.register.mjs'
 import oidcStore from './oidc.store.mjs'
+import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
+import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
+import { validateIdToken } from './oidc.jwt.mjs'
 
 export default function oidcmw(options={}) {
 
 	const defaultOptions = {
 		client: metro.client(),
 		force_authorization: false,
-		use_dpop: true,
+		use_dpop: false,
 		authorize_callback: async url => {
 			if (window.location.href != url.href) {
 				window.location.replace(url.href)
@@ -77,6 +80,8 @@ export default function oidcmw(options={}) {
 		// now initialize an oauth2 client stack, using options.client as default
 		// with forceAuthentication: true
 		const scope = options.scope || 'openid'
+		const nonce = options.nonce || oauth2.generateCodeVerifier(32)
+		options.store.set('pending_nonce', nonce)
 
 		const oauth2Options = Object.assign(
 			{
@@ -93,7 +98,8 @@ export default function oidcmw(options={}) {
 					authorization_endpoint: options.openid_configuration.authorization_endpoint,
 					token_endpoint: options.openid_configuration.token_endpoint,
 					scope, //FIXME: should only use scopes supported by server
-					redirect_uri: options.client_info.redirect_uris[0]
+					redirect_uri: options.client_info.redirect_uris[0],
+					nonce
 				}
 			}
 			//...
@@ -101,26 +107,43 @@ export default function oidcmw(options={}) {
 		
 		const storeIdToken = async (req, next) => {
 			const res = await next(req)
-			const contentType = res.headers.get('content-type')
-			if (contentType?.startsWith('application/json')) {
-				//FIXME: check that this is actually the token endpoint
-				let id_token = res.data?.id_token
-				if (!id_token) {
-					const res2 = res.clone() // otherwise res.body can't be read again
-					try {
-						let data = await res2.json()
-						if (data && data.id_token) {
-							id_token = data.id_token
-						}
-					} catch(e) {
-						// ignore errors
-					}
-				}
-				if (id_token) {
-					options.store.set('id_token', id_token)
-				}
+			const tokenEndpoint = metro.url(options.openid_configuration.token_endpoint, { hash: '' }).href
+			const requestUrl = metro.url(req.url, { hash: '' }).href
+			if (requestUrl !== tokenEndpoint) {
+				return res
 			}
+			const contentType = res.headers.get('content-type')
+			if (!contentType?.startsWith('application/json')) {
+				return res
+			}
+
+			let data = res.data && typeof res.data === 'object' ? res.data : null
+			if (!data) {
+				const res2 = res.clone() // otherwise res.body can't be read again
+				data = await res2.json()
+			}
+
+			const id_token = data?.id_token
+			const jwks = await getJwks()
+			const validation = await validateIdToken(id_token, {
+				issuer: options.openid_configuration.issuer,
+				client_id: options.client_info.client_id,
+				jwks,
+				openid_configuration: options.openid_configuration,
+				nonce: options.store.get('pending_nonce')
+			})
+			options.store.set('id_token', id_token)
+			options.store.set('id_token_claims', validation.claims)
 			return res
+		}
+
+		const getJwks = async () => {
+			if (!options.jwks) {
+				const jwksClient = options.client.with(throwermw()).with(jsonmw())
+				const response = await jwksClient.get(options.openid_configuration.jwks_uri)
+				options.jwks = response.data
+			}
+			return options.jwks
 		}
 
 		let oauth2client = options.client.with(options.issuer).with(storeIdToken)
@@ -157,4 +180,14 @@ export function idToken(options) {
 		options.store = oidcStore(options.issuer)
 	}
 	return options.store.get('id_token')
+}
+
+export function idTokenClaims(options) {
+	if (!options.store) {
+		if (!options.issuer) {
+			throw metro.metroError('Must supply options.issuer or options.store to get the id_token claims')
+		}
+		options.store = oidcStore(options.issuer)
+	}
+	return options.store.get('id_token_claims')
 }

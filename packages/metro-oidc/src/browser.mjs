@@ -2,7 +2,7 @@ import metro from '@muze-nl/metro'
 import oauth2 from '@muze-nl/metro-oauth2'
 import oidcDiscover from './oidc.discovery.mjs'
 import oidcRegister from './oidc.register.mjs'
-import oidcmw, {isRedirected, idToken} from './oidcmw.mjs'
+import oidcmw, {isRedirected, idToken, idTokenClaims} from './oidcmw.mjs'
 import oidcmockserver from './oidc.mockserver.mjs'
 
 const oidc = {
@@ -11,7 +11,8 @@ const oidc = {
 	register: oidcRegister,
 	mockserver: oidcmockserver,
 	isRedirected,
-	idToken
+	idToken,
+	idTokenClaims
 }
 
 if (!globalThis.metro.oidc) {

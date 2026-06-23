@@ -1324,6 +1324,9 @@
       if (oauth22.prompt) {
         search.prompt = oauth22.prompt;
       }
+      if (oauth22.nonce) {
+        search.nonce = oauth22.nonce;
+      }
       return url(url2, { search });
     }
     function getAccessTokenRequest(grant_type = null) {
@@ -1565,6 +1568,8 @@
         client_id: paramValue(params, "client_id"),
         redirect_uri: paramValue(params, "redirect_uri"),
         scope: paramValue(params, "scope") || options.scope,
+        nonce: paramValue(params, "nonce"),
+        state: paramValue(params, "state"),
         code_challenge: codeChallenge,
         code_challenge_method: codeChallengeMethod,
         used: false
@@ -1616,23 +1621,23 @@
         }
       }
       code.used = true;
-      return issueToken(code.scope);
+      return issueToken(code.scope, { authorization: code, grant_type: "authorization_code" });
     }
-    function refreshTokenGrant(body) {
+    async function refreshTokenGrant(body) {
       let error2 = required(body, "refresh_token");
       if (error2) return oauthError("invalid_request", error2);
       if (!refreshTokens.has(body.refresh_token?.value || body.refresh_token)) {
         return oauthError("invalid_grant", "refresh_token is invalid");
       }
-      return issueToken(body.scope || options.scope);
+      return issueToken(body.scope || options.scope, { grant_type: "refresh_token" });
     }
-    function clientCredentialsGrant(body) {
+    async function clientCredentialsGrant(body) {
       if (options.client_secret && body.client_secret !== options.client_secret) {
         return oauthError("invalid_client", "client_secret is invalid", 401);
       }
       return issueToken(body.scope || options.scope, { refresh: false });
     }
-    function issueToken(scope, tokenOptions = {}) {
+    async function issueToken(scope, tokenOptions = {}) {
       const token2 = options.access_token;
       accessTokens.add(token2);
       const body = {
@@ -1648,7 +1653,7 @@
         body.refresh_token = options.refresh_token;
       }
       if (options.id_token) {
-        body.id_token = options.id_token;
+        body.id_token = typeof options.id_token === "function" ? await options.id_token({ scope, ...tokenOptions }) : options.id_token;
       }
       return jsonResponse(body);
     }

@@ -146,6 +146,8 @@ export default function oauth2mockserver(options = {}) {
 			client_id: paramValue(params, 'client_id'),
 			redirect_uri: paramValue(params, 'redirect_uri'),
 			scope: paramValue(params, 'scope') || options.scope,
+			nonce: paramValue(params, 'nonce'),
+			state: paramValue(params, 'state'),
 			code_challenge: codeChallenge,
 			code_challenge_method: codeChallengeMethod,
 			used: false
@@ -207,26 +209,26 @@ export default function oauth2mockserver(options = {}) {
 		}
 
 		code.used = true
-		return issueToken(code.scope)
+		return issueToken(code.scope, { authorization: code, grant_type: 'authorization_code' })
 	}
 
-	function refreshTokenGrant(body) {
+	async function refreshTokenGrant(body) {
 		let error = required(body, 'refresh_token')
 		if (error) return oauthError('invalid_request', error)
 		if (!refreshTokens.has(body.refresh_token?.value || body.refresh_token)) {
 			return oauthError('invalid_grant', 'refresh_token is invalid')
 		}
-		return issueToken(body.scope || options.scope)
+		return issueToken(body.scope || options.scope, { grant_type: 'refresh_token' })
 	}
 
-	function clientCredentialsGrant(body) {
+	async function clientCredentialsGrant(body) {
 		if (options.client_secret && body.client_secret !== options.client_secret) {
 			return oauthError('invalid_client', 'client_secret is invalid', 401)
 		}
 		return issueToken(body.scope || options.scope, { refresh: false })
 	}
 
-	function issueToken(scope, tokenOptions = {}) {
+	async function issueToken(scope, tokenOptions = {}) {
 		const token = options.access_token
 		accessTokens.add(token)
 		const body = {
@@ -242,7 +244,9 @@ export default function oauth2mockserver(options = {}) {
 			body.refresh_token = options.refresh_token
 		}
 		if (options.id_token) {
-			body.id_token = options.id_token
+			body.id_token = typeof options.id_token === 'function'
+				? await options.id_token({ scope, ...tokenOptions })
+				: options.id_token
 		}
 		return jsonResponse(body)
 	}

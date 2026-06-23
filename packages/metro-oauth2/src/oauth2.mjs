@@ -294,6 +294,9 @@ export default function oauth2mw(options)
 		if (oauth2.prompt) {
 			search.prompt = oauth2.prompt
 		}
+		if (oauth2.nonce) {
+			search.nonce = oauth2.nonce
+		}
 		return metro.url(url, { search })
 	}
 

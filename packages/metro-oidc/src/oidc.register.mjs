@@ -72,8 +72,8 @@ export default async function register(options)
 			body: options.client_info
 		})
 	let info = response.data
-	if (!info.client_id || !info.client_secret) {
-		throw metro.metroError('metro.oidc: Error: dynamic registration of client failed, no client_id or client_secret returned', response)
+	if (!info.client_id) {
+		throw metro.metroError('metro.oidc: Error: dynamic registration of client failed, no client_id returned', response)
 	}
 	options.client_info = Object.assign(options.client_info, info)
 	return options.client_info
