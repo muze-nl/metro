@@ -1,0 +1,53 @@
+{
+  "name": "@muze-nl/metro-oldm",
+  "version": "0.3.5",
+  "description": "linked data middleware for @muze-nl/metro",
+  "type": "module",
+  "source": [
+    "src/index.mjs"
+  ],
+  "main": "src/index.mjs",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node -e \"console.log('No tests yet for @muze-nl/metro-oldm')\"",
+    "tap": "tap",
+    "build": "esbuild src/index.mjs --outfile=dist/browser.min.js --bundle --minify --sourcemap",
+    "build-dev": "esbuild src/index.mjs --outfile=dist/browser.js --bundle --sourcemap",
+    "build:dev": "esbuild src/index.mjs --outfile=dist/browser.js --bundle --sourcemap"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-oldm"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/muze-nl/metro/issues"
+  },
+  "homepage": "https://github.com/muze-nl/metro/tree/main/packages/metro-oldm#readme",
+  "devDependencies": {
+    "esbuild": "0.27.2",
+    "eslint": "^8.13.0",
+    "tap": "^16.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "/src",
+    "/dist"
+  ],
+  "dependencies": {
+    "@muze-nl/oldm": "^0.5.3"
+  },
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "optimize": true
+    },
+    "main": false
+  }
+}

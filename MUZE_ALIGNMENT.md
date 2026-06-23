@@ -1,106 +1,38 @@
-# Muze alignment: metro
+# Metro monorepo alignment
 
-> Initial alignment roadmap. It is intended as a practical maintenance document, not as a complete code audit.
+This monorepo is intended to make Metro more mature without turning the core into a large SDK.
 
-## Muze design principles
+## Current package boundaries
 
-Muze builds web software for technically curious non-professional programmers, without making the tools unattractive to professionals.
+- `@muze-nl/metro` remains the small core HTTP client.
+- `@muze-nl/metro-oauth2` remains separate because OAuth2 is authorization middleware, not core HTTP behavior.
+- `@muze-nl/metro-oidc` remains separate because OIDC adds identity concepts on top of OAuth2.
+- `@muze-nl/metro-oldm` remains separate because Linked Data parsing/serialization is a domain concern.
 
-We prefer:
+## Alignment notes
 
-- simplicity over completeness
-- small, decoupled, single-concern libraries
-- correct abstractions that do not cross conceptual boundaries
-- browser-native standards where possible
-- lightweight abstractions only when they make developer code simpler
-- stable, long-term APIs
-- components and frameworks that are easy to adapt or replace
-- standards-based or open-source hosting stacks that avoid lock-in
-- software small enough to work well on slow devices and connections
-- a view-source philosophy: invite developers to look under the hood and learn
+### Good alignment
 
-When making tradeoffs, prefer composability, replaceability, web-platform alignment, and long-term simplicity over convenience, popularity, or feature completeness.
+- The packages are composable and independently usable.
+- Metro's middleware model keeps HTTP visible instead of hiding APIs behind large SDK abstractions.
+- Related packages now evolve together, which should make coordinated API cleanup easier.
 
+### Gaps to improve
 
-## Muze package namespace policy
+1. Add real-world examples for common APIs before adding provider-specific packages.
+2. Add missing tests for OIDC and OLDM middleware.
+3. Review whether OAuth2, OIDC, and OLDM should stay under `@muze-nl` or move temporarily to `@muze-labs` while the APIs mature.
+4. Consider extracting repeated OAuth2/OIDC helpers only when the duplication is concrete.
+5. Add a consistent package-level documentation structure for tutorials, reference, and examples.
+6. Make linting consistent across packages; the uploaded OAuth2 code currently has ESLint issues that should be fixed deliberately rather than hidden.
 
-The `@muze-nl` npm namespace should be a trust signal. Packages published there should be close to production-ready: the public API is expected to be stable, the package can be installed and used by a fresh project, and the README should be clear about supported usage.
+## Near-term roadmap
 
-Experimental libraries should use the `@muze-labs` namespace until they are mature enough to carry the main Muze production-readiness signal. Moving from `@muze-labs` into `@muze-nl` should be treated as a release-readiness decision, not only a naming cleanup.
-
-## Current assessment
-
-Metro is one of the best-aligned Muze libraries: it is browser-platform oriented, Fetch-compatible, small in concept, and built around composable middleware. The main risks are documentation clarity, optional global/browser builds, and keeping middleware from turning into a framework-like ecosystem with hidden conventions.
-
-## Strengths
-
-- Builds on Fetch concepts instead of inventing a completely new HTTP model.
-- Middleware is a small and composable abstraction with a clear single concern.
-- Immutable request/response copies help make data flow easier to reason about.
-- Works in browser-oriented usage and can serve as a stable base for OAuth, OIDC, and Linked Data middleware.
-
-## Alignment issues
-
-### 1. Make browser-global usage clearly optional
-
-**Principle:** Replaceability, composability, and browser-native standards.
-
-**Problem:** The CDN/browser examples are useful, but any build that writes to a global namespace should be clearly separated from the normal ESM module path.
-
-**Why it matters:** A hidden global side effect makes the library harder to compose with other tools and harder to replace later.
-
-**Suggested direction:** Document `@muze-nl/metro` as pure ESM first. Provide a separate documented `browser.js` or `global` build for script-tag users, with an explicit note that it creates `globalThis.metro`.
-
-**Status:** Open
-
-### 2. Explain exactly how Metro maps to Fetch
-
-**Principle:** Browser-native standards where possible.
-
-**Problem:** The README says request and response are compatible with Fetch, but the boundary between native Fetch objects and Metro-specific helpers can be clearer.
-
-**Why it matters:** Developers should understand when they are using the platform and when they are using a Muze abstraction.
-
-**Suggested direction:** Add a short “Metro and Fetch” section: equivalent `fetch()` code, how `request.with()`/`response.with()` differs from native objects, and how to drop down to plain Fetch.
-
-**Status:** Open
-
-### 3. Add a middleware authoring guide focused on constraints
-
-**Principle:** View-source learnability and stable APIs.
-
-**Problem:** Middleware is the key extension point, so accidental conventions can become de facto API.
-
-**Why it matters:** Small teams benefit when extension points are narrow, explicit, and hard to misuse.
-
-**Suggested direction:** Document middleware invariants: immutability, always return a response, when to call `next`, error handling, body consumption, and how to avoid hidden state.
-
-**Status:** Open
-
-### 4. Add a release/installability checklist
-
-**Principle:** Stable, long-term APIs.
-
-**Problem:** Metro is becoming the base of other Muze packages. Any release issue cascades into many downstream libraries.
-
-**Why it matters:** If Metro breaks, OAuth, OIDC, JSFS/Solid, and Linked Data layers become harder to trust.
-
-**Suggested direction:** Add CI checks for npm install, ESM import, browser CDN example, tests, and package metadata before publishing.
-
-**Status:** Open
-
-## Open questions
-
-- Should the browser-global build live in the same package or in an explicit secondary export path?
-- Should Metro commit to Fetch-compatible surface area as a long-term API promise?
-- Which middleware patterns are deliberately out of scope?
-
-## Non-goals
-
-- Do not become a full application framework.
-- Do not abstract away HTTP so far that Fetch knowledge stops being useful.
-- Do not add retry/cache/auth features into core when they can remain middleware.
-
-## Review cadence
-
-Review this document before feature work, before releases, and whenever the public API or dependency surface changes. Close issues by changing their status to `Done` and leaving a short note about the decision.
+1. Stabilize the root workspace and package scripts.
+2. Add smoke tests for `metro-oidc` and `metro-oldm`.
+3. Add real-world examples:
+   - GitHub: token auth, headers, pagination.
+   - Dropbox: OAuth2 PKCE, list folder, upload/download.
+   - Solid: protected resource and lazy login.
+4. Decide namespace maturity for each package.
+5. Archive the old standalone repositories after the monorepo is published and documented.

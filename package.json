@@ -1,37 +1,32 @@
 {
-  "name": "@muze-nl/metro",
-  "version": "0.7.1",
-  "description": "http client with middleware support",
+  "name": "metro-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for Metro and related middleware packages.",
   "type": "module",
-  "source": [ "src/browser.mjs", "src/everything.mjs" ],
-  "main": "src/everything.mjs",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "test": "tap test/*.mjs",
-    "tap": "tap",
-    "build-dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap; esbuild --bundle src/everything.mjs --outfile=dist/everything.js --sourcemap",
-    "build": "esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --minify --sourcemap; esbuild --bundle src/everything.mjs --outfile=dist/everything.min.js --minify --sourcemap"    
+    "test": "npm run test --workspaces --if-present",
+    "test:core": "npm run test -w @muze-nl/metro",
+    "test:oauth2": "npm run test -w @muze-nl/metro-oauth2",
+    "build": "npm run build --workspaces --if-present",
+    "build:dev": "npm run build-dev --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "esbuild": "0.27.2",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "tap": "^21.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/muze-nl/metro.git"
   },
-  "author": "auke@muze.nl",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/muze-nl/metro/issues"
-  },
-  "homepage": "https://github.com/muze-nl/metro/#readme",
-  "devDependencies": {
-    "eslint": "^8.13.0",
-    "tap": "^16.0.1"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "files": [
-    "/src",
-    "/dist",
-    "/LICENSE",
-    "/README.md"
-  ]
+  "license": "MIT"
 }

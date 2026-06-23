@@ -1,0 +1,55 @@
+{
+  "name": "@muze-nl/metro-oidc",
+  "version": "0.6.0",
+  "description": "oidc client middleware for @muze-nl/metro",
+  "type": "module",
+  "source": [
+    "src/browser.mjs"
+  ],
+  "main": "src/browser.mjs",
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "optimize": true
+    },
+    "main": false
+  },
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node -e \"console.log('No tests yet for @muze-nl/metro-oidc')\"",
+    "tap": "tap",
+    "build": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --minify --sourcemap",
+    "build-dev": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap",
+    "build:dev": "npx esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-oidc"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/muze-nl/metro/issues"
+  },
+  "homepage": "https://github.com/muze-nl/metro/tree/main/packages/metro-oidc#readme",
+  "devDependencies": {
+    "eslint": "^8.13.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "/src",
+    "/dist",
+    "/LICENSE",
+    "/README.md"
+  ],
+  "dependencies": {
+    "@muze-nl/assert": "^0.5.1",
+    "@muze-nl/metro": "^0.7.1",
+    "@muze-nl/metro-oauth2": "^0.8.1"
+  }
+}

@@ -1,128 +1,57 @@
-[![GitHub License](https://img.shields.io/github/license/muze-nl/metro)](https://github.com/muze-nl/metro/blob/main/LICENSE)
-[![GitHub package.json version](https://img.shields.io/github/package-json/v/muze-nl/metro)]()
-[![NPM Version](https://img.shields.io/npm/v/@muze-nl/metro)](https://www.npmjs.com/package/@muze-nl/metro)
-[![npm bundle size](https://img.shields.io/bundlephobia/min/@muze-nl/metro)](https://www.npmjs.com/package/@muze-nl/metro)
-[![Project stage: Experimental][project-stage-badge: Experimental]][project-stage-page]
+# Metro monorepo
 
-# MetroJS: HTTPS Client with middleware
+This repository contains Metro and the small middleware packages that belong close to Metro.
 
-```javascript
-import * as metro from '@muze-nl/metro'
+Metro's core should stay small and focused: it is an HTTP client with middleware support, compatible with the browser Fetch API. Real-world API support should generally live in separate packages and examples, not inside the core package.
 
-const client = metro.client({
-  url: 'https://github.com/'
-}).with((req,next) => {
-  req = req.with({
-    headers: {
-      'Content-Type':'application/json',
-      'Accept':'application/json'
-    }
-  })
-  if (typeof req.body == 'object') {
-    req = req.with({
-      body: JSON.stringify(req.body)
-    })
-  }
-  let res = await next(req)
-  let body = await res.json()
-  return res.with({ body })
-})
-```
-## Table of Contents
-1. [Introduction](#introduction)
-2. [Quickstart](docs/quickstart.md)
-3. [Usage](#usage)
-4. [Middleware](#middleware)
-5. [Documentation](docs/) - See also [metro.muze.nl](https://metro.muze.nl/)
-6. [Contributions](CONTRIBUTING.md)
-7. [License](#license)
+## Packages
 
-<a name="introduction"></a>
-## Introduction
+| Package | Directory | Purpose |
+| --- | --- | --- |
+| `@muze-nl/metro` | `packages/metro` | Core HTTP client, middleware contract, request/response helpers, JSON API helpers. |
+| `@muze-nl/metro-oauth2` | `packages/metro-oauth2` | OAuth2 middleware, token storage, PKCE/popup helpers, DPoP support. |
+| `@muze-nl/metro-oidc` | `packages/metro-oidc` | OpenID Connect middleware built on Metro and Metro OAuth2. |
+| `@muze-nl/metro-oldm` | `packages/metro-oldm` | Linked Data / OLDM middleware for Metro clients. |
 
-MetroJS is an HTTPS client with support for middleware. Similar to [ExpressJS](https://expressjs.com/), but for the client.
+## Working in the monorepo
 
-You add middleware with the `with()` function, as shown above.
-
-The signature for a middleware function is:
-
-```javascript
-async (request, next) => {
-   // alter request
-   let response = await next(request)
-   // alter response
-   return response
-}
-```
-
-However, both request and response are immutable. You can not change them. You can 
-however create a copy with some values different, using the `with()` function.
-
-Both metro.request() and metro.response() are compatible with the normal Request 
-and Response objects, used by the Fetch API. Any code that works with those, will work
-with the request and response objects in MetroJS.
-
-<a name="usage"></a>
-## Usage
+Install dependencies from the repository root:
 
 ```bash
-npm install @muze-nl/metro
+npm install
 ```
 
-In the browser, using a cdn:
-```html
-<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.6.4/dist/browser.js"></script>
-<script>
-  async function main() {
-    const client = metro.client('https://example.com/')
-    const result = await client.get('folder/page.html')
-  }
-  main()
-</script>
+Run tests for all packages that have tests:
+
+```bash
+npm test
 ```
 
-Using ES6 modules, in the browser or Node:
-```javascript
-import * as metro from '@muze-nl/metro'
+Run the Metro core tests only:
 
-async function main() {
-  const client = metro.client('https://example.com/')
-  const result = await client.get('folder/page.html')
-}
+```bash
+npm run test:core
 ```
 
-<a name="middleware"></a>
-## Using middleware
-A middleware is a function with `(request, next)` as parameters, returning a `response`.
-Both request and response adhere to the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-[Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) and 
-[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) standard.
+Run the OAuth2 tests only:
 
-`next` is a function that takes a `request` and returns a `Promise<Response>`. This function is defined by MetroJS
-and automatically passed to your middleware function. The idea is that your middleware function can change the request
-and pass it on to the next middleware or the actual fetch() call, then intercept the response and change that and return it:
-
-```javascript
-async function myMiddleware(req,next) {
-  req = req.with('?foo=bar')
-  let res = await next(req)
-  if (res.ok) {
-    res = res.with({headers:{'X-Foo':'bar'}})
-  }
-  return res
-}
+```bash
+npm run test:oauth2
 ```
 
-Both request and response have a `with` function. This allows you to create a new request or response, from 
-the existing one, with one or more options added or changed. The original request or response is not changed.
+Build all packages:
 
-[Read more about middleware](docs/middleware/)
+```bash
+npm run build
+```
 
-<a name="license"></a>
-## License
+## Design direction
 
-This software is licensed under MIT open source license. See the [License](./LICENSE) file.
+The package boundaries are deliberate:
 
+- Metro core should not know about OAuth2, OIDC, OLDM, GitHub, Dropbox, or Solid.
+- Auth, Linked Data, and provider-specific behavior should remain separate packages or examples.
+- Shared code can move into small internal packages later, but only after repeated patterns appear.
+- Provider-specific packages should be introduced only when recipes show enough repetition to justify them.
 
-[project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
-[project-stage-page]: https://blog.pother.ca/project-stages/
+A good next step is to add real-world examples under `examples/`, starting with GitHub token auth and Dropbox OAuth2 PKCE, before creating provider-specific packages.

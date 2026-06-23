@@ -1,0 +1,57 @@
+{
+  "name": "@muze-nl/metro-oauth2",
+  "version": "0.8.1",
+  "description": "oauth2 middleware for @muze-nl/metro",
+  "type": "module",
+  "main": "src/browser.mjs",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tap --disable-coverage test/*.mjs",
+    "build": "esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --sourcemap --minify",
+    "build-dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap",
+    "build:dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-oauth2"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/muze-nl/metro/issues"
+  },
+  "homepage": "https://github.com/muze-nl/metro/tree/main/packages/metro-oauth2#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "tap": "^21.7.0"
+  },
+  "dependencies": {
+    "@muze-nl/assert": "^0.5.1",
+    "@muze-nl/metro": "^0.7.1",
+    "dpop": "^2.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "/src",
+    "/dist",
+    "/LICENSE",
+    "/README.md"
+  ],
+  "source": [
+    "src/browser.mjs"
+  ],
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "optimize": true
+    },
+    "main": false
+  }
+}
