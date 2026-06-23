@@ -9,7 +9,7 @@
   ],
   "main": "src/everything.mjs",
   "scripts": {
-    "test": "tap --no-coverage test/*.mjs",
+    "test": "tap --disable-coverage test/*.mjs",
     "tap": "tap",
     "build-dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap; esbuild --bundle src/everything.mjs --outfile=dist/everything.js --sourcemap",
     "build": "esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --minify --sourcemap; esbuild --bundle src/everything.mjs --outfile=dist/everything.min.js --minify --sourcemap",
@@ -27,8 +27,8 @@
   },
   "homepage": "https://github.com/muze-nl/metro/tree/main/packages/metro#readme",
   "devDependencies": {
-    "eslint": "^8.13.0",
-    "tap": "^16.0.1"
+    "eslint": "^10.5.0",
+    "tap": "^21.7.4"
   },
   "engines": {
     "node": ">=20.0.0"
