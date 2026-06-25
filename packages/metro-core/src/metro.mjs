@@ -496,9 +496,20 @@ export function request(...options)
 				default:
 					if (target[prop] instanceof Function) {
 						if (prop === 'clone') {
-							// TODO: set req.data as the body of the clone
+							result = function() {
+								const cloned = target.clone()
+
+								if (typeof data != 'undefined' 
+									&& !(typeof ReadableStream != 'undefined'
+										&& data instanceof ReadableStream)) {
+									return request(cloned, { body: data })
+								}
+
+								return request(cloned)
+							}
+						} else {
+							result = target[prop].bind(target)
 						}
-						result = target[prop].bind(target)
 					} else {
 						result = target[prop]
 					}
