@@ -613,7 +613,7 @@ export function response(...options)
 					result = data
 				break
 				case 'ok':
-					result = (target.status>=200) && (target.status<400)
+					result = (target.status>=200) && (target.status<300)
 				break
 				default:
 					if (typeof target[prop] == 'function') {
@@ -819,12 +819,12 @@ export function metroError(message, ...details) {
 	return new Error(message, ...details)
 }
 
-export function deepClone(object) {
+function deepClone(object) {
 	if (Array.isArray(object)) {
 		return object.slice().map(deepClone)
 	}
 	if (object && typeof object==='object') {
-		if (object.__proto__.constructor==Object || !object.__proto__) { // plain objects
+		if (object.__proto__?.constructor==Object || !object.__proto__) { // plain objects
 			let result = Object.assign({}, object)
 			Object.keys(result).forEach(key => {
 				result[key] = deepClone(object[key])
