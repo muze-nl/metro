@@ -484,7 +484,7 @@ export function request(...options)
 				break
 				case 'with':
 					result = function(...options) {
-						if (data) { // data is kept in a seperate value, if it set earlier
+						if (typeof data !== 'undefined') { // data is kept in a seperate value, if it set earlier
 							options.unshift({ body: data }) // unshifted so it can be overridden by options
 						}
 						return request(target, ...options)
