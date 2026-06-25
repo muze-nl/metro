@@ -97,11 +97,14 @@
       }
       for (const verb of this.clientOptions.verbs) {
         this[verb] = async function(...options2) {
-          return this.fetch(request(
-            this.clientOptions,
-            ...options2,
-            { method: verb.toUpperCase() }
-          ));
+          return this.fetch(
+            request(
+              this.clientOptions,
+              ...options2,
+              { method: verb.toUpperCase() }
+            ),
+            fetchOptionsFrom(...options2)
+          );
         };
       }
     }
@@ -145,32 +148,22 @@
       };
       let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || []);
       options = Object.assign({}, this.clientOptions, options);
+      const traceContext = createTraceContext(req, options);
+      const middlewareContext = createMiddlewareContext(this, options, traceContext);
       let next;
       for (let middleware of middlewares) {
         next = /* @__PURE__ */ (function(next2, middleware2) {
           return async function(req2) {
             let res;
-            let tracers = Object.values(_Client.tracers);
-            for (let tracer of tracers) {
-              if (tracer.request) {
-                tracer.request.call(tracer, req2, middleware2);
-              }
-            }
+            let tracers = traceContext.tracers;
+            callTracers(tracers, "request", req2, middleware2, traceContext);
             try {
-              res = await middleware2(req2, next2);
+              res = await middleware2(req2, next2, middlewareContext);
             } catch (error) {
-              for (let tracer of tracers) {
-                if (tracer.error) {
-                  tracer.error.call(tracer, error, req2, middleware2);
-                }
-              }
+              callTracers(tracers, "error", error, req2, middleware2, traceContext);
               throw error;
             }
-            for (let tracer of tracers) {
-              if (tracer.response) {
-                tracer.response.call(tracer, res, middleware2);
-              }
-            }
+            callTracers(tracers, "response", res, middleware2, traceContext);
             return res;
           };
         })(next, middleware);
@@ -184,6 +177,146 @@
       return this.clientOptions.url;
     }
   };
+  var traceContextId = 0;
+  var TRACE_OPTION_KEYS = ["trace", "tracer", "tracers"];
+  function fetchOptionsFrom(...options) {
+    const result = {};
+    for (const option of options) {
+      if (!isPlainObject(option)) {
+        continue;
+      }
+      for (const key of TRACE_OPTION_KEYS) {
+        if (key in option) {
+          result[key] = option[key];
+        }
+      }
+    }
+    return result;
+  }
+  function createTraceContext(req, options = {}) {
+    const parent = traceParentFrom(options.trace || options.tracer || options.tracers);
+    let localTracers = [];
+    if (parent) {
+      localTracers = parent.localTracers || [];
+    } else {
+      localTracers = normalizeTracers(options.trace).concat(normalizeTracers(options.tracer)).concat(normalizeTracers(options.tracers));
+    }
+    const globalTracers = Object.values(Client.tracers || {});
+    const context = {
+      __metroTraceContext: true,
+      id: "metro-trace-context-" + ++traceContextId,
+      parent,
+      request: req,
+      options,
+      globalTracers,
+      localTracers,
+      tracers: globalTracers.concat(localTracers)
+    };
+    return context;
+  }
+  function traceParentFrom(value) {
+    if (!value) {
+      return null;
+    }
+    if (value.context?.__metroTraceContext) {
+      return value.context;
+    }
+    if (value.__metroTraceContext) {
+      return value;
+    }
+    return null;
+  }
+  function normalizeTracers(value) {
+    if (!value || value.__metroTraceContext || value.context?.__metroTraceContext) {
+      return [];
+    }
+    if (Array.isArray(value)) {
+      return value.flatMap(normalizeTracers);
+    }
+    if (isTracer(value)) {
+      return [value];
+    }
+    if (isPlainObject(value)) {
+      return Object.values(value).flatMap(normalizeTracers);
+    }
+    return [];
+  }
+  function isTracer(value) {
+    return value && typeof value == "object" && [
+      "request",
+      "response",
+      "error",
+      "event",
+      "diagnostic",
+      "span",
+      "link",
+      "current"
+    ].some((name) => typeof value[name] == "function");
+  }
+  function createMiddlewareContext(client2, options, traceContext) {
+    const trace2 = createTraceAPI(traceContext);
+    return Object.freeze({
+      client: client2,
+      options,
+      trace: trace2,
+      fetch(req, fetchOptions = {}) {
+        return client2.fetch(req, Object.assign({}, fetchOptions, { trace: trace2 }));
+      }
+    });
+  }
+  function createTraceAPI(context) {
+    const api2 = {
+      __metroTraceContext: true,
+      context,
+      event(name, data = {}) {
+        callTracers(context.tracers, "event", name, data, context);
+      },
+      diagnostic(diagnostic = {}) {
+        callTracers(context.tracers, "diagnostic", diagnostic, context);
+      },
+      current() {
+        for (const tracer of context.tracers) {
+          if (typeof tracer.current == "function") {
+            const current = tracer.current(context);
+            if (current) {
+              return current;
+            }
+          }
+        }
+        return { traceId: null, spanId: null };
+      },
+      async span(name, fn, data = {}) {
+        const tracer = context.tracers.find((tracer2) => typeof tracer2.span == "function");
+        if (!tracer) {
+          return fn();
+        }
+        return tracer.span(name, fn, data, context);
+      },
+      link(key) {
+        let traceId = null;
+        for (const tracer of context.tracers) {
+          if (typeof tracer.link == "function") {
+            traceId = tracer.link(key, void 0, context) || traceId;
+          }
+        }
+        return traceId;
+      },
+      options(extra = {}) {
+        return Object.assign({}, extra, { trace: api2 });
+      }
+    };
+    return api2;
+  }
+  function callTracers(tracers, method, ...args) {
+    for (const tracer of tracers) {
+      if (tracer && typeof tracer[method] == "function") {
+        tracer[method].call(tracer, ...args);
+      }
+    }
+  }
+  function isPlainObject(value) {
+    return value && typeof value == "object" && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+  }
   function client(...options) {
     return new Client(...deepClone(options));
   }
@@ -794,19 +927,22 @@
   }
 
   // src/mw/_trace.mjs
-  function traceEvent(name, data = {}) {
-    for (const tracer of Object.values(Client.tracers || {})) {
+  function traceEvent(name, data = {}, context = null) {
+    for (const tracer of tracersFor(context)) {
       if (tracer && typeof tracer.event == "function") {
-        tracer.event(name, data);
+        tracer.event.call(tracer, name, data, context);
       }
     }
   }
-  function traceDiagnostic(diagnostic = {}) {
-    for (const tracer of Object.values(Client.tracers || {})) {
+  function traceDiagnostic(diagnostic = {}, context = null) {
+    for (const tracer of tracersFor(context)) {
       if (tracer && typeof tracer.diagnostic == "function") {
-        tracer.diagnostic(diagnostic);
+        tracer.diagnostic.call(tracer, diagnostic, context);
       }
     }
+  }
+  function tracersFor(context) {
+    return context?.tracers || Object.values(Client.tracers || {});
   }
 
   // src/mw/backoff.mjs
@@ -821,7 +957,7 @@
       sleep,
       now: () => Date.now()
     }, options);
-    async function backoff(req, next) {
+    async function backoff(req, next, context) {
       const key = backoffKey(req, options);
       const until = options.store.get(key) || 0;
       const wait = Math.max(0, until - options.now());
@@ -833,7 +969,7 @@
           url: req.url,
           wait,
           key
-        });
+        }, context);
         await options.sleep(wait, req.signal);
       }
       const res = await next(req);
@@ -848,7 +984,7 @@
           status: res.status,
           delay,
           key
-        });
+        }, context);
         traceDiagnostic({
           severity: res.status >= 400 ? "warning" : "info",
           code: "server-backoff",
@@ -860,7 +996,7 @@
             delay,
             key
           }
-        });
+        }, context);
       }
       return res;
     }
@@ -1070,7 +1206,7 @@
       sleep,
       random: Math.random
     }, options);
-    async function retry(req, next) {
+    async function retry(req, next, context) {
       const attempts = attemptsFor(options.attempts, req);
       if (attempts <= 1 || !methodCanRetry(req, options)) {
         return next(req);
@@ -1086,7 +1222,7 @@
               attempts,
               method: req.method,
               url: req.url
-            });
+            }, context);
           }
           const res = await next(req.with ? req.with() : req);
           if (!responseCanRetry(res, options) || attempt >= attempts) {
@@ -1102,13 +1238,13 @@
             method: req.method,
             url: req.url,
             delay
-          });
+          }, context);
           traceDiagnostic({
             severity: "warning",
             code: "retry",
             message: `Retrying ${req.method} ${displayURL(req.url)} after HTTP ${res.status}`,
             data: { attempt, attempts, status: res.status, delay, method: req.method, url: req.url }
-          });
+          }, context);
           await options.sleep(delay, req.signal);
         } catch (error) {
           lastError = error;
@@ -1124,13 +1260,13 @@
             method: req.method,
             url: req.url,
             delay
-          });
+          }, context);
           traceDiagnostic({
             severity: "warning",
             code: "retry",
             message: `Retrying ${req.method} ${displayURL(req.url)} after ${error.message || error}`,
             data: { attempt, attempts, delay, method: req.method, url: req.url, error: error.message }
-          });
+          }, context);
           await options.sleep(delay, req.signal);
         }
       }
@@ -1206,7 +1342,7 @@
     options = Object.assign({
       name: "abort"
     }, options);
-    async function abort(req, next) {
+    async function abort(req, next, context) {
       const signal = signalFor(options.signal, req);
       if (!signal) {
         return next(req);
@@ -1218,14 +1354,14 @@
           code: "aborted",
           message: error.message || "Request was aborted",
           data: { method: req.method, url: req.url }
-        });
+        }, context);
         throw error;
       }
       traceEvent("abort signal attached", {
         severity: "info",
         method: req.method,
         url: req.url
-      });
+      }, context);
       return next(req.with({ signal: combineSignals(req.signal, signal) }));
     }
     abort.traceName = options.name;
@@ -1286,7 +1422,7 @@
       ms: 3e4,
       name: "timeout"
     }, options);
-    async function timeout(req, next) {
+    async function timeout(req, next, context) {
       const ms = delayFor2(options.ms, req);
       if (!ms || ms <= 0) {
         return next(req);
@@ -1302,7 +1438,7 @@
         method: req.method,
         url: req.url,
         ms
-      });
+      }, context);
       try {
         return await next(req.with({ signal }));
       } catch (error) {
@@ -1312,7 +1448,7 @@
             code: "timeout",
             message: `Request timed out after ${ms}ms`,
             data: { method: req.method, url: req.url, ms }
-          });
+          }, context);
         }
         throw error;
       } finally {
@@ -1388,24 +1524,25 @@
         this.options.store = this.options.persist ? localStorageStore(this.options) : memoryStore();
       }
       this.store = this.options.store;
-      this.stack = [];
-      this.activeTraceId = null;
-      this.activeParentSpanId = null;
+      this.defaultState = traceState();
+      this.runs = /* @__PURE__ */ new Map();
       this.lastTraceId = null;
       this.store.cleanup?.(this.options);
     }
-    request(req, middleware) {
-      if (!this.activeTraceId) {
-        this.startTrace(requestName(req));
+    request(req, middleware, context = null) {
+      const state = this.state(context);
+      if (!state.activeTraceId) {
+        this.startTrace(requestName(req), {}, context);
       }
       this.startSpan(middlewareName(middleware), {
         kind: middlewareKind(middleware),
         method: req?.method,
         url: safeURL(req?.url)
-      });
+      }, context);
     }
-    response(res, middleware) {
-      const span = this.stack.pop();
+    response(res, middleware, context = null) {
+      const state = this.state(context);
+      const span = state.stack.pop();
       if (!span) {
         return;
       }
@@ -1414,12 +1551,13 @@
       span.response = responseSummary(res);
       span.status = "ok";
       span.severity = "ok";
-      this.addResponseDiagnostics(span, res);
+      this.addResponseDiagnostics(span, res, context);
       this.store.saveSpan(span);
-      this.finishTraceIfComplete();
+      this.finishTraceIfComplete(null, context);
     }
-    error(error, req, middleware) {
-      const span = this.stack.pop();
+    error(error, req, middleware, context = null) {
+      const state = this.state(context);
+      const span = state.stack.pop();
       if (!span) {
         return;
       }
@@ -1446,17 +1584,18 @@
             name: error?.name,
             errorMessage: message
           }
-        });
+        }, context);
       }
-      this.finishTraceIfComplete("error");
+      this.finishTraceIfComplete("error", context);
     }
     /**
      * Add a custom event to the current trace. Use from/to metadata to make it
      * appear in sequence diagrams.
      */
-    event(name, data = {}) {
-      const traceId = data.traceId || this.activeTraceId || this.lastTraceId || this.startTrace(this.options.name);
-      const parent = data.parentSpanId || this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null;
+    event(name, data = {}, context = null) {
+      const state = this.state(context);
+      const traceId = data.traceId || state.activeTraceId || state.lastTraceId || this.lastTraceId || this.startTrace(this.options.name, {}, context);
+      const parent = data.parentSpanId || state.stack[state.stack.length - 1]?.spanId || state.activeParentSpanId || null;
       const event = {
         id: id("event"),
         traceId,
@@ -1473,18 +1612,19 @@
      * Record a manual span. This is useful for middleware internals that are not
      * represented by a Metro fetch call, for example token validation or PKCE.
      */
-    async span(name, fn, data = {}) {
-      this.startSpan(name, data);
+    async span(name, fn, data = {}, context = null) {
+      this.startSpan(name, data, context);
       try {
         const result = await fn();
-        this.response(data.response || { status: 200 }, { name });
+        this.response(data.response || { status: 200 }, { name }, context);
         return result;
       } catch (error) {
-        this.error(error, null, { name });
+        this.error(error, null, { name }, context);
         throw error;
       }
     }
-    startTrace(name, data = {}) {
+    startTrace(name, data = {}, context = null) {
+      const state = this.state(context);
       const trace2 = {
         id: data.traceId || id("trace"),
         name,
@@ -1493,14 +1633,16 @@
         severity: "ok",
         data: sanitizeData(data)
       };
-      this.activeTraceId = trace2.id;
+      state.activeTraceId = trace2.id;
+      state.lastTraceId = trace2.id;
       this.lastTraceId = trace2.id;
       this.store.saveTrace(trace2);
       return trace2.id;
     }
-    startSpan(name, data = {}) {
-      const traceId = data.traceId || this.activeTraceId || this.startTrace(this.options.name);
-      const parentSpanId = data.parentSpanId || this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null;
+    startSpan(name, data = {}, context = null) {
+      const state = this.state(context);
+      const traceId = data.traceId || state.activeTraceId || this.startTrace(this.options.name, {}, context);
+      const parentSpanId = data.parentSpanId || state.stack[state.stack.length - 1]?.spanId || state.activeParentSpanId || null;
       const span = {
         traceId,
         spanId: id("span"),
@@ -1512,13 +1654,14 @@
         severity: "ok",
         data: sanitizeData(data)
       };
-      this.stack.push(span);
+      state.stack.push(span);
       this.store.saveSpan(span);
       return span;
     }
-    diagnostic(diagnostic) {
-      const currentSpan = this.stack[this.stack.length - 1];
-      const traceId = diagnostic.traceId || currentSpan?.traceId || this.activeTraceId || this.lastTraceId;
+    diagnostic(diagnostic, context = null) {
+      const state = this.state(context);
+      const currentSpan = state.stack[state.stack.length - 1];
+      const traceId = diagnostic.traceId || currentSpan?.traceId || state.activeTraceId || state.lastTraceId || this.lastTraceId;
       if (!traceId) {
         return null;
       }
@@ -1533,17 +1676,20 @@
       this.store.saveDiagnostic(result);
       return result;
     }
-    current() {
+    current(context = null) {
+      const state = this.state(context);
       return {
-        traceId: this.activeTraceId,
-        spanId: this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null
+        traceId: state.activeTraceId,
+        spanId: state.stack[state.stack.length - 1]?.spanId || state.activeParentSpanId || null
       };
     }
     /**
      * Remember a trace id under a stable key, for example an OAuth state value.
      * The key is local to this trace store.
      */
-    link(key, traceId = this.activeTraceId || this.lastTraceId) {
+    link(key, traceId = void 0, context = null) {
+      const state = this.state(context);
+      traceId = traceId || state.activeTraceId || state.lastTraceId || this.lastTraceId;
       if (key && traceId) {
         this.store.link(key, traceId);
       }
@@ -1552,22 +1698,26 @@
     /**
      * Resume adding manual events/spans to a trace after a redirect or popup.
      */
-    resume(traceId, parentSpanId = null) {
+    resume(traceId, parentSpanId = null, context = null) {
       if (!traceId) {
         return null;
       }
-      this.activeTraceId = traceId;
-      this.activeParentSpanId = parentSpanId;
+      const state = this.state(context);
+      state.activeTraceId = traceId;
+      state.activeParentSpanId = parentSpanId;
+      state.lastTraceId = traceId;
       this.lastTraceId = traceId;
-      return this.current();
+      return this.current(context);
     }
-    resumeLink(key, parentSpanId = null) {
-      return this.resume(this.store.lookup(key), parentSpanId);
+    resumeLink(key, parentSpanId = null, context = null) {
+      return this.resume(this.store.lookup(key), parentSpanId, context);
     }
-    pause() {
-      this.activeTraceId = null;
-      this.activeParentSpanId = null;
-      this.stack = [];
+    pause(context = null) {
+      if (context?.__metroTraceContext) {
+        this.runs.delete(context.id);
+        return;
+      }
+      this.defaultState = traceState();
     }
     get(traceId = this.lastTraceId) {
       return this.store.read(traceId);
@@ -1591,12 +1741,11 @@
     }
     clear() {
       this.store.clear();
-      this.stack = [];
-      this.activeTraceId = null;
-      this.activeParentSpanId = null;
+      this.defaultState = traceState();
+      this.runs.clear();
       this.lastTraceId = null;
     }
-    addResponseDiagnostics(span, res) {
+    addResponseDiagnostics(span, res, context = null) {
       if (span.duration >= this.options.slowStepMs) {
         span.severity = maxSeverity(span.severity, "warning");
         this.diagnostic({
@@ -1606,7 +1755,7 @@
           code: "slow-step",
           message: `${span.name} took ${formatDuration(span.duration)}`,
           data: { threshold: this.options.slowStepMs, actual: span.duration }
-        });
+        }, context);
       }
       if (!res || typeof res.status == "undefined" || span.kind != "fetch") {
         return;
@@ -1622,7 +1771,7 @@
           code: "unexpected-status",
           message: `${span.name} returned unexpected HTTP ${res.status}`,
           data: { status: res.status, url: span.data?.url }
-        });
+        }, context);
       }
     }
     statusExpected(status, span) {
@@ -1635,13 +1784,18 @@
       }
       return status < 400;
     }
-    finishTraceIfComplete(status = null) {
-      if (this.stack.length || !this.activeTraceId) {
+    finishTraceIfComplete(status = null, context = null) {
+      const state = this.state(context);
+      if (state.stack.length || !state.activeTraceId) {
         return;
       }
-      const trace2 = this.store.read(this.activeTraceId);
+      if (context?.parent) {
+        this.runs.delete(context.id);
+        return;
+      }
+      const trace2 = this.store.read(state.activeTraceId);
       if (!trace2) {
-        this.pause();
+        this.pause(context);
         return;
       }
       trace2.end = now();
@@ -1649,13 +1803,40 @@
       trace2.status = status || traceStatus(trace2);
       trace2.severity = traceSeverity(trace2);
       this.store.saveTrace(trace2);
+      state.lastTraceId = trace2.id;
       this.lastTraceId = trace2.id;
       if (this.options.autoPrint) {
         this.print(trace2.id);
       }
-      this.pause();
+      this.pause(context);
+    }
+    state(context = null) {
+      if (!context?.__metroTraceContext) {
+        return this.defaultState;
+      }
+      let state = this.runs.get(context.id);
+      if (state) {
+        return state;
+      }
+      state = traceState();
+      const parentState = context.parent ? this.runs.get(context.parent.id) : null;
+      if (parentState) {
+        state.activeTraceId = parentState.activeTraceId;
+        state.activeParentSpanId = parentState.stack[parentState.stack.length - 1]?.spanId || parentState.activeParentSpanId || null;
+        state.lastTraceId = parentState.lastTraceId;
+      }
+      this.runs.set(context.id, state);
+      return state;
     }
   };
+  function traceState() {
+    return {
+      stack: [],
+      activeTraceId: null,
+      activeParentSpanId: null,
+      lastTraceId: null
+    };
+  }
   function renderTrace(trace2, options = {}) {
     options = Object.assign({}, DEFAULT_OPTIONS, options);
     const diagnostics = trace2.diagnostics || [];

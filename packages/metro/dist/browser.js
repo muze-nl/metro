@@ -78,11 +78,14 @@
       }
       for (const verb of this.clientOptions.verbs) {
         this[verb] = async function(...options2) {
-          return this.fetch(request(
-            this.clientOptions,
-            ...options2,
-            { method: verb.toUpperCase() }
-          ));
+          return this.fetch(
+            request(
+              this.clientOptions,
+              ...options2,
+              { method: verb.toUpperCase() }
+            ),
+            fetchOptionsFrom(...options2)
+          );
         };
       }
     }
@@ -126,32 +129,22 @@
       };
       let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || []);
       options = Object.assign({}, this.clientOptions, options);
+      const traceContext = createTraceContext(req, options);
+      const middlewareContext = createMiddlewareContext(this, options, traceContext);
       let next;
       for (let middleware of middlewares) {
         next = /* @__PURE__ */ (function(next2, middleware2) {
           return async function(req2) {
             let res;
-            let tracers = Object.values(_Client.tracers);
-            for (let tracer of tracers) {
-              if (tracer.request) {
-                tracer.request.call(tracer, req2, middleware2);
-              }
-            }
+            let tracers = traceContext.tracers;
+            callTracers(tracers, "request", req2, middleware2, traceContext);
             try {
-              res = await middleware2(req2, next2);
+              res = await middleware2(req2, next2, middlewareContext);
             } catch (error) {
-              for (let tracer of tracers) {
-                if (tracer.error) {
-                  tracer.error.call(tracer, error, req2, middleware2);
-                }
-              }
+              callTracers(tracers, "error", error, req2, middleware2, traceContext);
               throw error;
             }
-            for (let tracer of tracers) {
-              if (tracer.response) {
-                tracer.response.call(tracer, res, middleware2);
-              }
-            }
+            callTracers(tracers, "response", res, middleware2, traceContext);
             return res;
           };
         })(next, middleware);
@@ -165,6 +158,146 @@
       return this.clientOptions.url;
     }
   };
+  var traceContextId = 0;
+  var TRACE_OPTION_KEYS = ["trace", "tracer", "tracers"];
+  function fetchOptionsFrom(...options) {
+    const result = {};
+    for (const option of options) {
+      if (!isPlainObject(option)) {
+        continue;
+      }
+      for (const key of TRACE_OPTION_KEYS) {
+        if (key in option) {
+          result[key] = option[key];
+        }
+      }
+    }
+    return result;
+  }
+  function createTraceContext(req, options = {}) {
+    const parent = traceParentFrom(options.trace || options.tracer || options.tracers);
+    let localTracers = [];
+    if (parent) {
+      localTracers = parent.localTracers || [];
+    } else {
+      localTracers = normalizeTracers(options.trace).concat(normalizeTracers(options.tracer)).concat(normalizeTracers(options.tracers));
+    }
+    const globalTracers = Object.values(Client.tracers || {});
+    const context = {
+      __metroTraceContext: true,
+      id: "metro-trace-context-" + ++traceContextId,
+      parent,
+      request: req,
+      options,
+      globalTracers,
+      localTracers,
+      tracers: globalTracers.concat(localTracers)
+    };
+    return context;
+  }
+  function traceParentFrom(value) {
+    if (!value) {
+      return null;
+    }
+    if (value.context?.__metroTraceContext) {
+      return value.context;
+    }
+    if (value.__metroTraceContext) {
+      return value;
+    }
+    return null;
+  }
+  function normalizeTracers(value) {
+    if (!value || value.__metroTraceContext || value.context?.__metroTraceContext) {
+      return [];
+    }
+    if (Array.isArray(value)) {
+      return value.flatMap(normalizeTracers);
+    }
+    if (isTracer(value)) {
+      return [value];
+    }
+    if (isPlainObject(value)) {
+      return Object.values(value).flatMap(normalizeTracers);
+    }
+    return [];
+  }
+  function isTracer(value) {
+    return value && typeof value == "object" && [
+      "request",
+      "response",
+      "error",
+      "event",
+      "diagnostic",
+      "span",
+      "link",
+      "current"
+    ].some((name) => typeof value[name] == "function");
+  }
+  function createMiddlewareContext(client2, options, traceContext) {
+    const trace2 = createTraceAPI(traceContext);
+    return Object.freeze({
+      client: client2,
+      options,
+      trace: trace2,
+      fetch(req, fetchOptions = {}) {
+        return client2.fetch(req, Object.assign({}, fetchOptions, { trace: trace2 }));
+      }
+    });
+  }
+  function createTraceAPI(context) {
+    const api = {
+      __metroTraceContext: true,
+      context,
+      event(name, data = {}) {
+        callTracers(context.tracers, "event", name, data, context);
+      },
+      diagnostic(diagnostic = {}) {
+        callTracers(context.tracers, "diagnostic", diagnostic, context);
+      },
+      current() {
+        for (const tracer of context.tracers) {
+          if (typeof tracer.current == "function") {
+            const current = tracer.current(context);
+            if (current) {
+              return current;
+            }
+          }
+        }
+        return { traceId: null, spanId: null };
+      },
+      async span(name, fn, data = {}) {
+        const tracer = context.tracers.find((tracer2) => typeof tracer2.span == "function");
+        if (!tracer) {
+          return fn();
+        }
+        return tracer.span(name, fn, data, context);
+      },
+      link(key) {
+        let traceId = null;
+        for (const tracer of context.tracers) {
+          if (typeof tracer.link == "function") {
+            traceId = tracer.link(key, void 0, context) || traceId;
+          }
+        }
+        return traceId;
+      },
+      options(extra = {}) {
+        return Object.assign({}, extra, { trace: api });
+      }
+    };
+    return api;
+  }
+  function callTracers(tracers, method, ...args) {
+    for (const tracer of tracers) {
+      if (tracer && typeof tracer[method] == "function") {
+        tracer[method].call(tracer, ...args);
+      }
+    }
+  }
+  function isPlainObject(value) {
+    return value && typeof value == "object" && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+  }
   function client(...options) {
     return new Client(...deepClone(options));
   }
