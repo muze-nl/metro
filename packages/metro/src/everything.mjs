@@ -4,6 +4,7 @@ import json from './mw/json.mjs'
 import thrower from './mw/thrower.mjs'
 import getdata from './mw/getdata.mjs'
 import * as hashParams from './hashparams.mjs'
+import * as traceGraph from './tracegraph.mjs'
 
 const metro = Object.assign({}, m, {
 	mw: {
@@ -13,7 +14,8 @@ const metro = Object.assign({}, m, {
 	},
 	api,
 	jsonApi,
-	hashParams
+	hashParams,
+	trace: Object.assign({}, m.trace, traceGraph)
 })
 
 if (!globalThis.metro) {

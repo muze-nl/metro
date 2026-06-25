@@ -145,7 +145,16 @@ export class Client
 							tracer.request.call(tracer, req, middleware)
 						}
 					}
-					res = await middleware(req, next)
+					try {
+						res = await middleware(req, next)
+					} catch(error) {
+						for(let tracer of tracers) {
+							if (tracer.error) {
+								tracer.error.call(tracer, error, req, middleware)
+							}
+						}
+						throw error
+					}
 					for(let tracer of tracers) {
 						if (tracer.response) {
 							tracer.response.call(tracer, res, middleware)

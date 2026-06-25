@@ -25,6 +25,7 @@ weight: 5
 	- [clear](./trace/clear/)
 	- [delete](./trace/delete/)
 	- [group](./trace/group/)
+	- [graph](./trace/graph/)
 - [URL](./url/)
 - [API](./api/)
 - [hashParams](./hashparams.md)

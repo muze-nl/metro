@@ -156,7 +156,16 @@
                 tracer.request.call(tracer, req2, middleware2);
               }
             }
-            res = await middleware2(req2, next2);
+            try {
+              res = await middleware2(req2, next2);
+            } catch (error) {
+              for (let tracer of tracers) {
+                if (tracer.error) {
+                  tracer.error.call(tracer, error, req2, middleware2);
+                }
+              }
+              throw error;
+            }
             for (let tracer of tracers) {
               if (tracer.response) {
                 tracer.response.call(tracer, res, middleware2);
@@ -784,6 +793,921 @@
     return new JsonAPI(...deepClone(options));
   }
 
+  // src/tracegraph.mjs
+  var tracegraph_exports = {};
+  __export(tracegraph_exports, {
+    GraphTracer: () => GraphTracer,
+    graph: () => graph,
+    localConsole: () => localConsole,
+    localStorageStore: () => localStorageStore,
+    memoryStore: () => memoryStore,
+    printTrace: () => printTrace,
+    renderSequence: () => renderSequence,
+    renderTrace: () => renderTrace,
+    renderTree: () => renderTree
+  });
+  var DEFAULT_OPTIONS = {
+    name: "Metro trace",
+    view: "tree",
+    persist: true,
+    autoPrint: true,
+    includeRawTrace: false,
+    maxAge: 10 * 60 * 1e3,
+    maxTraces: 20,
+    slowStepMs: 1e3,
+    store: null,
+    expectedStatus: (status) => status < 400,
+    console: typeof console != "undefined" ? console : null
+  };
+  var SEVERITY_WEIGHT = {
+    ok: 0,
+    info: 1,
+    warning: 2,
+    error: 3,
+    blocked: 4
+  };
+  var SEVERITY_SYMBOL = {
+    ok: "\u2713",
+    info: "\u2139",
+    warning: "\u26A0",
+    error: "\u2716",
+    blocked: "\u26D4",
+    skipped: "\u23ED",
+    pending: "\u2026"
+  };
+  function graph(options = {}) {
+    return new GraphTracer(options);
+  }
+  function localConsole(options = {}) {
+    return graph(options);
+  }
+  var GraphTracer = class {
+    constructor(options = {}) {
+      this.options = Object.assign({}, DEFAULT_OPTIONS, options);
+      if (!this.options.store) {
+        this.options.store = this.options.persist ? localStorageStore(this.options) : memoryStore();
+      }
+      this.store = this.options.store;
+      this.stack = [];
+      this.activeTraceId = null;
+      this.activeParentSpanId = null;
+      this.lastTraceId = null;
+      this.store.cleanup?.(this.options);
+    }
+    request(req, middleware) {
+      if (!this.activeTraceId) {
+        this.startTrace(requestName(req));
+      }
+      this.startSpan(middlewareName(middleware), {
+        kind: middlewareKind(middleware),
+        method: req?.method,
+        url: safeURL(req?.url)
+      });
+    }
+    response(res, middleware) {
+      const span = this.stack.pop();
+      if (!span) {
+        return;
+      }
+      span.end = now();
+      span.duration = span.end - span.start;
+      span.response = responseSummary(res);
+      span.status = "ok";
+      span.severity = "ok";
+      this.addResponseDiagnostics(span, res);
+      this.store.saveSpan(span);
+      this.finishTraceIfComplete();
+    }
+    error(error, req, middleware) {
+      const span = this.stack.pop();
+      if (!span) {
+        return;
+      }
+      span.end = now();
+      span.duration = span.end - span.start;
+      span.status = "error";
+      span.severity = "error";
+      span.error = errorSummary(error);
+      this.store.saveSpan(span);
+      const message = error?.message || "Middleware failed";
+      const trace2 = this.store.read(span.traceId);
+      const alreadyReported = trace2?.diagnostics?.some((diagnostic) => diagnostic.data?.errorMessage == message);
+      if (span.kind == "fetch" || !alreadyReported) {
+        this.diagnostic({
+          traceId: span.traceId,
+          spanId: span.spanId,
+          severity: "error",
+          code: span.kind == "fetch" ? "network-error" : "middleware-error",
+          message,
+          data: {
+            middleware: middlewareName(middleware),
+            method: req?.method,
+            url: safeURL(req?.url),
+            name: error?.name,
+            errorMessage: message
+          }
+        });
+      }
+      this.finishTraceIfComplete("error");
+    }
+    /**
+     * Add a custom event to the current trace. Use from/to metadata to make it
+     * appear in sequence diagrams.
+     */
+    event(name, data = {}) {
+      const traceId = data.traceId || this.activeTraceId || this.lastTraceId || this.startTrace(this.options.name);
+      const parent = data.parentSpanId || this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null;
+      const event = {
+        id: id("event"),
+        traceId,
+        spanId: parent,
+        time: now(),
+        name,
+        severity: data.severity || "info",
+        data: sanitizeData(data)
+      };
+      this.store.saveEvent(event);
+      return event;
+    }
+    /**
+     * Record a manual span. This is useful for middleware internals that are not
+     * represented by a Metro fetch call, for example token validation or PKCE.
+     */
+    async span(name, fn, data = {}) {
+      this.startSpan(name, data);
+      try {
+        const result = await fn();
+        this.response(data.response || { status: 200 }, { name });
+        return result;
+      } catch (error) {
+        this.error(error, null, { name });
+        throw error;
+      }
+    }
+    startTrace(name, data = {}) {
+      const trace2 = {
+        id: data.traceId || id("trace"),
+        name,
+        start: now(),
+        status: "running",
+        severity: "ok",
+        data: sanitizeData(data)
+      };
+      this.activeTraceId = trace2.id;
+      this.lastTraceId = trace2.id;
+      this.store.saveTrace(trace2);
+      return trace2.id;
+    }
+    startSpan(name, data = {}) {
+      const traceId = data.traceId || this.activeTraceId || this.startTrace(this.options.name);
+      const parentSpanId = data.parentSpanId || this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null;
+      const span = {
+        traceId,
+        spanId: id("span"),
+        parentSpanId,
+        name,
+        kind: data.kind || "manual",
+        start: now(),
+        status: "running",
+        severity: "ok",
+        data: sanitizeData(data)
+      };
+      this.stack.push(span);
+      this.store.saveSpan(span);
+      return span;
+    }
+    diagnostic(diagnostic) {
+      const currentSpan = this.stack[this.stack.length - 1];
+      const traceId = diagnostic.traceId || currentSpan?.traceId || this.activeTraceId || this.lastTraceId;
+      if (!traceId) {
+        return null;
+      }
+      const result = Object.assign({
+        id: id("diagnostic"),
+        traceId,
+        spanId: diagnostic.spanId || currentSpan?.spanId || null,
+        time: now(),
+        severity: "warning"
+      }, diagnostic);
+      result.data = sanitizeData(result.data || {});
+      this.store.saveDiagnostic(result);
+      return result;
+    }
+    current() {
+      return {
+        traceId: this.activeTraceId,
+        spanId: this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null
+      };
+    }
+    /**
+     * Remember a trace id under a stable key, for example an OAuth state value.
+     * The key is local to this trace store.
+     */
+    link(key, traceId = this.activeTraceId || this.lastTraceId) {
+      if (key && traceId) {
+        this.store.link(key, traceId);
+      }
+      return traceId;
+    }
+    /**
+     * Resume adding manual events/spans to a trace after a redirect or popup.
+     */
+    resume(traceId, parentSpanId = null) {
+      if (!traceId) {
+        return null;
+      }
+      this.activeTraceId = traceId;
+      this.activeParentSpanId = parentSpanId;
+      this.lastTraceId = traceId;
+      return this.current();
+    }
+    resumeLink(key, parentSpanId = null) {
+      return this.resume(this.store.lookup(key), parentSpanId);
+    }
+    pause() {
+      this.activeTraceId = null;
+      this.activeParentSpanId = null;
+      this.stack = [];
+    }
+    get(traceId = this.lastTraceId) {
+      return this.store.read(traceId);
+    }
+    print(traceId = this.lastTraceId, options = {}) {
+      const trace2 = typeof traceId == "object" ? traceId : this.get(traceId);
+      if (!trace2) {
+        return null;
+      }
+      return printTrace(trace2, Object.assign({}, this.options, options));
+    }
+    printLast(options = {}) {
+      return this.print(this.lastTraceId || this.store.lastTraceId?.(), options);
+    }
+    render(traceId = this.lastTraceId, options = {}) {
+      const trace2 = typeof traceId == "object" ? traceId : this.get(traceId);
+      if (!trace2) {
+        return "";
+      }
+      return renderTrace(trace2, Object.assign({}, this.options, options));
+    }
+    clear() {
+      this.store.clear();
+      this.stack = [];
+      this.activeTraceId = null;
+      this.activeParentSpanId = null;
+      this.lastTraceId = null;
+    }
+    addResponseDiagnostics(span, res) {
+      if (span.duration >= this.options.slowStepMs) {
+        span.severity = maxSeverity(span.severity, "warning");
+        this.diagnostic({
+          traceId: span.traceId,
+          spanId: span.spanId,
+          severity: "warning",
+          code: "slow-step",
+          message: `${span.name} took ${formatDuration(span.duration)}`,
+          data: { threshold: this.options.slowStepMs, actual: span.duration }
+        });
+      }
+      if (!res || typeof res.status == "undefined" || span.kind != "fetch") {
+        return;
+      }
+      if (this.statusExpected(res.status, span) === false) {
+        const severity = res.status >= 500 ? "error" : "warning";
+        span.status = severity == "error" ? "error" : "warning";
+        span.severity = maxSeverity(span.severity, severity);
+        this.diagnostic({
+          traceId: span.traceId,
+          spanId: span.spanId,
+          severity,
+          code: "unexpected-status",
+          message: `${span.name} returned unexpected HTTP ${res.status}`,
+          data: { status: res.status, url: span.data?.url }
+        });
+      }
+    }
+    statusExpected(status, span) {
+      const expected = this.options.expectedStatus;
+      if (typeof expected == "function") {
+        return expected(status, span);
+      }
+      if (Array.isArray(expected)) {
+        return expected.includes(status);
+      }
+      return status < 400;
+    }
+    finishTraceIfComplete(status = null) {
+      if (this.stack.length || !this.activeTraceId) {
+        return;
+      }
+      const trace2 = this.store.read(this.activeTraceId);
+      if (!trace2) {
+        this.pause();
+        return;
+      }
+      trace2.end = now();
+      trace2.duration = trace2.end - trace2.start;
+      trace2.status = status || traceStatus(trace2);
+      trace2.severity = traceSeverity(trace2);
+      this.store.saveTrace(trace2);
+      this.lastTraceId = trace2.id;
+      if (this.options.autoPrint) {
+        this.print(trace2.id);
+      }
+      this.pause();
+    }
+  };
+  function renderTrace(trace2, options = {}) {
+    options = Object.assign({}, DEFAULT_OPTIONS, options);
+    const diagnostics = trace2.diagnostics || [];
+    const lines = [];
+    lines.push(`${traceTitle(trace2)} ${trace2.status || ""} ${formatDuration(trace2.duration || elapsed(trace2))}`.trim());
+    const primary = primaryDiagnostic(diagnostics);
+    if (primary) {
+      lines.push("");
+      lines.push("Primary diagnostic:");
+      lines.push(`${symbol(primary.severity)} ${primary.code}: ${primary.message}`);
+    }
+    if (diagnostics.length) {
+      lines.push("");
+      lines.push("Diagnostics:");
+      for (const diagnostic of diagnostics) {
+        lines.push(`${symbol(diagnostic.severity)} ${diagnostic.code}: ${diagnostic.message}`);
+      }
+    }
+    lines.push("");
+    lines.push(options.view == "sequence" ? renderSequence(trace2, options) : renderTree(trace2, options));
+    return lines.join("\n");
+  }
+  function renderTree(trace2, options = {}) {
+    const spans = trace2.spans || [];
+    const events = trace2.events || [];
+    const children = /* @__PURE__ */ new Map();
+    for (const span of spans) {
+      const parent = span.parentSpanId || "";
+      if (!children.has(parent)) {
+        children.set(parent, []);
+      }
+      children.get(parent).push(span);
+    }
+    for (const group of children.values()) {
+      group.sort((a, b) => a.start - b.start);
+    }
+    const eventsBySpan = /* @__PURE__ */ new Map();
+    for (const event of events) {
+      const spanId = event.spanId || "";
+      if (!eventsBySpan.has(spanId)) {
+        eventsBySpan.set(spanId, []);
+      }
+      eventsBySpan.get(spanId).push(event);
+    }
+    for (const group of eventsBySpan.values()) {
+      group.sort((a, b) => a.time - b.time);
+    }
+    const roots = children.get("") || [];
+    const lines = [];
+    if (!roots.length && !events.length) {
+      return "(empty trace)";
+    }
+    for (let index = 0; index < roots.length; index++) {
+      appendSpan(lines, roots[index], children, eventsBySpan, "", index == roots.length - 1);
+    }
+    for (const event of eventsBySpan.get("") || []) {
+      lines.push(`${symbol(event.severity)} ${event.name}${eventLabel(event)}`);
+    }
+    return lines.join("\n");
+  }
+  function renderSequence(trace2, options = {}) {
+    const arrows = sequenceArrows(trace2);
+    if (!arrows.length) {
+      return renderTree(trace2, options);
+    }
+    const actors = collectActors(arrows);
+    const width = Math.max(14, ...actors.map((actor) => actor.length));
+    const gap = "    ";
+    const lines = [];
+    lines.push(actors.map((actor) => pad(actor, width)).join(gap));
+    lines.push(actors.map(() => pad("\u2502", width)).join(gap));
+    for (const arrow of arrows) {
+      lines.push(sequenceLine(actors, arrow, width, gap));
+    }
+    return lines.join("\n");
+  }
+  function printTrace(trace2, options = {}) {
+    const output = renderTrace(trace2, options);
+    const out = options.console || console;
+    if (!out) {
+      return output;
+    }
+    const title = `${symbol(trace2.severity)} ${traceTitle(trace2)} ${trace2.status || ""} ${formatDuration(trace2.duration || elapsed(trace2))}`.trim();
+    if (out.groupCollapsed) {
+      out.groupCollapsed("\u24C2\uFE0F  " + title);
+    } else if (out.group) {
+      out.group("\u24C2\uFE0F  " + title);
+    }
+    printDiagnostics(trace2.diagnostics || [], out);
+    for (const line of output.split("\n")) {
+      printLine(line, out);
+    }
+    if (options.includeRawTrace && out.dir) {
+      out.dir(trace2);
+    }
+    if (out.groupEnd) {
+      out.groupEnd();
+    }
+    return output;
+  }
+  function memoryStore() {
+    let traces = /* @__PURE__ */ new Map();
+    let spans = /* @__PURE__ */ new Map();
+    let events = /* @__PURE__ */ new Map();
+    let diagnostics = /* @__PURE__ */ new Map();
+    let links = /* @__PURE__ */ new Map();
+    let last = null;
+    return {
+      saveTrace(trace2) {
+        traces.set(trace2.id, Object.assign({}, trace2));
+        last = trace2.id;
+      },
+      saveSpan(span) {
+        spans.set(span.spanId, Object.assign({}, span));
+      },
+      saveEvent(event) {
+        events.set(event.id, Object.assign({}, event));
+      },
+      saveDiagnostic(diagnostic) {
+        diagnostics.set(diagnostic.id, Object.assign({}, diagnostic));
+      },
+      read(traceId) {
+        return assemble(traceId, traces, spans, events, diagnostics);
+      },
+      lastTraceId() {
+        return last;
+      },
+      link(key, traceId) {
+        links.set(key, traceId);
+      },
+      lookup(key) {
+        return links.get(key);
+      },
+      cleanup() {
+      },
+      clear() {
+        traces.clear();
+        spans.clear();
+        events.clear();
+        diagnostics.clear();
+        links.clear();
+        last = null;
+      }
+    };
+  }
+  function localStorageStore(options = {}) {
+    const storage = options.storage || safeLocalStorage();
+    if (!storage) {
+      return memoryStore();
+    }
+    const prefix = options.prefix || "metro:trace:";
+    const key = (suffix) => prefix + suffix;
+    return {
+      saveTrace(trace2) {
+        safeStore(() => {
+          storage.setItem(key(`trace:${trace2.id}`), JSON.stringify(trace2));
+          storage.setItem(key("last"), trace2.id);
+          updateIndex(storage, prefix, trace2.id);
+        });
+      },
+      saveSpan(span) {
+        safeStore(() => storage.setItem(key(`span:${span.traceId}:${span.spanId}`), JSON.stringify(span)));
+      },
+      saveEvent(event) {
+        safeStore(() => storage.setItem(key(`event:${event.traceId}:${event.id}`), JSON.stringify(event)));
+      },
+      saveDiagnostic(diagnostic) {
+        safeStore(() => storage.setItem(key(`diagnostic:${diagnostic.traceId}:${diagnostic.id}`), JSON.stringify(diagnostic)));
+      },
+      read(traceId) {
+        return safeStore(() => readLocalTrace(storage, prefix, traceId), null);
+      },
+      lastTraceId() {
+        return safeStore(() => storage.getItem(key("last")), null);
+      },
+      link(linkKey, traceId) {
+        safeStore(() => storage.setItem(key(`link:${linkKey}`), traceId));
+      },
+      lookup(linkKey) {
+        return safeStore(() => storage.getItem(key(`link:${linkKey}`)), null);
+      },
+      cleanup(cleanupOptions = options) {
+        safeStore(() => cleanupLocalStorage(storage, prefix, cleanupOptions));
+      },
+      clear() {
+        safeStore(() => clearLocalStorage(storage, prefix));
+      }
+    };
+  }
+  function safeStore(fn, fallback = void 0) {
+    try {
+      return fn();
+    } catch (e) {
+      return fallback;
+    }
+  }
+  function appendSpan(lines, span, children, eventsBySpan, prefix, isLast) {
+    const branch = isLast ? "\u2514\u2500 " : "\u251C\u2500 ";
+    lines.push(`${prefix}${branch}${spanLine(span)}`);
+    const childPrefix = prefix + (isLast ? "   " : "\u2502  ");
+    const childSpans = children.get(span.spanId) || [];
+    const childEvents = eventsBySpan.get(span.spanId) || [];
+    const items = [
+      ...childSpans.map((item) => ({ type: "span", item, time: item.start })),
+      ...childEvents.map((item) => ({ type: "event", item, time: item.time }))
+    ].sort((a, b) => a.time - b.time);
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index];
+      const last = index == items.length - 1;
+      if (item.type == "span") {
+        appendSpan(lines, item.item, children, eventsBySpan, childPrefix, last);
+      } else {
+        lines.push(`${childPrefix}${last ? "\u2514\u2500 " : "\u251C\u2500 "}${symbol(item.item.severity)} ${item.item.name}${eventLabel(item.item)}`);
+      }
+    }
+  }
+  function spanLine(span) {
+    const status = span.status == "running" ? "pending" : span.severity || span.status || "ok";
+    const response2 = span.response?.status ? ` HTTP ${span.response.status}` : "";
+    const url2 = span.data?.url ? ` ${displayURL(span.data.url)}` : "";
+    return `${symbol(status)} ${span.name}${response2}${url2} ${formatDuration(span.duration || elapsed(span))}`.trim();
+  }
+  function eventLabel(event) {
+    if (event.data?.label) {
+      return ` \u2014 ${event.data.label}`;
+    }
+    if (event.data?.url) {
+      return ` ${displayURL(event.data.url)}`;
+    }
+    return "";
+  }
+  function sequenceArrows(trace2) {
+    const arrows = [];
+    const spans = [...trace2.spans || []].sort((a, b) => a.start - b.start);
+    const roots = spans.filter((span) => !span.parentSpanId);
+    for (const span of roots) {
+      arrows.push({
+        from: "App",
+        to: "Metro",
+        label: `${span.data?.method || ""} ${displayURL(span.data?.url)}`.trim() || span.name,
+        severity: span.severity,
+        time: span.start
+      });
+    }
+    for (const span of spans) {
+      if (span.kind == "fetch" || span.name == "browserFetch") {
+        const host = hostActor(span.data?.url);
+        arrows.push({
+          from: "Metro",
+          to: host,
+          label: `${span.data?.method || "GET"} ${pathLabel(span.data?.url)}`,
+          severity: span.severity,
+          time: span.start
+        });
+        if (span.response || span.error || span.status == "running") {
+          arrows.push({
+            from: host,
+            to: "Metro",
+            label: span.error ? `error: ${span.error.message}` : span.response?.status ? `${span.response.status}` : "pending",
+            severity: span.severity,
+            time: span.end || now()
+          });
+        }
+      }
+    }
+    for (const event of trace2.events || []) {
+      if (event.data?.from && event.data?.to) {
+        arrows.push({
+          from: event.data.from,
+          to: event.data.to,
+          label: event.data.label || event.name,
+          severity: event.severity,
+          time: event.time
+        });
+      }
+    }
+    return arrows.sort((a, b) => a.time - b.time);
+  }
+  function collectActors(arrows) {
+    const actors = [];
+    for (const arrow of arrows) {
+      if (!actors.includes(arrow.from)) {
+        actors.push(arrow.from);
+      }
+      if (!actors.includes(arrow.to)) {
+        actors.push(arrow.to);
+      }
+    }
+    return actors;
+  }
+  function sequenceLine(actors, arrow, width, gap) {
+    const from = actors.indexOf(arrow.from);
+    const to = actors.indexOf(arrow.to);
+    const left = Math.min(from, to);
+    const right = Math.max(from, to);
+    const cells = actors.map(() => pad("\u2502", width));
+    const label = `${symbol(arrow.severity)} ${arrow.label}`.trim();
+    for (let index = left; index <= right; index++) {
+      if (index == from) {
+        cells[index] = pad(from < to ? "\u251C" : "\u25C0", width);
+      } else if (index == to) {
+        cells[index] = pad(from < to ? "\u25B6" : "\u2524", width);
+      } else {
+        cells[index] = pad("\u2500", width);
+      }
+    }
+    return cells.join(gap) + "  " + label;
+  }
+  function printDiagnostics(diagnostics, out) {
+    const primary = primaryDiagnostic(diagnostics);
+    if (primary && out.error) {
+      out.error(`${symbol(primary.severity)} ${primary.code}: ${primary.message}`);
+    }
+    for (const diagnostic of diagnostics) {
+      if (diagnostic == primary) {
+        continue;
+      }
+      printLine(`${symbol(diagnostic.severity)} ${diagnostic.code}: ${diagnostic.message}`, out);
+    }
+  }
+  function printLine(line, out) {
+    if (/✖|⛔/.test(line) && out.error) {
+      out.error(line);
+    } else if (/⚠/.test(line) && out.warn) {
+      out.warn(line);
+    } else if (out.log) {
+      out.log(line);
+    }
+  }
+  function assemble(traceId, traces, spans, events, diagnostics) {
+    const trace2 = traces.get(traceId);
+    if (!trace2) {
+      return null;
+    }
+    const result = Object.assign({}, trace2);
+    result.spans = [...spans.values()].filter((span) => span.traceId == traceId);
+    result.events = [...events.values()].filter((event) => event.traceId == traceId);
+    result.diagnostics = [...diagnostics.values()].filter((diagnostic) => diagnostic.traceId == traceId);
+    result.status = result.status == "running" ? traceStatus(result) : result.status;
+    result.severity = traceSeverity(result);
+    return result;
+  }
+  function readLocalTrace(storage, prefix, traceId) {
+    if (!traceId) {
+      return null;
+    }
+    const trace2 = parseJSON(storage.getItem(prefix + `trace:${traceId}`));
+    if (!trace2) {
+      return null;
+    }
+    trace2.spans = [];
+    trace2.events = [];
+    trace2.diagnostics = [];
+    for (let index = 0; index < storage.length; index++) {
+      const key = storage.key(index);
+      if (key?.startsWith(prefix + `span:${traceId}:`)) {
+        trace2.spans.push(parseJSON(storage.getItem(key)));
+      } else if (key?.startsWith(prefix + `event:${traceId}:`)) {
+        trace2.events.push(parseJSON(storage.getItem(key)));
+      } else if (key?.startsWith(prefix + `diagnostic:${traceId}:`)) {
+        trace2.diagnostics.push(parseJSON(storage.getItem(key)));
+      }
+    }
+    trace2.spans = trace2.spans.filter(Boolean);
+    trace2.events = trace2.events.filter(Boolean);
+    trace2.diagnostics = trace2.diagnostics.filter(Boolean);
+    trace2.status = trace2.status == "running" ? traceStatus(trace2) : trace2.status;
+    trace2.severity = traceSeverity(trace2);
+    return trace2;
+  }
+  function updateIndex(storage, prefix, traceId) {
+    const indexKey = prefix + "index";
+    const index = parseJSON(storage.getItem(indexKey)) || [];
+    const next = [traceId, ...index.filter((id2) => id2 != traceId)];
+    storage.setItem(indexKey, JSON.stringify(next));
+  }
+  function cleanupLocalStorage(storage, prefix, options = {}) {
+    const indexKey = prefix + "index";
+    const index = parseJSON(storage.getItem(indexKey)) || [];
+    const maxAge = options.maxAge ?? DEFAULT_OPTIONS.maxAge;
+    const maxTraces = options.maxTraces ?? DEFAULT_OPTIONS.maxTraces;
+    const keep = [];
+    const remove = [];
+    const cutoff = now() - maxAge;
+    for (const traceId of index) {
+      const trace2 = parseJSON(storage.getItem(prefix + `trace:${traceId}`));
+      if (!trace2 || trace2.start < cutoff || keep.length >= maxTraces) {
+        remove.push(traceId);
+      } else {
+        keep.push(traceId);
+      }
+    }
+    for (const traceId of remove) {
+      removeTrace(storage, prefix, traceId);
+    }
+    storage.setItem(indexKey, JSON.stringify(keep));
+  }
+  function clearLocalStorage(storage, prefix) {
+    const keys = [];
+    for (let index = 0; index < storage.length; index++) {
+      const key = storage.key(index);
+      if (key?.startsWith(prefix)) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      storage.removeItem(key);
+    }
+  }
+  function removeTrace(storage, prefix, traceId) {
+    const keys = [];
+    for (let index = 0; index < storage.length; index++) {
+      const key = storage.key(index);
+      if (key == prefix + `trace:${traceId}` || key?.startsWith(prefix + `span:${traceId}:`) || key?.startsWith(prefix + `event:${traceId}:`) || key?.startsWith(prefix + `diagnostic:${traceId}:`)) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      storage.removeItem(key);
+    }
+  }
+  function traceStatus(trace2) {
+    const spans = trace2.spans || [];
+    if (spans.some((span) => span.status == "running")) {
+      return "incomplete";
+    }
+    if ((trace2.diagnostics || []).some((diagnostic) => diagnostic.severity == "error" || diagnostic.severity == "blocked")) {
+      return "error";
+    }
+    if ((trace2.diagnostics || []).some((diagnostic) => diagnostic.severity == "warning")) {
+      return "warning";
+    }
+    return "ok";
+  }
+  function traceSeverity(trace2) {
+    let severity = trace2.status == "running" ? "pending" : "ok";
+    for (const span of trace2.spans || []) {
+      severity = maxSeverity(severity, span.severity || span.status || "ok");
+    }
+    for (const diagnostic of trace2.diagnostics || []) {
+      severity = maxSeverity(severity, diagnostic.severity || "warning");
+    }
+    return severity;
+  }
+  function primaryDiagnostic(diagnostics) {
+    return [...diagnostics].sort((a, b) => (SEVERITY_WEIGHT[b.severity] || 0) - (SEVERITY_WEIGHT[a.severity] || 0))[0];
+  }
+  function maxSeverity(a, b) {
+    return (SEVERITY_WEIGHT[b] || 0) > (SEVERITY_WEIGHT[a] || 0) ? b : a;
+  }
+  function symbol(status) {
+    return SEVERITY_SYMBOL[status] || SEVERITY_SYMBOL.info;
+  }
+  function requestName(req) {
+    return `${req?.method || "GET"} ${displayURL(req?.url)}`;
+  }
+  function middlewareName(middleware) {
+    return middleware?.displayName || middleware?.traceName || middleware?.name || "anonymous middleware";
+  }
+  function middlewareKind(middleware) {
+    return middlewareName(middleware) == "browserFetch" ? "fetch" : "middleware";
+  }
+  function responseSummary(res) {
+    if (!res) {
+      return null;
+    }
+    return {
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok,
+      url: safeURL(res.url),
+      redirected: res.redirected,
+      type: res.type
+    };
+  }
+  function errorSummary(error) {
+    return {
+      name: error?.name,
+      message: error?.message || String(error),
+      stack: error?.stack
+    };
+  }
+  function traceTitle(trace2) {
+    return trace2?.name || trace2?.id || "Metro trace";
+  }
+  function safeURL(value) {
+    if (!value) {
+      return value;
+    }
+    try {
+      const url2 = new URL(value, typeof window != "undefined" ? window.location.href : "https://localhost/");
+      url2.username = "";
+      url2.password = "";
+      for (const param of [...url2.searchParams.keys()]) {
+        if (isSecretName(param)) {
+          url2.searchParams.set(param, "\u2026");
+        }
+      }
+      return url2.href;
+    } catch (e) {
+      return String(value);
+    }
+  }
+  function displayURL(value) {
+    if (!value) {
+      return "";
+    }
+    try {
+      const url2 = new URL(value, "https://localhost/");
+      return url2.origin == "https://localhost" ? url2.pathname + url2.search : url2.href;
+    } catch (e) {
+      return String(value);
+    }
+  }
+  function hostActor(value) {
+    try {
+      return new URL(value, "https://localhost/").host || "Network";
+    } catch (e) {
+      return "Network";
+    }
+  }
+  function pathLabel(value) {
+    try {
+      const url2 = new URL(value, "https://localhost/");
+      return url2.pathname + url2.search;
+    } catch (e) {
+      return displayURL(value);
+    }
+  }
+  function sanitizeData(data) {
+    const result = {};
+    for (const [key, value] of Object.entries(data || {})) {
+      if (["traceId", "parentSpanId", "severity"].includes(key)) {
+        continue;
+      }
+      if (isSecretName(key)) {
+        result[key] = "\u2026";
+      } else if (value instanceof URL) {
+        result[key] = safeURL(value.href);
+      } else if (typeof value == "string" && looksLikeURL(value)) {
+        result[key] = safeURL(value);
+      } else if (value == null || ["string", "number", "boolean"].includes(typeof value)) {
+        result[key] = value;
+      } else {
+        result[key] = String(value);
+      }
+    }
+    return result;
+  }
+  function isSecretName(name) {
+    return /token|secret|password|credential|cookie|authorization|verifier|assertion|code/i.test(name);
+  }
+  function looksLikeURL(value) {
+    return /^https?:\/\//.test(value) || /^\//.test(value);
+  }
+  function formatDuration(duration) {
+    if (typeof duration != "number" || Number.isNaN(duration)) {
+      return "";
+    }
+    if (duration < 1e3) {
+      return `${Math.round(duration)}ms`;
+    }
+    return `${(duration / 1e3).toFixed(2)}s`;
+  }
+  function elapsed(item) {
+    return item?.start ? now() - item.start : 0;
+  }
+  function now() {
+    return Date.now();
+  }
+  function id(prefix) {
+    return `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+  }
+  function pad(value, width) {
+    value = String(value);
+    return value + " ".repeat(Math.max(0, width - value.length));
+  }
+  function parseJSON(value) {
+    try {
+      return value ? JSON.parse(value) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function safeLocalStorage() {
+    try {
+      return typeof localStorage != "undefined" ? localStorage : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // src/everything.mjs
   var metro = Object.assign({}, metro_exports, {
     mw: {
@@ -793,7 +1717,8 @@
     },
     api,
     jsonApi,
-    hashParams: hashparams_exports
+    hashParams: hashparams_exports,
+    trace: Object.assign({}, trace, tracegraph_exports)
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;

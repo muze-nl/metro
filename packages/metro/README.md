@@ -91,6 +91,27 @@ async function main() {
 }
 ```
 
+
+
+## Debugging complex flows
+
+The combined Metro export includes an optional trace graph addon for debugging middleware, nested fetches, and OAuth/OIDC-style flows:
+
+```javascript
+const tracer = metro.trace.graph({ view: 'tree' })
+metro.trace.add('graph', tracer)
+```
+
+The tracer prints a console graph with warnings and errors highlighted. In browsers it stores traces in `localStorage` by default, so a trace can be resumed after redirects or popup callbacks that return to the same origin.
+
+```javascript
+tracer.link(oauthState)
+// later, on the callback page:
+tracer.resumeLink(oauthState)
+```
+
+See [Debugging](docs/debugging.md) and [`metro.trace.graph`](docs/reference/trace/graph.md).
+
 <a name="middleware"></a>
 ## Using middleware
 A middleware is a function with `(request, next)` as parameters, returning a `response`.

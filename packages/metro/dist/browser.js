@@ -137,7 +137,16 @@
                 tracer.request.call(tracer, req2, middleware2);
               }
             }
-            res = await middleware2(req2, next2);
+            try {
+              res = await middleware2(req2, next2);
+            } catch (error) {
+              for (let tracer of tracers) {
+                if (tracer.error) {
+                  tracer.error.call(tracer, error, req2, middleware2);
+                }
+              }
+              throw error;
+            }
             for (let tracer of tracers) {
               if (tracer.response) {
                 tracer.response.call(tracer, res, middleware2);
