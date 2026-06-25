@@ -11,7 +11,7 @@ export default function timeoutmw(options=30000)
 		name: 'timeout'
 	}, options)
 
-	async function timeout(req, next) {
+	async function timeout(req, next, context) {
 		const ms = delayFor(options.ms, req)
 		if (!ms || ms <= 0) {
 			return next(req)
@@ -27,7 +27,7 @@ export default function timeoutmw(options=30000)
 			method: req.method,
 			url: req.url,
 			ms
-		})
+		}, context)
 		try {
 			return await next(req.with({ signal }))
 		} catch(error) {
@@ -37,7 +37,7 @@ export default function timeoutmw(options=30000)
 					code: 'timeout',
 					message: `Request timed out after ${ms}ms`,
 					data: { method: req.method, url: req.url, ms }
-				})
+				}, context)
 			}
 			throw error
 		} finally {

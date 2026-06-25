@@ -24,7 +24,7 @@ export default function retrymw(options={})
 		random: Math.random
 	}, options)
 
-	async function retry(req, next) {
+	async function retry(req, next, context) {
 		const attempts = attemptsFor(options.attempts, req)
 		if (attempts <= 1 || !methodCanRetry(req, options)) {
 			return next(req)
@@ -40,7 +40,7 @@ export default function retrymw(options={})
 						attempts,
 						method: req.method,
 						url: req.url
-					})
+					}, context)
 				}
 				const res = await next(req.with ? req.with() : req)
 				if (!responseCanRetry(res, options) || attempt >= attempts) {
@@ -56,13 +56,13 @@ export default function retrymw(options={})
 					method: req.method,
 					url: req.url,
 					delay
-				})
+				}, context)
 				traceDiagnostic({
 					severity: 'warning',
 					code: 'retry',
 					message: `Retrying ${req.method} ${displayURL(req.url)} after HTTP ${res.status}`,
 					data: { attempt, attempts, status: res.status, delay, method: req.method, url: req.url }
-				})
+				}, context)
 				await options.sleep(delay, req.signal)
 			} catch(error) {
 				lastError = error
@@ -78,13 +78,13 @@ export default function retrymw(options={})
 					method: req.method,
 					url: req.url,
 					delay
-				})
+				}, context)
 				traceDiagnostic({
 					severity: 'warning',
 					code: 'retry',
 					message: `Retrying ${req.method} ${displayURL(req.url)} after ${error.message || error}`,
 					data: { attempt, attempts, delay, method: req.method, url: req.url, error: error.message }
-				})
+				}, context)
 				await options.sleep(delay, req.signal)
 			}
 		}

@@ -14,7 +14,7 @@ export default function backoffmw(options={})
 		now: () => Date.now()
 	}, options)
 
-	async function backoff(req, next) {
+	async function backoff(req, next, context) {
 		const key = backoffKey(req, options)
 		const until = options.store.get(key) || 0
 		const wait = Math.max(0, until - options.now())
@@ -26,7 +26,7 @@ export default function backoffmw(options={})
 				url: req.url,
 				wait,
 				key
-			})
+			}, context)
 			await options.sleep(wait, req.signal)
 		}
 		const res = await next(req)
@@ -41,7 +41,7 @@ export default function backoffmw(options={})
 				status: res.status,
 				delay,
 				key
-			})
+			}, context)
 			traceDiagnostic({
 				severity: res.status >= 400 ? 'warning' : 'info',
 				code: 'server-backoff',
@@ -53,7 +53,7 @@ export default function backoffmw(options={})
 					delay,
 					key
 				}
-			})
+			}, context)
 		}
 		return res
 	}

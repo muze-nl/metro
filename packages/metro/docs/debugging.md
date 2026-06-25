@@ -30,7 +30,7 @@ metro.trace.add('debug', {
 
 A tracer is an object with at most three functions, named 'request', 'response', and 'error'. You don't have to specify both of them. A tracer function doesn't return anything. It can not change the request or response.
 
-You can add more than one tracer. Each name must be unique. You can remove a tracer by name, or clear all tracers. Tracers are stored globally, and run on any metro client request.
+You can add more than one global tracer. Each name must be unique. You can remove a tracer by name, or clear all tracers. Global tracers run on any Metro client request. For focused debugging, you can also scope a tracer to a single client or pass the current trace context into nested Metro calls.
 
 There is a default tracer method included with MetroJS, called metro.trace.group. You can add it like this:
 
@@ -49,6 +49,12 @@ const tracer = metro.trace.graph({
   autoPrint: true
 })
 
+const client = metro.client('/api/', { trace: tracer })
+```
+
+You can still install the same tracer globally while debugging a whole app:
+
+```javascript
 metro.trace.add('graph', tracer)
 ```
 
@@ -65,6 +71,36 @@ Primary diagnostic:
    │  └─ ✓ browserFetch /.well-known/openid-configuration 82ms
    └─ ✖ token exchange 732ms
       └─ ✖ browserFetch /token 731ms
+```
+
+
+## Scoped traces and nested calls
+
+Scoped tracing keeps overlapping requests separate, so a slow request and a fast request do not share one stack. This is especially important when OAuth/OIDC middleware makes extra Metro calls while the original request is still active.
+
+```javascript
+const tracer = metro.trace.graph({ autoPrint: true })
+const client = metro.client('/api/', { trace: tracer })
+```
+
+Middleware receives a third `context` argument. Use `context.trace.options()` when an internal Metro call should be added to the same trace:
+
+```javascript
+async function oidc(req, next, context) {
+  await discoveryClient.get(issuerMetadataUrl, context.trace.options())
+  await tokenClient.post(tokenEndpoint, context.trace.options({ body: tokenRequest }))
+  return next(req)
+}
+```
+
+Manual trace events should use `context.trace.event()` inside middleware. This keeps events attached to the current request instead of relying on global trace state:
+
+```javascript
+context.trace.event('authorization popup opened', {
+  from: 'App',
+  to: 'Identity Provider',
+  label: 'authorize'
+})
 ```
 
 The tracer persists to `localStorage` by default when it is available. This allows an OAuth/OIDC flow to keep the same trace across redirects, reloads, or a popup callback that returns to the same origin.

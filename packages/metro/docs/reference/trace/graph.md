@@ -20,6 +20,12 @@ const tracer = metro.trace.graph({
   autoPrint: true
 })
 
+const client = metro.client('/api/', { trace: tracer })
+```
+
+For app-wide debugging, you can still install the tracer globally:
+
+```javascript
 metro.trace.add('graph', tracer)
 ```
 
@@ -59,6 +65,37 @@ const tracer = metro.trace.graph({
 ```
 
 That is useful for flows where a `401` is expected and starts authorization.
+
+
+## Scoped tracing
+
+Prefer scoped tracing when you are debugging a specific client or a flow that can overlap with other requests:
+
+```javascript
+const tracer = metro.trace.graph({ autoPrint: true })
+const client = metro.client('/api/', { trace: tracer })
+```
+
+Scoped tracing keeps each Metro request in its own trace context. This prevents concurrent requests from being mixed into one graph.
+
+Middleware receives a third `context` argument. Pass `context.trace.options()` to nested Metro calls that should stay in the same trace:
+
+```javascript
+async function oidc(req, next, context) {
+  await discoveryClient.get('/.well-known/openid-configuration', context.trace.options())
+  return next(req)
+}
+```
+
+You can also add scoped events and diagnostics:
+
+```javascript
+context.trace.event('authorization callback received', {
+  from: 'Identity Provider',
+  to: 'App',
+  label: 'callback'
+})
+```
 
 ## Manual events
 

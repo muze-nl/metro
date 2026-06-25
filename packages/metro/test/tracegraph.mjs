@@ -74,3 +74,85 @@ tap.test('trace graph supports persistent-flow links and manual events', t => {
 	t.match(renderSequence(trace), /callback/)
 	t.end()
 })
+
+tap.test('trace graph can be scoped to one client without global tracers', async t => {
+	const tracer = graph({ persist: false, autoPrint: false })
+	metro.trace.clear()
+
+	const traced = metro.client({ trace: tracer })
+		.with(async function server() { return new Response('traced', { status: 200 }) })
+	const untraced = metro.client()
+		.with(async function server() { return new Response('plain', { status: 200 }) })
+
+	await traced.get('/traced')
+	await untraced.get('/plain')
+
+	const trace = tracer.get()
+	t.match(trace.name, /GET \/traced/)
+	t.match(tracer.render(), /\/traced/)
+	t.notMatch(tracer.render(), /\/plain/)
+})
+
+
+function waitFor(check)
+{
+	return new Promise(resolve => {
+		function poll() {
+			if (check()) {
+				resolve()
+			} else {
+				setTimeout(poll, 0)
+			}
+		}
+		poll()
+	})
+}
+
+tap.test('trace graph keeps overlapping requests in separate traces', async t => {
+	const tracer = graph({ persist: false, autoPrint: false })
+	metro.trace.clear()
+	metro.trace.add('graph', tracer)
+	t.teardown(() => metro.trace.clear())
+
+	const release = {}
+	const client = metro.client().with(async function server(req) {
+		const path = new URL(req.url).pathname
+		await new Promise(resolve => { release[path] = resolve })
+		return new Response(path, { status: 200 })
+	})
+
+	const first = client.get('/first')
+	const second = client.get('/second')
+	await waitFor(() => release['/first'] && release['/second'])
+	release['/second']()
+	await second
+	release['/first']()
+	await first
+
+	const last = tracer.get()
+	t.match(last.name, /GET \/first|GET \/second/)
+	const firstTraceId = tracer.store.lastTraceId()
+	const renderedLast = tracer.render(firstTraceId)
+	t.ok(renderedLast.includes('/first') || renderedLast.includes('/second'))
+	t.notOk(renderedLast.includes('/first') && renderedLast.includes('/second'), 'one rendered trace does not contain both overlapping requests')
+})
+
+tap.test('middleware can pass scoped trace context to nested Metro calls', async t => {
+	const tracer = graph({ persist: false, autoPrint: false })
+	metro.trace.clear()
+
+	const internal = metro.client()
+		.with(async function tokenServer() { return new Response('token', { status: 200 }) })
+	const client = metro.client({ trace: tracer })
+		.with(async function resource() { return new Response('ok', { status: 200 }) })
+		.with(async function oidc(req, next, context) {
+			await internal.get('/token', context.trace.options())
+			return next(req)
+		})
+
+	await client.get('/profile')
+	const rendered = tracer.render()
+	t.match(rendered, /oidc/)
+	t.match(rendered, /\/token/)
+	t.match(rendered, /\/profile/)
+})

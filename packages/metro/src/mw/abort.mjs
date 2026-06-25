@@ -12,7 +12,7 @@ export default function abortmw(options={})
 		name: 'abort'
 	}, options)
 
-	async function abort(req, next) {
+	async function abort(req, next, context) {
 		const signal = signalFor(options.signal, req)
 		if (!signal) {
 			return next(req)
@@ -24,14 +24,14 @@ export default function abortmw(options={})
 				code: 'aborted',
 				message: error.message || 'Request was aborted',
 				data: { method: req.method, url: req.url }
-			})
+			}, context)
 			throw error
 		}
 		traceEvent('abort signal attached', {
 			severity: 'info',
 			method: req.method,
 			url: req.url
-		})
+		}, context)
 		return next(req.with({ signal: combineSignals(req.signal, signal) }))
 	}
 	abort.traceName = options.name

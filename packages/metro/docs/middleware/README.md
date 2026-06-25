@@ -29,12 +29,12 @@ In addition there are a few separate middleware libraries:
 
 ## Creating middleware
 
-A middleware is a function with (request, next) as parameters, returning a response. Both request and response adhere to the Fetch API [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) and [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) standard.
+A middleware is a function with `(request, next, context)` as parameters, returning a response. Existing middleware can ignore the optional `context` argument. Both request and response adhere to the Fetch API [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) and [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) standard.
 
 next is a function that takes a request and returns a `Promise<Response>`. This function is defined by MetroJS and automatically passed to your middleware function. The idea is that your middleware function can change the request and pass it on to the next middleware or the actual `fetch()` call, then intercept the response and change that and return it:
 
 ```javascript
-async function myMiddleware(req,next) {
+async function myMiddleware(req, next, context) {
   req = req.with('?foo=bar')
   let res = await next(req)
   if (res.ok) {

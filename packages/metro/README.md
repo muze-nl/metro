@@ -47,7 +47,7 @@ You add middleware with the `with()` function, as shown above.
 The signature for a middleware function is:
 
 ```javascript
-async (request, next) => {
+async (request, next, context) => {
    // alter request
    let response = await next(request)
    // alter response
@@ -117,8 +117,10 @@ The combined Metro export includes an optional trace graph addon for debugging m
 
 ```javascript
 const tracer = metro.trace.graph({ view: 'tree' })
-metro.trace.add('graph', tracer)
+const client = metro.client('/api/', { trace: tracer })
 ```
+
+For app-wide debugging, you can still use `metro.trace.add('graph', tracer)`. Scoped tracing is safer when several requests may overlap.
 
 The tracer prints a console graph with warnings and errors highlighted. In browsers it stores traces in `localStorage` by default, so a trace can be resumed after redirects or popup callbacks that return to the same origin.
 
@@ -132,7 +134,7 @@ See [Debugging](docs/debugging.md) and [`metro.trace.graph`](docs/reference/trac
 
 <a name="middleware"></a>
 ## Using middleware
-A middleware is a function with `(request, next)` as parameters, returning a `response`.
+A middleware is a function with `(request, next, context)` as parameters, returning a `response`. Existing middleware can ignore the optional `context` argument.
 Both request and response adhere to the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) and 
 [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) standard.
@@ -142,7 +144,7 @@ and automatically passed to your middleware function. The idea is that your midd
 and pass it on to the next middleware or the actual fetch() call, then intercept the response and change that and return it:
 
 ```javascript
-async function myMiddleware(req,next) {
+async function myMiddleware(req, next, context) {
   req = req.with('?foo=bar')
   let res = await next(req)
   if (res.ok) {

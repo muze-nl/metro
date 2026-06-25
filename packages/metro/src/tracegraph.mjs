@@ -57,28 +57,29 @@ export class GraphTracer
 			this.options.store = this.options.persist ? localStorageStore(this.options) : memoryStore()
 		}
 		this.store = this.options.store
-		this.stack = []
-		this.activeTraceId = null
-		this.activeParentSpanId = null
+		this.defaultState = traceState()
+		this.runs = new Map()
 		this.lastTraceId = null
 		this.store.cleanup?.(this.options)
 	}
 
-	request(req, middleware)
+	request(req, middleware, context=null)
 	{
-		if (!this.activeTraceId) {
-			this.startTrace(requestName(req))
+		const state = this.state(context)
+		if (!state.activeTraceId) {
+			this.startTrace(requestName(req), {}, context)
 		}
 		this.startSpan(middlewareName(middleware), {
 			kind: middlewareKind(middleware),
 			method: req?.method,
 			url: safeURL(req?.url)
-		})
+		}, context)
 	}
 
-	response(res, middleware)
+	response(res, middleware, context=null)
 	{
-		const span = this.stack.pop()
+		const state = this.state(context)
+		const span = state.stack.pop()
 		if (!span) {
 			return
 		}
@@ -88,14 +89,15 @@ export class GraphTracer
 		span.status = 'ok'
 		span.severity = 'ok'
 
-		this.addResponseDiagnostics(span, res)
+		this.addResponseDiagnostics(span, res, context)
 		this.store.saveSpan(span)
-		this.finishTraceIfComplete()
+		this.finishTraceIfComplete(null, context)
 	}
 
-	error(error, req, middleware)
+	error(error, req, middleware, context=null)
 	{
-		const span = this.stack.pop()
+		const state = this.state(context)
+		const span = state.stack.pop()
 		if (!span) {
 			return
 		}
@@ -122,19 +124,20 @@ export class GraphTracer
 					name: error?.name,
 					errorMessage: message
 				}
-			})
+			}, context)
 		}
-		this.finishTraceIfComplete('error')
+		this.finishTraceIfComplete('error', context)
 	}
 
 	/**
 	 * Add a custom event to the current trace. Use from/to metadata to make it
 	 * appear in sequence diagrams.
 	 */
-	event(name, data={})
+	event(name, data={}, context=null)
 	{
-		const traceId = data.traceId || this.activeTraceId || this.lastTraceId || this.startTrace(this.options.name)
-		const parent = data.parentSpanId || this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null
+		const state = this.state(context)
+		const traceId = data.traceId || state.activeTraceId || state.lastTraceId || this.lastTraceId || this.startTrace(this.options.name, {}, context)
+		const parent = data.parentSpanId || state.stack[state.stack.length - 1]?.spanId || state.activeParentSpanId || null
 		const event = {
 			id: id('event'),
 			traceId,
@@ -152,21 +155,22 @@ export class GraphTracer
 	 * Record a manual span. This is useful for middleware internals that are not
 	 * represented by a Metro fetch call, for example token validation or PKCE.
 	 */
-	async span(name, fn, data={})
+	async span(name, fn, data={}, context=null)
 	{
-		this.startSpan(name, data)
+		this.startSpan(name, data, context)
 		try {
 			const result = await fn()
-			this.response(data.response || {status: 200}, {name})
+			this.response(data.response || {status: 200}, {name}, context)
 			return result
 		} catch(error) {
-			this.error(error, null, {name})
+			this.error(error, null, {name}, context)
 			throw error
 		}
 	}
 
-	startTrace(name, data={})
+	startTrace(name, data={}, context=null)
 	{
+		const state = this.state(context)
 		const trace = {
 			id: data.traceId || id('trace'),
 			name,
@@ -175,16 +179,18 @@ export class GraphTracer
 			severity: 'ok',
 			data: sanitizeData(data)
 		}
-		this.activeTraceId = trace.id
+		state.activeTraceId = trace.id
+		state.lastTraceId = trace.id
 		this.lastTraceId = trace.id
 		this.store.saveTrace(trace)
 		return trace.id
 	}
 
-	startSpan(name, data={})
+	startSpan(name, data={}, context=null)
 	{
-		const traceId = data.traceId || this.activeTraceId || this.startTrace(this.options.name)
-		const parentSpanId = data.parentSpanId || this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null
+		const state = this.state(context)
+		const traceId = data.traceId || state.activeTraceId || this.startTrace(this.options.name, {}, context)
+		const parentSpanId = data.parentSpanId || state.stack[state.stack.length - 1]?.spanId || state.activeParentSpanId || null
 		const span = {
 			traceId,
 			spanId: id('span'),
@@ -196,15 +202,16 @@ export class GraphTracer
 			severity: 'ok',
 			data: sanitizeData(data)
 		}
-		this.stack.push(span)
+		state.stack.push(span)
 		this.store.saveSpan(span)
 		return span
 	}
 
-	diagnostic(diagnostic)
+	diagnostic(diagnostic, context=null)
 	{
-		const currentSpan = this.stack[this.stack.length - 1]
-		const traceId = diagnostic.traceId || currentSpan?.traceId || this.activeTraceId || this.lastTraceId
+		const state = this.state(context)
+		const currentSpan = state.stack[state.stack.length - 1]
+		const traceId = diagnostic.traceId || currentSpan?.traceId || state.activeTraceId || state.lastTraceId || this.lastTraceId
 		if (!traceId) {
 			return null
 		}
@@ -220,11 +227,12 @@ export class GraphTracer
 		return result
 	}
 
-	current()
+	current(context=null)
 	{
+		const state = this.state(context)
 		return {
-			traceId: this.activeTraceId,
-			spanId: this.stack[this.stack.length - 1]?.spanId || this.activeParentSpanId || null
+			traceId: state.activeTraceId,
+			spanId: state.stack[state.stack.length - 1]?.spanId || state.activeParentSpanId || null
 		}
 	}
 
@@ -232,8 +240,10 @@ export class GraphTracer
 	 * Remember a trace id under a stable key, for example an OAuth state value.
 	 * The key is local to this trace store.
 	 */
-	link(key, traceId=this.activeTraceId || this.lastTraceId)
+	link(key, traceId=undefined, context=null)
 	{
+		const state = this.state(context)
+		traceId = traceId || state.activeTraceId || state.lastTraceId || this.lastTraceId
 		if (key && traceId) {
 			this.store.link(key, traceId)
 		}
@@ -243,27 +253,31 @@ export class GraphTracer
 	/**
 	 * Resume adding manual events/spans to a trace after a redirect or popup.
 	 */
-	resume(traceId, parentSpanId=null)
+	resume(traceId, parentSpanId=null, context=null)
 	{
 		if (!traceId) {
 			return null
 		}
-		this.activeTraceId = traceId
-		this.activeParentSpanId = parentSpanId
+		const state = this.state(context)
+		state.activeTraceId = traceId
+		state.activeParentSpanId = parentSpanId
+		state.lastTraceId = traceId
 		this.lastTraceId = traceId
-		return this.current()
+		return this.current(context)
 	}
 
-	resumeLink(key, parentSpanId=null)
+	resumeLink(key, parentSpanId=null, context=null)
 	{
-		return this.resume(this.store.lookup(key), parentSpanId)
+		return this.resume(this.store.lookup(key), parentSpanId, context)
 	}
 
-	pause()
+	pause(context=null)
 	{
-		this.activeTraceId = null
-		this.activeParentSpanId = null
-		this.stack = []
+		if (context?.__metroTraceContext) {
+			this.runs.delete(context.id)
+			return
+		}
+		this.defaultState = traceState()
 	}
 
 	get(traceId=this.lastTraceId)
@@ -297,13 +311,12 @@ export class GraphTracer
 	clear()
 	{
 		this.store.clear()
-		this.stack = []
-		this.activeTraceId = null
-		this.activeParentSpanId = null
+		this.defaultState = traceState()
+		this.runs.clear()
 		this.lastTraceId = null
 	}
 
-	addResponseDiagnostics(span, res)
+	addResponseDiagnostics(span, res, context=null)
 	{
 		if (span.duration >= this.options.slowStepMs) {
 			span.severity = maxSeverity(span.severity, 'warning')
@@ -314,7 +327,7 @@ export class GraphTracer
 				code: 'slow-step',
 				message: `${span.name} took ${formatDuration(span.duration)}`,
 				data: { threshold: this.options.slowStepMs, actual: span.duration }
-			})
+			}, context)
 		}
 		if (!res || typeof res.status == 'undefined' || span.kind != 'fetch') {
 			return
@@ -330,7 +343,7 @@ export class GraphTracer
 				code: 'unexpected-status',
 				message: `${span.name} returned unexpected HTTP ${res.status}`,
 				data: { status: res.status, url: span.data?.url }
-			})
+			}, context)
 		}
 	}
 
@@ -346,14 +359,19 @@ export class GraphTracer
 		return status < 400
 	}
 
-	finishTraceIfComplete(status=null)
+	finishTraceIfComplete(status=null, context=null)
 	{
-		if (this.stack.length || !this.activeTraceId) {
+		const state = this.state(context)
+		if (state.stack.length || !state.activeTraceId) {
 			return
 		}
-		const trace = this.store.read(this.activeTraceId)
+		if (context?.parent) {
+			this.runs.delete(context.id)
+			return
+		}
+		const trace = this.store.read(state.activeTraceId)
 		if (!trace) {
-			this.pause()
+			this.pause(context)
 			return
 		}
 		trace.end = now()
@@ -361,11 +379,42 @@ export class GraphTracer
 		trace.status = status || traceStatus(trace)
 		trace.severity = traceSeverity(trace)
 		this.store.saveTrace(trace)
+		state.lastTraceId = trace.id
 		this.lastTraceId = trace.id
 		if (this.options.autoPrint) {
 			this.print(trace.id)
 		}
-		this.pause()
+		this.pause(context)
+	}
+
+	state(context=null)
+	{
+		if (!context?.__metroTraceContext) {
+			return this.defaultState
+		}
+		let state = this.runs.get(context.id)
+		if (state) {
+			return state
+		}
+		state = traceState()
+		const parentState = context.parent ? this.runs.get(context.parent.id) : null
+		if (parentState) {
+			state.activeTraceId = parentState.activeTraceId
+			state.activeParentSpanId = parentState.stack[parentState.stack.length - 1]?.spanId || parentState.activeParentSpanId || null
+			state.lastTraceId = parentState.lastTraceId
+		}
+		this.runs.set(context.id, state)
+		return state
+	}
+}
+
+function traceState()
+{
+	return {
+		stack: [],
+		activeTraceId: null,
+		activeParentSpanId: null,
+		lastTraceId: null
 	}
 }
 

@@ -74,11 +74,14 @@ export class Client
 
 		for (const verb of this.clientOptions.verbs) {
 			this[verb] = async function(...options) {
-				return this.fetch(request(
-					this.clientOptions,
-					...options,
-					{method: verb.toUpperCase()}
-				))
+				return this.fetch(
+					request(
+						this.clientOptions,
+						...options,
+						{method: verb.toUpperCase()}
+					),
+					fetchOptionsFrom(...options)
+				)
 			}
 		}
 		//NOTE: intentionally not Object.freeze()-ing this, so that metro.api can extend this class
@@ -133,33 +136,23 @@ export class Client
 		
 		let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || [])
 		options = Object.assign({}, this.clientOptions, options)
+		const traceContext = createTraceContext(req, options)
+		const middlewareContext = createMiddlewareContext(this, options, traceContext)
 		//@TODO: do this once in constructor?
 		let next
 		for (let middleware of middlewares) {
 			next = (function(next, middleware) {
 				return async function(req) {
 					let res
-					let tracers = Object.values(Client.tracers)
-					for(let tracer of tracers) {
-						if (tracer.request) {
-							tracer.request.call(tracer, req, middleware)
-						}
-					}
+					let tracers = traceContext.tracers
+					callTracers(tracers, 'request', req, middleware, traceContext)
 					try {
-						res = await middleware(req, next)
+						res = await middleware(req, next, middlewareContext)
 					} catch(error) {
-						for(let tracer of tracers) {
-							if (tracer.error) {
-								tracer.error.call(tracer, error, req, middleware)
-							}
-						}
+						callTracers(tracers, 'error', error, req, middleware, traceContext)
 						throw error
 					}
-					for(let tracer of tracers) {
-						if (tracer.response) {
-							tracer.response.call(tracer, res, middleware)
-						}
-					}
+					callTracers(tracers, 'response', res, middleware, traceContext)
 					return res
 				}								
 			})(next, middleware)
@@ -175,6 +168,162 @@ export class Client
 		return this.clientOptions.url
 	}
 
+}
+
+
+let traceContextId = 0
+const TRACE_OPTION_KEYS = ['trace', 'tracer', 'tracers']
+
+function fetchOptionsFrom(...options)
+{
+	const result = {}
+	for (const option of options) {
+		if (!isPlainObject(option)) {
+			continue
+		}
+		for (const key of TRACE_OPTION_KEYS) {
+			if (key in option) {
+				result[key] = option[key]
+			}
+		}
+	}
+	return result
+}
+
+function createTraceContext(req, options={})
+{
+	const parent = traceParentFrom(options.trace || options.tracer || options.tracers)
+	let localTracers = []
+	if (parent) {
+		localTracers = parent.localTracers || []
+	} else {
+		localTracers = normalizeTracers(options.trace)
+			.concat(normalizeTracers(options.tracer))
+			.concat(normalizeTracers(options.tracers))
+	}
+	const globalTracers = Object.values(Client.tracers || {})
+	const context = {
+		__metroTraceContext: true,
+		id: 'metro-trace-context-'+(++traceContextId),
+		parent,
+		request: req,
+		options,
+		globalTracers,
+		localTracers,
+		tracers: globalTracers.concat(localTracers)
+	}
+	return context
+}
+
+function traceParentFrom(value)
+{
+	if (!value) {
+		return null
+	}
+	if (value.context?.__metroTraceContext) {
+		return value.context
+	}
+	if (value.__metroTraceContext) {
+		return value
+	}
+	return null
+}
+
+function normalizeTracers(value)
+{
+	if (!value || value.__metroTraceContext || value.context?.__metroTraceContext) {
+		return []
+	}
+	if (Array.isArray(value)) {
+		return value.flatMap(normalizeTracers)
+	}
+	if (isTracer(value)) {
+		return [value]
+	}
+	if (isPlainObject(value)) {
+		return Object.values(value).flatMap(normalizeTracers)
+	}
+	return []
+}
+
+function isTracer(value)
+{
+	return value && typeof value == 'object' && [
+		'request', 'response', 'error', 'event', 'diagnostic', 'span', 'link', 'current'
+	].some(name => typeof value[name] == 'function')
+}
+
+function createMiddlewareContext(client, options, traceContext)
+{
+	const trace = createTraceAPI(traceContext)
+	return Object.freeze({
+		client,
+		options,
+		trace,
+		fetch(req, fetchOptions={}) {
+			return client.fetch(req, Object.assign({}, fetchOptions, { trace }))
+		}
+	})
+}
+
+function createTraceAPI(context)
+{
+	const api = {
+		__metroTraceContext: true,
+		context,
+		event(name, data={}) {
+			callTracers(context.tracers, 'event', name, data, context)
+		},
+		diagnostic(diagnostic={}) {
+			callTracers(context.tracers, 'diagnostic', diagnostic, context)
+		},
+		current() {
+			for (const tracer of context.tracers) {
+				if (typeof tracer.current == 'function') {
+					const current = tracer.current(context)
+					if (current) {
+						return current
+					}
+				}
+			}
+			return { traceId: null, spanId: null }
+		},
+		async span(name, fn, data={}) {
+			const tracer = context.tracers.find(tracer => typeof tracer.span == 'function')
+			if (!tracer) {
+				return fn()
+			}
+			return tracer.span(name, fn, data, context)
+		},
+		link(key) {
+			let traceId = null
+			for (const tracer of context.tracers) {
+				if (typeof tracer.link == 'function') {
+					traceId = tracer.link(key, undefined, context) || traceId
+				}
+			}
+			return traceId
+		},
+		options(extra={}) {
+			return Object.assign({}, extra, { trace: api })
+		}
+	}
+	return api
+}
+
+function callTracers(tracers, method, ...args)
+{
+	for (const tracer of tracers) {
+		if (tracer && typeof tracer[method] == 'function') {
+			tracer[method].call(tracer, ...args)
+		}
+	}
+}
+
+function isPlainObject(value)
+{
+	return value && typeof value == 'object'
+		&& (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
 }
 
 /**
