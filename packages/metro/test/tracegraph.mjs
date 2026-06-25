@@ -1,5 +1,5 @@
 import tap from 'tap'
-import * as metro from '../src/metro.mjs'
+import metro from '../src/index.mjs'
 import { graph, memoryStore, renderSequence } from '../src/tracegraph.mjs'
 
 tap.test('trace graph records nested middleware and fetch spans', async t => {

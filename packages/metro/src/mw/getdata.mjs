@@ -1,12 +1,2 @@
-export default function getdatamw()
-{
-
-	return async function getdata(req, next) {
-		let res = await next(req)
-		if (res.ok && res.data) {
-			return res.data
-		}
-		return res
-	}
-
-}
+export { default } from '@muze-nl/metro-middleware/getdata.mjs'
+export * from '@muze-nl/metro-middleware/getdata.mjs'

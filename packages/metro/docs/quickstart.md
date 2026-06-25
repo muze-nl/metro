@@ -23,10 +23,10 @@ Or in the browser, using a cdn:
 </script>
 ```
 
-If you are using a cdn, and need the assert library or one of the default middleware plugins, use the `dist/everything.js` script instead:
+The browser build is the beginner-friendly combined Metro package, so the core, middleware, tracing and API helpers are all available on the global `metro` object. `dist/everything.js` remains as a compatibility alias for the same combined export.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro/dist/everything.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro/dist/browser.js"></script>
 <script>
   const client = metro.client(metro.mw.json())
 </script>

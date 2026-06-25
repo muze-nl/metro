@@ -1,13 +1,13 @@
 {
   "name": "@muze-nl/metro",
   "version": "0.7.1",
-  "description": "http client with middleware support",
+  "description": "Beginner-friendly combined Metro package",
   "type": "module",
   "source": [
     "src/browser.mjs",
     "src/everything.mjs"
   ],
-  "main": "src/everything.mjs",
+  "main": "src/index.mjs",
   "scripts": {
     "test": "tap --disable-coverage test/*.mjs",
     "tap": "tap",
@@ -38,5 +38,42 @@
     "/dist",
     "/LICENSE",
     "/README.md"
-  ]
+  ],
+  "exports": {
+    ".": "./src/index.mjs",
+    "./browser": "./src/browser.mjs",
+    "./browser.mjs": "./src/browser.mjs",
+    "./everything": "./src/everything.mjs",
+    "./everything.mjs": "./src/everything.mjs",
+    "./src/metro.mjs": "./src/metro.mjs",
+    "./src/api.mjs": "./src/api.mjs",
+    "./src/hashparams.mjs": "./src/hashparams.mjs",
+    "./src/tracegraph.mjs": "./src/tracegraph.mjs",
+    "./src/mw/json.mjs": "./src/mw/json.mjs",
+    "./src/mw/thrower.mjs": "./src/mw/thrower.mjs",
+    "./src/mw/getdata.mjs": "./src/mw/getdata.mjs",
+    "./src/mw/retry.mjs": "./src/mw/retry.mjs",
+    "./src/mw/timeout.mjs": "./src/mw/timeout.mjs",
+    "./src/mw/abort.mjs": "./src/mw/abort.mjs",
+    "./src/mw/backoff.mjs": "./src/mw/backoff.mjs",
+    "./src/mw/echo.mock.mjs": "./src/mw/echo.mock.mjs",
+    "./src/mw/error.mock.mjs": "./src/mw/error.mock.mjs",
+    "./mw/json.mjs": "./src/mw/json.mjs",
+    "./mw/thrower.mjs": "./src/mw/thrower.mjs",
+    "./mw/getdata.mjs": "./src/mw/getdata.mjs",
+    "./mw/retry.mjs": "./src/mw/retry.mjs",
+    "./mw/timeout.mjs": "./src/mw/timeout.mjs",
+    "./mw/abort.mjs": "./src/mw/abort.mjs",
+    "./mw/backoff.mjs": "./src/mw/backoff.mjs",
+    "./mw/echo.mock.mjs": "./src/mw/echo.mock.mjs",
+    "./mw/error.mock.mjs": "./src/mw/error.mock.mjs"
+  },
+  "dependencies": {
+    "@muze-nl/metro-core": "0.7.1",
+    "@muze-nl/metro-api": "0.7.1",
+    "@muze-nl/metro-middleware": "0.7.1",
+    "@muze-nl/metro-trace": "0.7.1",
+    "@muze-nl/metro-hashparams": "0.7.1",
+    "@muze-nl/metro-formdata": "0.7.1"
+  }
 }

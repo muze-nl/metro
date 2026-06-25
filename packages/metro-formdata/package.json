@@ -1,0 +1,29 @@
+{
+  "name": "@muze-nl/metro-formdata",
+  "version": "0.7.1",
+  "description": "FormData helper for Metro",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@muze-nl/metro-core": "0.7.1"
+  },
+  "files": [
+    "/src",
+    "/LICENSE",
+    "/README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-formdata"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

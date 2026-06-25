@@ -5,6 +5,7 @@ weight: 5
 
 # Reference
 
+- [Package structure](./packages.md)
 - [Client](./client/)
 	- [delete](./client/delete/)
 	- [get](./client/get/)

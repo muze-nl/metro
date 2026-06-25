@@ -5,51 +5,19 @@
       __defProp(target, name, { get: all[name], enumerable: true });
   };
 
-  // src/metro.mjs
-  var metro_exports = {};
-  __export(metro_exports, {
+  // ../metro-core/src/index.mjs
+  var src_exports = {};
+  __export(src_exports, {
     Client: () => Client,
     client: () => client,
     deepClone: () => deepClone,
-    formdata: () => formdata,
     metroError: () => metroError,
     request: () => request,
     response: () => response,
-    trace: () => trace,
     url: () => url
   });
 
-  // src/hashparams.mjs
-  var hashparams_exports = {};
-  __export(hashparams_exports, {
-    append: () => append,
-    clear: () => clear,
-    parse: () => parse
-  });
-  function parse(url2) {
-    const hash = url(url2).hash.substr(1);
-    const query = /\?[^#]*/.exec(hash)?.[0];
-    return new URLSearchParams(query);
-  }
-  function append(url2, params) {
-    url2 = url(url2);
-    if (!(params instanceof URLSearchParams)) {
-      params = new URLSearchParams(params);
-    }
-    let hash = url2.hash || "#";
-    hash += "?" + params;
-    return url2.with({ hash });
-  }
-  function clear(url2) {
-    url2 = url(url2);
-    let hash = url2.hash.replace(/\?[^#]*/, "");
-    if (hash.substr(0, 2) === "##") {
-      hash = hash.substr(1);
-    }
-    return url2.with({ hash });
-  }
-
-  // src/metro.mjs
+  // ../metro-core/src/metro.mjs
   var metroURL = "https://metro.muze.nl/details/";
   if (!Symbol.metroProxy) {
     Symbol.metroProxy = /* @__PURE__ */ Symbol("isProxy");
@@ -254,13 +222,13 @@
     ].some((name) => typeof value[name] == "function");
   }
   function createMiddlewareContext(client2, options, traceContext) {
-    const trace2 = createTraceAPI(traceContext);
+    const trace = createTraceAPI(traceContext);
     return Object.freeze({
       client: client2,
       options,
-      trace: trace2,
+      trace,
       fetch(req, fetchOptions = {}) {
-        return client2.fetch(req, Object.assign({}, fetchOptions, { trace: trace2 }));
+        return client2.fetch(req, Object.assign({}, fetchOptions, { trace }));
       }
     });
   }
@@ -527,6 +495,15 @@
       });
     }
   }
+  function appendHashParams(value, params) {
+    const target = value[Symbol.metroSource] || value;
+    if (!(params instanceof URLSearchParams)) {
+      params = new URLSearchParams(params);
+    }
+    let hash = target.hash || "#";
+    hash += "?" + params;
+    return url(target, { hash });
+  }
   function url(...options) {
     let validParams = [
       "hash",
@@ -602,7 +579,7 @@
       if (typeof hParams == "string") {
         u.hash += hParams;
       } else {
-        u = append(u, hParams)[Symbol.metroSource];
+        u = appendHashParams(u, hParams);
       }
     }
     Object.freeze(u);
@@ -663,61 +640,6 @@
       }
     });
   }
-  function formdata(...options) {
-    var params = new FormData();
-    for (let option of options) {
-      if (option instanceof HTMLFormElement) {
-        option = new FormData(option);
-      }
-      if (option instanceof FormData) {
-        for (let entry of option.entries()) {
-          params.append(entry[0], entry[1]);
-        }
-      } else if (option && typeof option == "object") {
-        for (let entry of Object.entries(option)) {
-          if (Array.isArray(entry[1])) {
-            for (let value of entry[1]) {
-              params.append(entry[0], value);
-            }
-          } else {
-            params.append(entry[0], entry[1]);
-          }
-        }
-      } else {
-        throw new metroError("metro.formdata: unknown option type " + metroURL + "formdata/unknown-option-value/", option);
-      }
-    }
-    Object.freeze(params);
-    return new Proxy(params, {
-      get(target, prop) {
-        let result;
-        switch (prop) {
-          case Symbol.metroProxy:
-            result = true;
-            break;
-          case Symbol.metroSource:
-            result = target;
-            break;
-          //TODO: add toString() that can check
-          //headers param: toString({headers:request.headers})
-          //for the content-type
-          case "with":
-            result = function(...options2) {
-              return formdata(target, ...options2);
-            };
-            break;
-          default:
-            if (target[prop] instanceof Function) {
-              result = target[prop].bind(target);
-            } else {
-              result = target[prop];
-            }
-            break;
-        }
-        return result;
-      }
-    });
-  }
   var metroConsole = {
     error: (message, ...details) => {
       console.error("\u24C2\uFE0F  ", message, ...details);
@@ -736,49 +658,6 @@
     metroConsole.error(message, ...details);
     return new Error(message, ...details);
   }
-  var trace = {
-    /**
-     * Adds a named tracer function
-     * @param {string} name - the name of the tracer
-     * @param {Function} tracer - the tracer function to call
-     */
-    add(name, tracer) {
-      Client.tracers[name] = tracer;
-    },
-    /**
-     * Removes a named tracer function
-     * @param {string} name
-     */
-    delete(name) {
-      delete Client.tracers[name];
-    },
-    /**
-     * Removes all tracer functions
-     */
-    clear() {
-      Client.tracers = {};
-    },
-    /**
-     * Returns a set of request and response tracer functions that use the
-     * console.group feature to shows nested request/response pairs, with
-     * most commonly needed information for debugging
-     */
-    group() {
-      let group = 0;
-      return {
-        request: (req, middleware) => {
-          group++;
-          metroConsole.group(group);
-          metroConsole.info(req?.url, req, middleware);
-        },
-        response: (res, middleware) => {
-          metroConsole.info(res?.body ? res.body[Symbol.metroSource] : null, res, middleware);
-          metroConsole.groupEnd(group);
-          group--;
-        }
-      };
-    }
-  };
   function deepClone(object) {
     if (Array.isArray(object)) {
       return object.slice().map(deepClone);
@@ -797,7 +676,7 @@
     return object;
   }
 
-  // src/mw/json.mjs
+  // ../metro-middleware/src/json.mjs
   function jsonmw(options) {
     options = Object.assign({
       contentType: "application/json",
@@ -853,7 +732,7 @@
     return /^text\/plain\b/.exec(contentType);
   }
 
-  // src/mw/thrower.mjs
+  // ../metro-middleware/src/thrower.mjs
   function throwermw(options) {
     return async function thrower(req, next) {
       let res = await next(req);
@@ -870,7 +749,7 @@
     };
   }
 
-  // src/mw/getdata.mjs
+  // ../metro-middleware/src/getdata.mjs
   function getdatamw() {
     return async function getdata(req, next) {
       let res = await next(req);
@@ -881,52 +760,7 @@
     };
   }
 
-  // src/api.mjs
-  var API = class extends Client {
-    #methods = null;
-    #base = "";
-    constructor(base, methods, bind = null) {
-      if (base instanceof Client) {
-        super(base.clientOptions, throwermw(), getdatamw());
-      } else {
-        super(base, throwermw(), getdatamw());
-      }
-      if (!bind) {
-        bind = this;
-      }
-      this.#methods = methods;
-      this.#base = base;
-      for (const methodName in methods) {
-        if (typeof methods[methodName] == "function") {
-          this[methodName] = methods[methodName].bind(bind);
-        } else if (methods[methodName] && typeof methods[methodName] == "object" && (Object.getPrototypeOf(methods[methodName]) === null || Object.getPrototypeOf(methods[methodName]).constructor === Object)) {
-          this[methodName] = new this.constructor(base, methods[methodName], bind);
-        } else {
-          this[methodName] = methods[methodName];
-        }
-      }
-    }
-    extend(methods) {
-      return new this.constructor(this.#base, Object.assign({}, this.#methods, methods));
-    }
-  };
-  var JsonAPI = class extends API {
-    constructor(base, methods, bind = null) {
-      if (base instanceof Client) {
-        super(base.with(jsonmw()), methods, bind);
-      } else {
-        super(client(base, jsonmw()), methods, bind);
-      }
-    }
-  };
-  function api(...options) {
-    return new API(...deepClone(options));
-  }
-  function jsonApi(...options) {
-    return new JsonAPI(...deepClone(options));
-  }
-
-  // src/mw/_trace.mjs
+  // ../metro-middleware/src/_trace.mjs
   function traceEvent(name, data = {}, context = null) {
     for (const tracer of tracersFor(context)) {
       if (tracer && typeof tracer.event == "function") {
@@ -945,7 +779,7 @@
     return context?.tracers || Object.values(Client.tracers || {});
   }
 
-  // src/mw/backoff.mjs
+  // ../metro-middleware/src/backoff.mjs
   var DEFAULT_BACKOFF_STATUSES = [429, 503];
   function backoffmw(options = {}) {
     options = Object.assign({
@@ -1141,8 +975,8 @@
       signal?.addEventListener?.("abort", abort, { once: true });
     });
   }
-  function statusAllowsBackoff(status, options) {
-    return options.statuses == "*" || options.statuses.includes(status);
+  function statusAllowsBackoff(status2, options) {
+    return options.statuses == "*" || options.statuses.includes(status2);
   }
   function capDelay(delay, maxDelay) {
     if (!maxDelay || maxDelay < 0) {
@@ -1185,7 +1019,7 @@
   backoffmw.parseRetryAfter = parseRetryAfter;
   backoffmw.responseDelay = responseBackoffDelay;
 
-  // src/mw/retry.mjs
+  // ../metro-middleware/src/retry.mjs
   var DEFAULT_RETRY_STATUS = [408, 425, 429, 500, 502, 503, 504];
   var DEFAULT_RETRY_METHODS = ["GET", "HEAD", "OPTIONS"];
   function retrymw(options = {}) {
@@ -1331,7 +1165,7 @@
     }
   }
 
-  // src/mw/abort.mjs
+  // ../metro-middleware/src/abort.mjs
   function abortmw(options = {}) {
     if (isAbortSignal(options)) {
       options = { signal: options };
@@ -1378,8 +1212,8 @@
     const controller = new AbortController();
     const cleanup = [];
     const abort = (event) => {
-      for (const remove of cleanup) {
-        remove();
+      for (const remove2 of cleanup) {
+        remove2();
       }
       const source = event?.target || signals.find((signal) => signal.aborted);
       if (!controller.signal.aborted) {
@@ -1413,7 +1247,7 @@
   abortmw.combineSignals = combineSignals;
   abortmw.abortError = abortError;
 
-  // src/mw/timeout.mjs
+  // ../metro-middleware/src/timeout.mjs
   function timeoutmw(options = 3e4) {
     if (typeof options == "number") {
       options = { ms: options };
@@ -1469,19 +1303,169 @@
   }
   timeoutmw.timeoutError = timeoutError;
 
-  // src/tracegraph.mjs
-  var tracegraph_exports = {};
-  __export(tracegraph_exports, {
+  // ../metro-middleware/src/echo.mock.mjs
+  function echomw() {
+    return async function echo(req) {
+      let options = {
+        status: 200,
+        statusText: "OK",
+        url: req.url,
+        headers: req.headers,
+        body: req.body
+      };
+      return response(options);
+    };
+  }
+
+  // ../metro-middleware/src/error.mock.mjs
+  var baseResponse = {
+    status: 200,
+    statusText: "OK",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
+  var badRequest = (error) => {
+    return {
+      status: error.code,
+      statusText: error.message,
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(error)
+    };
+  };
+  var status = {
+    "/400/": "Bad Request",
+    "/401/": "Unauthorized",
+    "/402/": "Payment Required",
+    "/403/": "Forbidden",
+    "/404/": "Not Found",
+    "/405/": "Method Not Allowed",
+    "/406/": "Not Acceptable",
+    "/407/": "Proxy Authentication Required",
+    "/408/": "Request Timeout",
+    "/409/": "Conflict",
+    "/410/": "Gone",
+    "/411/": "Length Required",
+    "/412/": "Precondition Failed",
+    "/413/": "Payload Too Large",
+    "/414/": "URI Too Long",
+    "/415/": "Unsupported Media Type",
+    "/416/": "Range Not Satisfiable",
+    "/417/": "Expectation Failed",
+    "/418/": "I'm a teapot",
+    "/421/": "Misdireceted Request",
+    "/422/": "Unprocessable Content",
+    "/423/": "Locked",
+    "/424/": "Failed Dependency",
+    "/425/": "Too Early",
+    "/426/": "Upgrade Required",
+    "/428/": "Precondition Required",
+    "/429/": "Too Many Requests",
+    "/431/": "Request Header Fields Too Large",
+    "/451/": "Unavailable For Legal Reasons",
+    "/500/": "Internal Server Error",
+    "/501/": "Not Implemented",
+    "/502/": "Bad Gateway",
+    "/503/": "Service Unavailable",
+    "/504/": "Gateway Timeout",
+    "/505/": "HTTP Version Not Supported",
+    "/506/": "Variant Also Negotiated",
+    "/507/": "Insufficient Storage",
+    "/508/": "Loop Detected",
+    "/510/": "Not Extended",
+    "/511/": "Network Authentication Required"
+  };
+  function errormw(options) {
+    const customStatus = Object.assign({}, status, options);
+    return async function error(req) {
+      let url2 = url(req.url);
+      if (status[url2.pathname]) {
+        let error2 = {
+          code: parseInt(url2.pathname.substring(1)),
+          message: customStatus[url2.pathname]
+        };
+        return response(badRequest(error2));
+      } else {
+        return response(baseResponse);
+      }
+    };
+  }
+
+  // ../metro-middleware/src/index.mjs
+  var src_default = {
+    json: jsonmw,
+    thrower: throwermw,
+    getdata: getdatamw,
+    retry: retrymw,
+    timeout: timeoutmw,
+    abort: abortmw,
+    backoff: backoffmw,
+    echoMock: echomw,
+    errorMock: errormw
+  };
+
+  // ../metro-api/src/index.mjs
+  var API = class extends Client {
+    #methods = null;
+    #base = "";
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.clientOptions, throwermw(), getdatamw());
+      } else {
+        super(base, throwermw(), getdatamw());
+      }
+      if (!bind) {
+        bind = this;
+      }
+      this.#methods = methods;
+      this.#base = base;
+      for (const methodName in methods) {
+        if (typeof methods[methodName] == "function") {
+          this[methodName] = methods[methodName].bind(bind);
+        } else if (methods[methodName] && typeof methods[methodName] == "object" && (Object.getPrototypeOf(methods[methodName]) === null || Object.getPrototypeOf(methods[methodName]).constructor === Object)) {
+          this[methodName] = new this.constructor(base, methods[methodName], bind);
+        } else {
+          this[methodName] = methods[methodName];
+        }
+      }
+    }
+    extend(methods) {
+      return new this.constructor(this.#base, Object.assign({}, this.#methods, methods));
+    }
+  };
+  var JsonAPI = class extends API {
+    constructor(base, methods, bind = null) {
+      if (base instanceof Client) {
+        super(base.with(jsonmw()), methods, bind);
+      } else {
+        super(client(base, jsonmw()), methods, bind);
+      }
+    }
+  };
+  function api(...options) {
+    return new API(...deepClone(options));
+  }
+  function jsonApi(...options) {
+    return new JsonAPI(...deepClone(options));
+  }
+
+  // ../metro-trace/src/index.mjs
+  var src_exports2 = {};
+  __export(src_exports2, {
     GraphTracer: () => GraphTracer,
+    add: () => add,
+    clear: () => clear,
+    default: () => src_default2,
+    delete: () => remove,
     graph: () => graph,
+    group: () => group,
     localConsole: () => localConsole,
-    localStorageStore: () => localStorageStore,
-    memoryStore: () => memoryStore,
-    printTrace: () => printTrace,
-    renderSequence: () => renderSequence,
-    renderTrace: () => renderTrace,
-    renderTree: () => renderTree
+    remove: () => remove
   });
+
+  // ../metro-trace/src/tracegraph.mjs
   var DEFAULT_OPTIONS = {
     name: "Metro trace",
     view: "tree",
@@ -1492,7 +1476,7 @@
     maxTraces: 20,
     slowStepMs: 1e3,
     store: null,
-    expectedStatus: (status) => status < 400,
+    expectedStatus: (status2) => status2 < 400,
     console: typeof console != "undefined" ? console : null
   };
   var SEVERITY_WEIGHT = {
@@ -1568,8 +1552,8 @@
       span.error = errorSummary(error);
       this.store.saveSpan(span);
       const message = error?.message || "Middleware failed";
-      const trace2 = this.store.read(span.traceId);
-      const alreadyReported = trace2?.diagnostics?.some((diagnostic) => diagnostic.data?.errorMessage == message);
+      const trace = this.store.read(span.traceId);
+      const alreadyReported = trace?.diagnostics?.some((diagnostic) => diagnostic.data?.errorMessage == message);
       if (span.kind == "fetch" || !alreadyReported) {
         this.diagnostic({
           traceId: span.traceId,
@@ -1625,7 +1609,7 @@
     }
     startTrace(name, data = {}, context = null) {
       const state = this.state(context);
-      const trace2 = {
+      const trace = {
         id: data.traceId || id("trace"),
         name,
         start: now(),
@@ -1633,11 +1617,11 @@
         severity: "ok",
         data: sanitizeData(data)
       };
-      state.activeTraceId = trace2.id;
-      state.lastTraceId = trace2.id;
-      this.lastTraceId = trace2.id;
-      this.store.saveTrace(trace2);
-      return trace2.id;
+      state.activeTraceId = trace.id;
+      state.lastTraceId = trace.id;
+      this.lastTraceId = trace.id;
+      this.store.saveTrace(trace);
+      return trace.id;
     }
     startSpan(name, data = {}, context = null) {
       const state = this.state(context);
@@ -1723,21 +1707,21 @@
       return this.store.read(traceId);
     }
     print(traceId = this.lastTraceId, options = {}) {
-      const trace2 = typeof traceId == "object" ? traceId : this.get(traceId);
-      if (!trace2) {
+      const trace = typeof traceId == "object" ? traceId : this.get(traceId);
+      if (!trace) {
         return null;
       }
-      return printTrace(trace2, Object.assign({}, this.options, options));
+      return printTrace(trace, Object.assign({}, this.options, options));
     }
     printLast(options = {}) {
       return this.print(this.lastTraceId || this.store.lastTraceId?.(), options);
     }
     render(traceId = this.lastTraceId, options = {}) {
-      const trace2 = typeof traceId == "object" ? traceId : this.get(traceId);
-      if (!trace2) {
+      const trace = typeof traceId == "object" ? traceId : this.get(traceId);
+      if (!trace) {
         return "";
       }
-      return renderTrace(trace2, Object.assign({}, this.options, options));
+      return renderTrace(trace, Object.assign({}, this.options, options));
     }
     clear() {
       this.store.clear();
@@ -1774,17 +1758,17 @@
         }, context);
       }
     }
-    statusExpected(status, span) {
+    statusExpected(status2, span) {
       const expected = this.options.expectedStatus;
       if (typeof expected == "function") {
-        return expected(status, span);
+        return expected(status2, span);
       }
       if (Array.isArray(expected)) {
-        return expected.includes(status);
+        return expected.includes(status2);
       }
-      return status < 400;
+      return status2 < 400;
     }
-    finishTraceIfComplete(status = null, context = null) {
+    finishTraceIfComplete(status2 = null, context = null) {
       const state = this.state(context);
       if (state.stack.length || !state.activeTraceId) {
         return;
@@ -1793,20 +1777,20 @@
         this.runs.delete(context.id);
         return;
       }
-      const trace2 = this.store.read(state.activeTraceId);
-      if (!trace2) {
+      const trace = this.store.read(state.activeTraceId);
+      if (!trace) {
         this.pause(context);
         return;
       }
-      trace2.end = now();
-      trace2.duration = trace2.end - trace2.start;
-      trace2.status = status || traceStatus(trace2);
-      trace2.severity = traceSeverity(trace2);
-      this.store.saveTrace(trace2);
-      state.lastTraceId = trace2.id;
-      this.lastTraceId = trace2.id;
+      trace.end = now();
+      trace.duration = trace.end - trace.start;
+      trace.status = status2 || traceStatus(trace);
+      trace.severity = traceSeverity(trace);
+      this.store.saveTrace(trace);
+      state.lastTraceId = trace.id;
+      this.lastTraceId = trace.id;
       if (this.options.autoPrint) {
-        this.print(trace2.id);
+        this.print(trace.id);
       }
       this.pause(context);
     }
@@ -1837,11 +1821,11 @@
       lastTraceId: null
     };
   }
-  function renderTrace(trace2, options = {}) {
+  function renderTrace(trace, options = {}) {
     options = Object.assign({}, DEFAULT_OPTIONS, options);
-    const diagnostics = trace2.diagnostics || [];
+    const diagnostics = trace.diagnostics || [];
     const lines = [];
-    lines.push(`${traceTitle(trace2)} ${trace2.status || ""} ${formatDuration(trace2.duration || elapsed(trace2))}`.trim());
+    lines.push(`${traceTitle(trace)} ${trace.status || ""} ${formatDuration(trace.duration || elapsed(trace))}`.trim());
     const primary = primaryDiagnostic(diagnostics);
     if (primary) {
       lines.push("");
@@ -1856,12 +1840,12 @@
       }
     }
     lines.push("");
-    lines.push(options.view == "sequence" ? renderSequence(trace2, options) : renderTree(trace2, options));
+    lines.push(options.view == "sequence" ? renderSequence(trace, options) : renderTree(trace, options));
     return lines.join("\n");
   }
-  function renderTree(trace2, options = {}) {
-    const spans = trace2.spans || [];
-    const events = trace2.events || [];
+  function renderTree(trace, options = {}) {
+    const spans = trace.spans || [];
+    const events = trace.events || [];
     const children = /* @__PURE__ */ new Map();
     for (const span of spans) {
       const parent = span.parentSpanId || "";
@@ -1870,8 +1854,8 @@
       }
       children.get(parent).push(span);
     }
-    for (const group of children.values()) {
-      group.sort((a, b) => a.start - b.start);
+    for (const group2 of children.values()) {
+      group2.sort((a, b) => a.start - b.start);
     }
     const eventsBySpan = /* @__PURE__ */ new Map();
     for (const event of events) {
@@ -1881,8 +1865,8 @@
       }
       eventsBySpan.get(spanId).push(event);
     }
-    for (const group of eventsBySpan.values()) {
-      group.sort((a, b) => a.time - b.time);
+    for (const group2 of eventsBySpan.values()) {
+      group2.sort((a, b) => a.time - b.time);
     }
     const roots = children.get("") || [];
     const lines = [];
@@ -1897,10 +1881,10 @@
     }
     return lines.join("\n");
   }
-  function renderSequence(trace2, options = {}) {
-    const arrows = sequenceArrows(trace2);
+  function renderSequence(trace, options = {}) {
+    const arrows = sequenceArrows(trace);
     if (!arrows.length) {
-      return renderTree(trace2, options);
+      return renderTree(trace, options);
     }
     const actors = collectActors(arrows);
     const width = Math.max(14, ...actors.map((actor) => actor.length));
@@ -1913,24 +1897,24 @@
     }
     return lines.join("\n");
   }
-  function printTrace(trace2, options = {}) {
-    const output = renderTrace(trace2, options);
+  function printTrace(trace, options = {}) {
+    const output = renderTrace(trace, options);
     const out = options.console || console;
     if (!out) {
       return output;
     }
-    const title = `${symbol(trace2.severity)} ${traceTitle(trace2)} ${trace2.status || ""} ${formatDuration(trace2.duration || elapsed(trace2))}`.trim();
+    const title = `${symbol(trace.severity)} ${traceTitle(trace)} ${trace.status || ""} ${formatDuration(trace.duration || elapsed(trace))}`.trim();
     if (out.groupCollapsed) {
       out.groupCollapsed("\u24C2\uFE0F  " + title);
     } else if (out.group) {
       out.group("\u24C2\uFE0F  " + title);
     }
-    printDiagnostics(trace2.diagnostics || [], out);
+    printDiagnostics(trace.diagnostics || [], out);
     for (const line of output.split("\n")) {
       printLine(line, out);
     }
     if (options.includeRawTrace && out.dir) {
-      out.dir(trace2);
+      out.dir(trace);
     }
     if (out.groupEnd) {
       out.groupEnd();
@@ -1945,9 +1929,9 @@
     let links = /* @__PURE__ */ new Map();
     let last = null;
     return {
-      saveTrace(trace2) {
-        traces.set(trace2.id, Object.assign({}, trace2));
-        last = trace2.id;
+      saveTrace(trace) {
+        traces.set(trace.id, Object.assign({}, trace));
+        last = trace.id;
       },
       saveSpan(span) {
         spans.set(span.spanId, Object.assign({}, span));
@@ -1990,11 +1974,11 @@
     const prefix = options.prefix || "metro:trace:";
     const key = (suffix) => prefix + suffix;
     return {
-      saveTrace(trace2) {
+      saveTrace(trace) {
         safeStore(() => {
-          storage.setItem(key(`trace:${trace2.id}`), JSON.stringify(trace2));
-          storage.setItem(key("last"), trace2.id);
-          updateIndex(storage, prefix, trace2.id);
+          storage.setItem(key(`trace:${trace.id}`), JSON.stringify(trace));
+          storage.setItem(key("last"), trace.id);
+          updateIndex(storage, prefix, trace.id);
         });
       },
       saveSpan(span) {
@@ -2054,10 +2038,10 @@
     }
   }
   function spanLine(span) {
-    const status = span.status == "running" ? "pending" : span.severity || span.status || "ok";
+    const status2 = span.status == "running" ? "pending" : span.severity || span.status || "ok";
     const response2 = span.response?.status ? ` HTTP ${span.response.status}` : "";
     const url2 = span.data?.url ? ` ${displayURL2(span.data.url)}` : "";
-    return `${symbol(status)} ${span.name}${response2}${url2} ${formatDuration(span.duration || elapsed(span))}`.trim();
+    return `${symbol(status2)} ${span.name}${response2}${url2} ${formatDuration(span.duration || elapsed(span))}`.trim();
   }
   function eventLabel(event) {
     if (event.data?.label) {
@@ -2068,9 +2052,9 @@
     }
     return "";
   }
-  function sequenceArrows(trace2) {
+  function sequenceArrows(trace) {
     const arrows = [];
-    const spans = [...trace2.spans || []].sort((a, b) => a.start - b.start);
+    const spans = [...trace.spans || []].sort((a, b) => a.start - b.start);
     const roots = spans.filter((span) => !span.parentSpanId);
     for (const span of roots) {
       arrows.push({
@@ -2102,7 +2086,7 @@
         }
       }
     }
-    for (const event of trace2.events || []) {
+    for (const event of trace.events || []) {
       if (event.data?.from && event.data?.to) {
         arrows.push({
           from: event.data.from,
@@ -2167,11 +2151,11 @@
     }
   }
   function assemble(traceId, traces, spans, events, diagnostics) {
-    const trace2 = traces.get(traceId);
-    if (!trace2) {
+    const trace = traces.get(traceId);
+    if (!trace) {
       return null;
     }
-    const result = Object.assign({}, trace2);
+    const result = Object.assign({}, trace);
     result.spans = [...spans.values()].filter((span) => span.traceId == traceId);
     result.events = [...events.values()].filter((event) => event.traceId == traceId);
     result.diagnostics = [...diagnostics.values()].filter((diagnostic) => diagnostic.traceId == traceId);
@@ -2183,29 +2167,29 @@
     if (!traceId) {
       return null;
     }
-    const trace2 = parseJSON(storage.getItem(prefix + `trace:${traceId}`));
-    if (!trace2) {
+    const trace = parseJSON(storage.getItem(prefix + `trace:${traceId}`));
+    if (!trace) {
       return null;
     }
-    trace2.spans = [];
-    trace2.events = [];
-    trace2.diagnostics = [];
+    trace.spans = [];
+    trace.events = [];
+    trace.diagnostics = [];
     for (let index = 0; index < storage.length; index++) {
       const key = storage.key(index);
       if (key?.startsWith(prefix + `span:${traceId}:`)) {
-        trace2.spans.push(parseJSON(storage.getItem(key)));
+        trace.spans.push(parseJSON(storage.getItem(key)));
       } else if (key?.startsWith(prefix + `event:${traceId}:`)) {
-        trace2.events.push(parseJSON(storage.getItem(key)));
+        trace.events.push(parseJSON(storage.getItem(key)));
       } else if (key?.startsWith(prefix + `diagnostic:${traceId}:`)) {
-        trace2.diagnostics.push(parseJSON(storage.getItem(key)));
+        trace.diagnostics.push(parseJSON(storage.getItem(key)));
       }
     }
-    trace2.spans = trace2.spans.filter(Boolean);
-    trace2.events = trace2.events.filter(Boolean);
-    trace2.diagnostics = trace2.diagnostics.filter(Boolean);
-    trace2.status = trace2.status == "running" ? traceStatus(trace2) : trace2.status;
-    trace2.severity = traceSeverity(trace2);
-    return trace2;
+    trace.spans = trace.spans.filter(Boolean);
+    trace.events = trace.events.filter(Boolean);
+    trace.diagnostics = trace.diagnostics.filter(Boolean);
+    trace.status = trace.status == "running" ? traceStatus(trace) : trace.status;
+    trace.severity = traceSeverity(trace);
+    return trace;
   }
   function updateIndex(storage, prefix, traceId) {
     const indexKey = prefix + "index";
@@ -2219,17 +2203,17 @@
     const maxAge = options.maxAge ?? DEFAULT_OPTIONS.maxAge;
     const maxTraces = options.maxTraces ?? DEFAULT_OPTIONS.maxTraces;
     const keep = [];
-    const remove = [];
+    const remove2 = [];
     const cutoff = now() - maxAge;
     for (const traceId of index) {
-      const trace2 = parseJSON(storage.getItem(prefix + `trace:${traceId}`));
-      if (!trace2 || trace2.start < cutoff || keep.length >= maxTraces) {
-        remove.push(traceId);
+      const trace = parseJSON(storage.getItem(prefix + `trace:${traceId}`));
+      if (!trace || trace.start < cutoff || keep.length >= maxTraces) {
+        remove2.push(traceId);
       } else {
         keep.push(traceId);
       }
     }
-    for (const traceId of remove) {
+    for (const traceId of remove2) {
       removeTrace(storage, prefix, traceId);
     }
     storage.setItem(indexKey, JSON.stringify(keep));
@@ -2258,25 +2242,25 @@
       storage.removeItem(key);
     }
   }
-  function traceStatus(trace2) {
-    const spans = trace2.spans || [];
+  function traceStatus(trace) {
+    const spans = trace.spans || [];
     if (spans.some((span) => span.status == "running")) {
       return "incomplete";
     }
-    if ((trace2.diagnostics || []).some((diagnostic) => diagnostic.severity == "error" || diagnostic.severity == "blocked")) {
+    if ((trace.diagnostics || []).some((diagnostic) => diagnostic.severity == "error" || diagnostic.severity == "blocked")) {
       return "error";
     }
-    if ((trace2.diagnostics || []).some((diagnostic) => diagnostic.severity == "warning")) {
+    if ((trace.diagnostics || []).some((diagnostic) => diagnostic.severity == "warning")) {
       return "warning";
     }
     return "ok";
   }
-  function traceSeverity(trace2) {
-    let severity = trace2.status == "running" ? "pending" : "ok";
-    for (const span of trace2.spans || []) {
+  function traceSeverity(trace) {
+    let severity = trace.status == "running" ? "pending" : "ok";
+    for (const span of trace.spans || []) {
       severity = maxSeverity(severity, span.severity || span.status || "ok");
     }
-    for (const diagnostic of trace2.diagnostics || []) {
+    for (const diagnostic of trace.diagnostics || []) {
       severity = maxSeverity(severity, diagnostic.severity || "warning");
     }
     return severity;
@@ -2287,8 +2271,8 @@
   function maxSeverity(a, b) {
     return (SEVERITY_WEIGHT[b] || 0) > (SEVERITY_WEIGHT[a] || 0) ? b : a;
   }
-  function symbol(status) {
-    return SEVERITY_SYMBOL[status] || SEVERITY_SYMBOL.info;
+  function symbol(status2) {
+    return SEVERITY_SYMBOL[status2] || SEVERITY_SYMBOL.info;
   }
   function requestName(req) {
     return `${req?.method || "GET"} ${displayURL2(req?.url)}`;
@@ -2319,8 +2303,8 @@
       stack: error?.stack
     };
   }
-  function traceTitle(trace2) {
-    return trace2?.name || trace2?.id || "Metro trace";
+  function traceTitle(trace) {
+    return trace?.name || trace?.id || "Metro trace";
   }
   function safeURL(value) {
     if (!value) {
@@ -2429,25 +2413,159 @@
     }
   }
 
-  // src/everything.mjs
-  var metro = Object.assign({}, metro_exports, {
-    mw: {
-      json: jsonmw,
-      thrower: throwermw,
-      getdata: getdatamw,
-      retry: retrymw,
-      timeout: timeoutmw,
-      abort: abortmw,
-      backoff: backoffmw
-    },
+  // ../metro-trace/src/index.mjs
+  var metroConsole2 = {
+    info: (message, ...details) => console.info("\u24C2\uFE0F  ", message, ...details),
+    group: (name) => console.group("\u24C2\uFE0F  " + name),
+    groupEnd: (name) => console.groupEnd("\u24C2\uFE0F  " + name)
+  };
+  function add(name, tracer) {
+    Client.tracers[name] = tracer;
+  }
+  function remove(name) {
+    delete Client.tracers[name];
+  }
+  function clear() {
+    Client.tracers = {};
+  }
+  function group() {
+    let group2 = 0;
+    return {
+      request: (req, middleware) => {
+        group2++;
+        metroConsole2.group(group2);
+        metroConsole2.info(req?.url, req, middleware);
+      },
+      response: (res, middleware) => {
+        metroConsole2.info(res?.body ? res.body[Symbol.metroSource] : null, res, middleware);
+        metroConsole2.groupEnd(group2);
+        group2--;
+      },
+      error: (error) => {
+        metroConsole2.info(error);
+        metroConsole2.groupEnd(group2);
+        group2--;
+      }
+    };
+  }
+  var src_default2 = {
+    add,
+    delete: remove,
+    remove,
+    clear,
+    group,
+    graph: (...args) => graph(...args),
+    localConsole: (...args) => localConsole(...args)
+  };
+
+  // ../metro-hashparams/src/index.mjs
+  var src_exports3 = {};
+  __export(src_exports3, {
+    append: () => append,
+    clear: () => clear2,
+    parse: () => parse
+  });
+  function parse(url2) {
+    const hash = url(url2).hash.substr(1);
+    const query = /\?[^#]*/.exec(hash)?.[0];
+    return new URLSearchParams(query);
+  }
+  function append(url2, params) {
+    url2 = url(url2);
+    if (!(params instanceof URLSearchParams)) {
+      params = new URLSearchParams(params);
+    }
+    let hash = url2.hash || "#";
+    hash += "?" + params;
+    return url2.with({ hash });
+  }
+  function clear2(url2) {
+    url2 = url(url2);
+    let hash = url2.hash.replace(/\?[^#]*/, "");
+    if (hash.substr(0, 2) === "##") {
+      hash = hash.substr(1);
+    }
+    return url2.with({ hash });
+  }
+
+  // ../metro-formdata/src/index.mjs
+  var metroURL2 = "https://metro.muze.nl/details/";
+  if (!Symbol.metroProxy) {
+    Symbol.metroProxy = /* @__PURE__ */ Symbol("isProxy");
+  }
+  if (!Symbol.metroSource) {
+    Symbol.metroSource = /* @__PURE__ */ Symbol("source");
+  }
+  function formdata(...options) {
+    var params = new FormData();
+    for (let option of options) {
+      if (typeof HTMLFormElement != "undefined" && option instanceof HTMLFormElement) {
+        option = new FormData(option);
+      }
+      if (option instanceof FormData) {
+        for (let entry of option.entries()) {
+          params.append(entry[0], entry[1]);
+        }
+      } else if (option && typeof option == "object") {
+        for (let entry of Object.entries(option)) {
+          if (Array.isArray(entry[1])) {
+            for (let value of entry[1]) {
+              params.append(entry[0], value);
+            }
+          } else {
+            params.append(entry[0], entry[1]);
+          }
+        }
+      } else {
+        throw metroError("metro.formdata: unknown option type " + metroURL2 + "formdata/unknown-option-value/", option);
+      }
+    }
+    Object.freeze(params);
+    return new Proxy(params, {
+      get(target, prop) {
+        let result;
+        switch (prop) {
+          case Symbol.metroProxy:
+            result = true;
+            break;
+          case Symbol.metroSource:
+            result = target;
+            break;
+          //TODO: add toString() that can check
+          //headers param: toString({headers:request.headers})
+          //for the content-type
+          case "with":
+            result = function(...options2) {
+              return formdata(target, ...options2);
+            };
+            break;
+          default:
+            if (target[prop] instanceof Function) {
+              result = target[prop].bind(target);
+            } else {
+              result = target[prop];
+            }
+            break;
+        }
+        return result;
+      }
+    });
+  }
+
+  // src/index.mjs
+  var metro = Object.assign({}, src_exports, {
+    API,
+    JsonAPI,
     api,
     jsonApi,
-    hashParams: hashparams_exports,
-    trace: Object.assign({}, trace, tracegraph_exports)
+    mw: src_default,
+    trace: src_exports2,
+    hashParams: src_exports3,
+    formdata
   });
   if (!globalThis.metro) {
     globalThis.metro = metro;
   }
-  var everything_default = metro;
+  var index_default = metro;
 })();
 //# sourceMappingURL=everything.js.map

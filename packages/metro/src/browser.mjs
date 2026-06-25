@@ -1,7 +1,2 @@
-import * as metro from './metro.mjs'
-
-if (!globalThis.metro) {
-	globalThis.metro = metro
-}
-
-export default metro
+export * from './index.mjs'
+export { default } from './index.mjs'

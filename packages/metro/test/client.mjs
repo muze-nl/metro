@@ -1,5 +1,5 @@
 import tap from 'tap'
-import * as metro from '../src/metro.mjs'
+import metro from '../src/index.mjs'
 import echomw from '../src/mw/echo.mock.mjs'
 import jsonmw from '../src/mw/json.mjs'
 

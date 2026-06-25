@@ -1,0 +1,30 @@
+{
+  "name": "@muze-nl/metro-core",
+  "version": "0.7.1",
+  "description": "Core Metro fetch-compatible client and request helpers",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./metro": "./src/metro.mjs",
+    "./metro.mjs": "./src/metro.mjs",
+    "./src/metro.mjs": "./src/metro.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "/src",
+    "/LICENSE",
+    "/README.md",
+    "/MUZE_ALIGNMENT.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-core"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -17,16 +17,16 @@ Then use it like this:
 import metro from '@muze-nl/metro'
 ```
 
-This gives access to everything included in metro, like the json and thrower middleware. If you want a lighter version, use the exact src/ files, e.g.:
+This gives access to the beginner-friendly combined Metro package, including the core, middleware, API helpers and tracing. If you want a lighter version, import the core package and only the optional middleware you need:
 
 ```javascript
-import * as metro from '@muze-nl/metro/src/metro.mjs'
-import json from '@muze-nl/metro/mw/json.mjs'
+import * as metro from '@muze-nl/metro-core'
+import { json } from '@muze-nl/metro-middleware'
 ```
 
 Or you can use a CDN (Content Delivery Network), like this:
 ```javascript
-import * as metro from 'https://cdn.jsdelivr.net/npm/@muze-nl/metro/src/metro.mjs'
+import metro from 'https://cdn.jsdelivr.net/npm/@muze-nl/metro/src/browser.mjs'
 ```
 
 Or as a script tag:

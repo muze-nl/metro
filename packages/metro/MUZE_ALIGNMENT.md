@@ -30,7 +30,7 @@ Experimental libraries should use the `@muze-labs` namespace until they are matu
 
 ## Current assessment
 
-Metro is one of the best-aligned Muze libraries: it is browser-platform oriented, Fetch-compatible, small in concept, and built around composable middleware. The main risks are documentation clarity, optional global/browser builds, and keeping middleware from turning into a framework-like ecosystem with hidden conventions.
+Metro is one of the best-aligned Muze libraries: it is browser-platform oriented, Fetch-compatible, small in concept, and built around composable middleware. The core has now been split into `@muze-nl/metro-core`, while `@muze-nl/metro` is the beginner-friendly combined package. The main risks are documentation clarity, optional global/browser builds, and keeping middleware from turning into a framework-like ecosystem with hidden conventions.
 
 ## Strengths
 
@@ -51,7 +51,7 @@ Metro is one of the best-aligned Muze libraries: it is browser-platform oriented
 
 **Suggested direction:** Document `@muze-nl/metro` as pure ESM first. Provide a separate documented `browser.js` or `global` build for script-tag users, with an explicit note that it creates `globalThis.metro`.
 
-**Status:** Open
+**Status:** Partly done — `@muze-nl/metro-core` is now the small pure core package, and the browser/global behavior lives in the combined `@muze-nl/metro` package. The docs still need a clearer ESM-vs-global explanation.
 
 ### 2. Explain exactly how Metro maps to Fetch
 

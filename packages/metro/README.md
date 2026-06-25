@@ -62,6 +62,27 @@ Both metro.request() and metro.response() are compatible with the normal Request
 and Response objects, used by the Fetch API. Any code that works with those, will work
 with the request and response objects in MetroJS.
 
+
+## Package structure
+
+`@muze-nl/metro` is now the beginner-friendly combined package. It re-exports the small core plus optional helpers and sets `globalThis.metro` in the browser bundle.
+
+For advanced users who want the smallest import, the core package is available separately:
+
+```javascript
+import { client, request, response, url, Client, metroError } from '@muze-nl/metro-core'
+```
+
+Optional pieces are split into focused packages and re-exported here:
+
+```javascript
+import metro from '@muze-nl/metro'
+
+metro.mw.retry()
+metro.trace.graph()
+metro.hashParams.parse(location.href)
+```
+
 <a name="usage"></a>
 ## Usage
 

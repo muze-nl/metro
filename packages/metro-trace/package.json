@@ -1,0 +1,32 @@
+{
+  "name": "@muze-nl/metro-trace",
+  "version": "0.7.1",
+  "description": "Optional tracing and console graph support for Metro",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./graph": "./src/tracegraph.mjs",
+    "./tracegraph": "./src/tracegraph.mjs",
+    "./tracegraph.mjs": "./src/tracegraph.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@muze-nl/metro-core": "0.7.1"
+  },
+  "files": [
+    "/src",
+    "/LICENSE",
+    "/README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-trace"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
