@@ -93,6 +93,24 @@ async function main() {
 
 
 
+## Resilient requests
+
+The combined Metro export includes optional middleware for common failure handling:
+
+```javascript
+const client = metro.client('/api/')
+  .with(
+    metro.mw.backoff(),
+    metro.mw.timeout(5000),
+    metro.mw.retry({ attempts: 3 })
+  )
+```
+
+`retry` repeats safe temporary failures, `timeout` aborts slow requests, and `backoff` remembers server backoff hints such as `Retry-After` and rate-limit reset headers for later requests.
+
+See the middleware docs for [`retry`](docs/middleware/retry.md), [`timeout`](docs/middleware/timeout.md), [`abort`](docs/middleware/abort.md), and [`backoff`](docs/middleware/backoff.md).
+
+
 ## Debugging complex flows
 
 The combined Metro export includes an optional trace graph addon for debugging middleware, nested fetches, and OAuth/OIDC-style flows:

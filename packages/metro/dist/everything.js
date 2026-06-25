@@ -793,6 +793,546 @@
     return new JsonAPI(...deepClone(options));
   }
 
+  // src/mw/_trace.mjs
+  function traceEvent(name, data = {}) {
+    for (const tracer of Object.values(Client.tracers || {})) {
+      if (tracer && typeof tracer.event == "function") {
+        tracer.event(name, data);
+      }
+    }
+  }
+  function traceDiagnostic(diagnostic = {}) {
+    for (const tracer of Object.values(Client.tracers || {})) {
+      if (tracer && typeof tracer.diagnostic == "function") {
+        tracer.diagnostic(diagnostic);
+      }
+    }
+  }
+
+  // src/mw/backoff.mjs
+  var DEFAULT_BACKOFF_STATUSES = [429, 503];
+  function backoffmw(options = {}) {
+    options = Object.assign({
+      name: "backoff",
+      store: memoryBackoffStore(),
+      scope: "origin",
+      statuses: DEFAULT_BACKOFF_STATUSES,
+      maxDelay: 6e4,
+      sleep,
+      now: () => Date.now()
+    }, options);
+    async function backoff(req, next) {
+      const key = backoffKey(req, options);
+      const until = options.store.get(key) || 0;
+      const wait = Math.max(0, until - options.now());
+      if (wait > 0) {
+        traceEvent("server backoff wait", {
+          severity: "warning",
+          label: formatDelay(wait),
+          method: req.method,
+          url: req.url,
+          wait,
+          key
+        });
+        await options.sleep(wait, req.signal);
+      }
+      const res = await next(req);
+      const delay = responseBackoffDelay(res, options);
+      if (delay > 0) {
+        options.store.set(key, options.now() + delay);
+        traceEvent("server requested backoff", {
+          severity: res.status >= 400 ? "warning" : "info",
+          label: formatDelay(delay),
+          method: req.method,
+          url: req.url,
+          status: res.status,
+          delay,
+          key
+        });
+        traceDiagnostic({
+          severity: res.status >= 400 ? "warning" : "info",
+          code: "server-backoff",
+          message: `Server asked Metro to back off ${formatDelay(delay)}`,
+          data: {
+            method: req.method,
+            url: req.url,
+            status: res.status,
+            delay,
+            key
+          }
+        });
+      }
+      return res;
+    }
+    backoff.traceName = options.name;
+    return backoff;
+  }
+  function responseBackoffDelay(res, options = {}) {
+    options = Object.assign({
+      statuses: DEFAULT_BACKOFF_STATUSES,
+      maxDelay: 6e4
+    }, options);
+    if (!res?.headers) {
+      return 0;
+    }
+    const retryAfter = parseRetryAfter(res.headers.get("Retry-After"));
+    if (retryAfter > 0 && statusAllowsBackoff(res.status, options)) {
+      return capDelay(retryAfter, options.maxDelay);
+    }
+    const rateLimitReset = parseRateLimitReset(res.headers.get("RateLimit-Reset"));
+    const rateLimitRemaining = parseNumberHeader(res.headers.get("RateLimit-Remaining"));
+    if (rateLimitReset > 0 && rateLimitRemaining === 0) {
+      return capDelay(rateLimitReset, options.maxDelay);
+    }
+    const combinedRateLimit = parseCombinedRateLimit(res.headers.get("RateLimit"));
+    if (combinedRateLimit.delay > 0 && combinedRateLimit.remaining === 0) {
+      return capDelay(combinedRateLimit.delay, options.maxDelay);
+    }
+    return 0;
+  }
+  function parseRetryAfter(value, now2 = Date.now()) {
+    if (!value) {
+      return 0;
+    }
+    value = String(value).trim();
+    if (/^\d+$/.test(value)) {
+      return parseInt(value, 10) * 1e3;
+    }
+    const date = Date.parse(value);
+    if (!Number.isNaN(date)) {
+      return Math.max(0, date - now2);
+    }
+    return 0;
+  }
+  function parseRateLimitReset(value) {
+    if (!value) {
+      return 0;
+    }
+    const match = String(value).trim().match(/^\d+(?:\.\d+)?/);
+    if (!match) {
+      return 0;
+    }
+    return Math.ceil(parseFloat(match[0]) * 1e3);
+  }
+  function parseCombinedRateLimit(value) {
+    const result = { remaining: null, delay: 0 };
+    if (!value) {
+      return result;
+    }
+    for (const part of String(value).split(/[;,]/)) {
+      const [rawName, rawValue] = part.split("=").map((item) => item?.trim());
+      const name = rawName?.toLowerCase();
+      const value2 = rawValue?.replace(/^"|"$/g, "");
+      if (name == "r") {
+        result.remaining = parseNumberHeader(value2);
+      } else if (name == "t") {
+        result.delay = parseRateLimitReset(value2);
+      }
+    }
+    return result;
+  }
+  function memoryBackoffStore() {
+    const values = /* @__PURE__ */ new Map();
+    return {
+      get(key) {
+        return values.get(key) || 0;
+      },
+      set(key, until) {
+        values.set(key, until);
+      },
+      clear(key = null) {
+        if (key == null) {
+          values.clear();
+        } else {
+          values.delete(key);
+        }
+      }
+    };
+  }
+  function localStorageBackoffStore(options = {}) {
+    const storage = options.storage || safeLocalStorage();
+    if (!storage) {
+      return memoryBackoffStore();
+    }
+    const prefix = options.prefix || "metro:backoff:";
+    return {
+      get(key) {
+        const until = parseInt(storage.getItem(prefix + key), 10);
+        return Number.isNaN(until) ? 0 : until;
+      },
+      set(key, until) {
+        storage.setItem(prefix + key, String(until));
+      },
+      clear(key = null) {
+        if (key != null) {
+          storage.removeItem(prefix + key);
+          return;
+        }
+        const keys = [];
+        for (let index = 0; index < storage.length; index++) {
+          const name = storage.key(index);
+          if (name?.startsWith(prefix)) {
+            keys.push(name);
+          }
+        }
+        for (const name of keys) {
+          storage.removeItem(name);
+        }
+      }
+    };
+  }
+  function sleep(ms, signal) {
+    if (!ms || ms <= 0) {
+      return Promise.resolve();
+    }
+    if (signal?.aborted) {
+      return Promise.reject(signal.reason || new Error("Request was aborted"));
+    }
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(done, ms);
+      function done() {
+        cleanup();
+        resolve();
+      }
+      function abort() {
+        cleanup();
+        reject(signal.reason || new Error("Request was aborted"));
+      }
+      function cleanup() {
+        clearTimeout(timer);
+        signal?.removeEventListener?.("abort", abort);
+      }
+      signal?.addEventListener?.("abort", abort, { once: true });
+    });
+  }
+  function statusAllowsBackoff(status, options) {
+    return options.statuses == "*" || options.statuses.includes(status);
+  }
+  function capDelay(delay, maxDelay) {
+    if (!maxDelay || maxDelay < 0) {
+      return delay;
+    }
+    return Math.min(delay, maxDelay);
+  }
+  function parseNumberHeader(value) {
+    if (value == null) {
+      return null;
+    }
+    const match = String(value).trim().match(/^\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
+  }
+  function backoffKey(req, options) {
+    if (typeof options.scope == "function") {
+      return options.scope(req);
+    }
+    const url2 = new URL(req.url);
+    if (options.scope == "url") {
+      return url2.href;
+    }
+    if (options.scope == "path") {
+      return `${url2.origin}${url2.pathname}`;
+    }
+    return url2.origin;
+  }
+  function formatDelay(delay) {
+    return delay < 1e3 ? `${Math.round(delay)}ms` : `${(delay / 1e3).toFixed(delay < 1e4 ? 1 : 0)}s`;
+  }
+  function safeLocalStorage() {
+    try {
+      return typeof localStorage != "undefined" ? localStorage : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  backoffmw.memoryStore = memoryBackoffStore;
+  backoffmw.localStorageStore = localStorageBackoffStore;
+  backoffmw.parseRetryAfter = parseRetryAfter;
+  backoffmw.responseDelay = responseBackoffDelay;
+
+  // src/mw/retry.mjs
+  var DEFAULT_RETRY_STATUS = [408, 425, 429, 500, 502, 503, 504];
+  var DEFAULT_RETRY_METHODS = ["GET", "HEAD", "OPTIONS"];
+  function retrymw(options = {}) {
+    if (typeof options == "number") {
+      options = { attempts: options };
+    }
+    options = Object.assign({
+      name: "retry",
+      attempts: 3,
+      delay: 250,
+      factor: 2,
+      maxDelay: 3e4,
+      jitter: true,
+      methods: DEFAULT_RETRY_METHODS,
+      status: DEFAULT_RETRY_STATUS,
+      respectRetryAfter: true,
+      respectRateLimit: true,
+      sleep,
+      random: Math.random
+    }, options);
+    async function retry(req, next) {
+      const attempts = attemptsFor(options.attempts, req);
+      if (attempts <= 1 || !methodCanRetry(req, options)) {
+        return next(req);
+      }
+      let lastError = null;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+          if (attempt > 1) {
+            traceEvent("retry attempt", {
+              severity: "info",
+              label: `${attempt}/${attempts}`,
+              attempt,
+              attempts,
+              method: req.method,
+              url: req.url
+            });
+          }
+          const res = await next(req.with ? req.with() : req);
+          if (!responseCanRetry(res, options) || attempt >= attempts) {
+            return res;
+          }
+          const delay = retryDelay(options, attempt, res);
+          traceEvent("retry scheduled", {
+            severity: "warning",
+            label: `${res.status}, ${formatDelay2(delay)}`,
+            attempt,
+            attempts,
+            status: res.status,
+            method: req.method,
+            url: req.url,
+            delay
+          });
+          traceDiagnostic({
+            severity: "warning",
+            code: "retry",
+            message: `Retrying ${req.method} ${displayURL(req.url)} after HTTP ${res.status}`,
+            data: { attempt, attempts, status: res.status, delay, method: req.method, url: req.url }
+          });
+          await options.sleep(delay, req.signal);
+        } catch (error) {
+          lastError = error;
+          if (!errorCanRetry(error, options) || attempt >= attempts || req.signal?.aborted) {
+            throw error;
+          }
+          const delay = retryDelay(options, attempt);
+          traceEvent("retry scheduled", {
+            severity: "warning",
+            label: `${error.name || "Error"}, ${formatDelay2(delay)}`,
+            attempt,
+            attempts,
+            method: req.method,
+            url: req.url,
+            delay
+          });
+          traceDiagnostic({
+            severity: "warning",
+            code: "retry",
+            message: `Retrying ${req.method} ${displayURL(req.url)} after ${error.message || error}`,
+            data: { attempt, attempts, delay, method: req.method, url: req.url, error: error.message }
+          });
+          await options.sleep(delay, req.signal);
+        }
+      }
+      throw lastError;
+    }
+    retry.traceName = options.name;
+    return retry;
+  }
+  function retryDelay(options, attempt, res = null) {
+    let serverDelay = 0;
+    if (res && (options.respectRetryAfter || options.respectRateLimit)) {
+      serverDelay = responseBackoffDelay(res, {
+        statuses: options.status,
+        maxDelay: options.maxDelay
+      });
+    }
+    let delay = delayFor(options.delay, attempt, res);
+    if (delay > 0 && options.factor && attempt > 1) {
+      delay = delay * Math.pow(options.factor, attempt - 1);
+    }
+    if (options.jitter && delay > 0) {
+      delay = delay * (0.5 + options.random());
+    }
+    if (options.maxDelay && options.maxDelay > 0) {
+      delay = Math.min(delay, options.maxDelay);
+    }
+    return Math.max(serverDelay, Math.round(delay));
+  }
+  function methodCanRetry(req, options) {
+    if (options.methods == "*") {
+      return true;
+    }
+    return options.methods.map((method) => method.toUpperCase()).includes(req.method.toUpperCase());
+  }
+  function responseCanRetry(res, options) {
+    if (typeof options.when == "function") {
+      return options.when(res);
+    }
+    return options.status == "*" || options.status.includes(res.status);
+  }
+  function errorCanRetry(error, options) {
+    if (typeof options.onError == "function") {
+      return options.onError(error);
+    }
+    return error?.name != "AbortError" && error?.name != "TimeoutError";
+  }
+  function attemptsFor(attempts, req) {
+    return typeof attempts == "function" ? attempts(req) : attempts;
+  }
+  function delayFor(delay, attempt, res) {
+    return typeof delay == "function" ? delay(attempt, res) : delay;
+  }
+  function formatDelay2(delay) {
+    return delay < 1e3 ? `${Math.round(delay)}ms` : `${(delay / 1e3).toFixed(delay < 1e4 ? 1 : 0)}s`;
+  }
+  function displayURL(value) {
+    try {
+      const url2 = new URL(value, "https://localhost/");
+      return url2.origin == "https://localhost" ? url2.pathname + url2.search : url2.href;
+    } catch (e) {
+      return String(value);
+    }
+  }
+
+  // src/mw/abort.mjs
+  function abortmw(options = {}) {
+    if (isAbortSignal(options)) {
+      options = { signal: options };
+    }
+    if (typeof options == "function") {
+      options = { signal: options };
+    }
+    options = Object.assign({
+      name: "abort"
+    }, options);
+    async function abort(req, next) {
+      const signal = signalFor(options.signal, req);
+      if (!signal) {
+        return next(req);
+      }
+      if (signal.aborted) {
+        const error = signal.reason || abortError();
+        traceDiagnostic({
+          severity: "error",
+          code: "aborted",
+          message: error.message || "Request was aborted",
+          data: { method: req.method, url: req.url }
+        });
+        throw error;
+      }
+      traceEvent("abort signal attached", {
+        severity: "info",
+        method: req.method,
+        url: req.url
+      });
+      return next(req.with({ signal: combineSignals(req.signal, signal) }));
+    }
+    abort.traceName = options.name;
+    return abort;
+  }
+  function combineSignals(...signals) {
+    signals = signals.filter(Boolean);
+    if (!signals.length) {
+      return null;
+    }
+    if (signals.length == 1) {
+      return signals[0];
+    }
+    const controller = new AbortController();
+    const cleanup = [];
+    const abort = (event) => {
+      for (const remove of cleanup) {
+        remove();
+      }
+      const source = event?.target || signals.find((signal) => signal.aborted);
+      if (!controller.signal.aborted) {
+        controller.abort(source?.reason || abortError());
+      }
+    };
+    for (const signal of signals) {
+      if (signal.aborted) {
+        abort({ target: signal });
+        break;
+      }
+      signal.addEventListener("abort", abort, { once: true });
+      cleanup.push(() => signal.removeEventListener("abort", abort));
+    }
+    return controller.signal;
+  }
+  function abortError(message = "Request was aborted") {
+    if (typeof DOMException != "undefined") {
+      return new DOMException(message, "AbortError");
+    }
+    const error = new Error(message);
+    error.name = "AbortError";
+    return error;
+  }
+  function signalFor(signal, req) {
+    return typeof signal == "function" ? signal(req) : signal;
+  }
+  function isAbortSignal(value) {
+    return value && typeof value == "object" && typeof value.aborted == "boolean" && typeof value.addEventListener == "function";
+  }
+  abortmw.combineSignals = combineSignals;
+  abortmw.abortError = abortError;
+
+  // src/mw/timeout.mjs
+  function timeoutmw(options = 3e4) {
+    if (typeof options == "number") {
+      options = { ms: options };
+    }
+    options = Object.assign({
+      ms: 3e4,
+      name: "timeout"
+    }, options);
+    async function timeout(req, next) {
+      const ms = delayFor2(options.ms, req);
+      if (!ms || ms <= 0) {
+        return next(req);
+      }
+      const controller = new AbortController();
+      const timer = setTimeout(() => {
+        controller.abort(timeoutError(ms));
+      }, ms);
+      const signal = combineSignals(req.signal, options.signal, controller.signal);
+      traceEvent("timeout armed", {
+        severity: "info",
+        label: `${ms}ms`,
+        method: req.method,
+        url: req.url,
+        ms
+      });
+      try {
+        return await next(req.with({ signal }));
+      } catch (error) {
+        if (controller.signal.aborted) {
+          traceDiagnostic({
+            severity: "error",
+            code: "timeout",
+            message: `Request timed out after ${ms}ms`,
+            data: { method: req.method, url: req.url, ms }
+          });
+        }
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    timeout.traceName = options.name;
+    return timeout;
+  }
+  function timeoutError(ms) {
+    const error = new Error(`Request timed out after ${ms}ms`);
+    error.name = "TimeoutError";
+    error.code = "ETIMEDOUT";
+    return error;
+  }
+  function delayFor2(ms, req) {
+    return typeof ms == "function" ? ms(req) : ms;
+  }
+  timeoutmw.timeoutError = timeoutError;
+
   // src/tracegraph.mjs
   var tracegraph_exports = {};
   __export(tracegraph_exports, {
@@ -1262,7 +1802,7 @@
     };
   }
   function localStorageStore(options = {}) {
-    const storage = options.storage || safeLocalStorage();
+    const storage = options.storage || safeLocalStorage2();
     if (!storage) {
       return memoryStore();
     }
@@ -1335,7 +1875,7 @@
   function spanLine(span) {
     const status = span.status == "running" ? "pending" : span.severity || span.status || "ok";
     const response2 = span.response?.status ? ` HTTP ${span.response.status}` : "";
-    const url2 = span.data?.url ? ` ${displayURL(span.data.url)}` : "";
+    const url2 = span.data?.url ? ` ${displayURL2(span.data.url)}` : "";
     return `${symbol(status)} ${span.name}${response2}${url2} ${formatDuration(span.duration || elapsed(span))}`.trim();
   }
   function eventLabel(event) {
@@ -1343,7 +1883,7 @@
       return ` \u2014 ${event.data.label}`;
     }
     if (event.data?.url) {
-      return ` ${displayURL(event.data.url)}`;
+      return ` ${displayURL2(event.data.url)}`;
     }
     return "";
   }
@@ -1355,7 +1895,7 @@
       arrows.push({
         from: "App",
         to: "Metro",
-        label: `${span.data?.method || ""} ${displayURL(span.data?.url)}`.trim() || span.name,
+        label: `${span.data?.method || ""} ${displayURL2(span.data?.url)}`.trim() || span.name,
         severity: span.severity,
         time: span.start
       });
@@ -1570,7 +2110,7 @@
     return SEVERITY_SYMBOL[status] || SEVERITY_SYMBOL.info;
   }
   function requestName(req) {
-    return `${req?.method || "GET"} ${displayURL(req?.url)}`;
+    return `${req?.method || "GET"} ${displayURL2(req?.url)}`;
   }
   function middlewareName(middleware) {
     return middleware?.displayName || middleware?.traceName || middleware?.name || "anonymous middleware";
@@ -1619,7 +2159,7 @@
       return String(value);
     }
   }
-  function displayURL(value) {
+  function displayURL2(value) {
     if (!value) {
       return "";
     }
@@ -1642,7 +2182,7 @@
       const url2 = new URL(value, "https://localhost/");
       return url2.pathname + url2.search;
     } catch (e) {
-      return displayURL(value);
+      return displayURL2(value);
     }
   }
   function sanitizeData(data) {
@@ -1700,7 +2240,7 @@
       return null;
     }
   }
-  function safeLocalStorage() {
+  function safeLocalStorage2() {
     try {
       return typeof localStorage != "undefined" ? localStorage : null;
     } catch (e) {
@@ -1713,7 +2253,11 @@
     mw: {
       json: jsonmw,
       thrower: throwermw,
-      getdata: getdatamw
+      getdata: getdatamw,
+      retry: retrymw,
+      timeout: timeoutmw,
+      abort: abortmw,
+      backoff: backoffmw
     },
     api,
     jsonApi,

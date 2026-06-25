@@ -15,7 +15,11 @@ const client = metro.client( jsonmw() )
 With @muze-nl/metro, you get these middleware modules:
 - [json](./json.md)
 - [thrower](./thrower.md)
-- [gedata](./getdata.md)
+- [getdata](./getdata.md)
+- [retry](./retry.md)
+- [timeout](./timeout.md)
+- [abort](./abort.md)
+- [backoff](./backoff.md)
 - [echo mock](./echomock.md)
 - [error mock](./errormock.md)
 
