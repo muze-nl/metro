@@ -19,4 +19,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm install
-      - run: ./node_modules/.bin/tap --color --reporter=base test/*.mjs
+      - run: npm test
