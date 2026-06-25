@@ -460,7 +460,7 @@ export function request(...options)
 			&& !(data instanceof DataView)
 			&& !(data instanceof FormData)
 			&& !(data instanceof URLSearchParams)
-			&& (typeof globalThis.TypedArray=='undefined' || !(data instanceof globalThis.TypedArray))
+			&& (globalThis.ArrayBuffer && ArrayBuffer.isView(data)) //TypedArray
 		) {
 			// if we are here, body is set with an object of a type
 			// not natively understood by Request, coerce it to a string
@@ -756,7 +756,7 @@ export function url(...options)
 					result = target.pathname.split('/').pop()
 				break
 				case 'folderpath':
-					result = target.pathname.substring(0,target.pathname.lastIndexOf('\\')+1)
+					result = target.pathname.substring(0,target.pathname.lastIndexOf('/')+1)
 				break
 				case 'authority':
 					result = target.username ?? ''
@@ -766,11 +766,6 @@ export function url(...options)
 					result += target.port ? ':'+target.port : ''
 					result += '/'
 					result = target.protocol + '//' + result
-				break
-				case 'origin':
-					result = target.protocol + '//' + target.hostname
-					result += target.port ? ':' + target.port : ''
-					result += '/'
 				break
 				case 'fragment':
 					result = target.hash.substring(1)
@@ -819,7 +814,7 @@ export function metroError(message, ...details) {
 	return new Error(message, ...details)
 }
 
-function deepClone(object) {
+export function deepClone(object) {
 	if (Array.isArray(object)) {
 		return object.slice().map(deepClone)
 	}
