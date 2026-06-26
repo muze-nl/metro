@@ -49,7 +49,8 @@ export default function oidcmw(options={}) {
 			try {
 				res = await next(req)
 			} catch(err) {
-				if (res.status!=401 && res.status!=403) {
+				res = err?.cause
+				if (!res || (res.status!=401 && res.status!=403)) {
 					throw err
 				}
 			}
