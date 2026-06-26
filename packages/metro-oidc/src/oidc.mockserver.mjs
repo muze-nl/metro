@@ -1,5 +1,5 @@
-import metro from '@muze-nl/metro'
-import oauth2mockserver from '@muze-nl/metro-oauth2/src/oauth2.mockserver.mjs'
+import * as metro from '@muze-nl/metro-core'
+import oauth2mockserver from '@muze-nl/metro-oauth2/testing'
 import { exportJWK, generateKeyPair, SignJWT } from 'jose'
 
 const defaultIssuer = 'https://issuer.example/'

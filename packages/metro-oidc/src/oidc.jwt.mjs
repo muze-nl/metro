@@ -1,5 +1,5 @@
 import { createLocalJWKSet, jwtVerify } from 'jose'
-import * as metro from '@muze-nl/metro/src/metro.mjs'
+import * as metro from '@muze-nl/metro-core'
 
 const jwksCache = new WeakMap()
 

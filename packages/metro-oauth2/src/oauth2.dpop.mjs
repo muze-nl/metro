@@ -1,4 +1,4 @@
-import metro from '@muze-nl/metro'
+import * as metro from '@muze-nl/metro-core'
 import * as DPoP from 'dpop'
 import { assert, Required, Optional, validURL } from '@muze-nl/assert'
 import keysStore from './keysstore.mjs'

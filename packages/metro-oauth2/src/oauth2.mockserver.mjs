@@ -1,4 +1,4 @@
-import metro from '@muze-nl/metro'
+import * as metro from '@muze-nl/metro-core'
 import { generateCodeChallenge } from './oauth2.mjs'
 
 const jsonHeaders = {

@@ -3,7 +3,7 @@
 	"version": "0.8.1",
 	"description": "oauth2 middleware for @muze-nl/metro",
 	"type": "module",
-	"main": "src/browser.mjs",
+	"main": "src/index.mjs",
 	"directories": {
 		"test": "test"
 	},
@@ -32,7 +32,7 @@
 	},
 	"dependencies": {
 		"@muze-nl/assert": "^0.5.1",
-		"@muze-nl/metro": "^0.7.1",
+		"@muze-nl/metro-core": "0.7.1",
 		"dpop": "^2.1.1"
 	},
 	"engines": {
@@ -55,9 +55,28 @@
 		"main": false
 	},
 	"exports": {
-		".": "./src/browser.mjs",
+		".": "./src/index.mjs",
+		"./browser": "./src/browser.mjs",
+		"./browser.mjs": "./src/browser.mjs",
+		"./oauth2": "./src/oauth2.mjs",
+		"./oauth2.mjs": "./src/oauth2.mjs",
+		"./dpop": "./src/oauth2.dpop.mjs",
+		"./dpop.mjs": "./src/oauth2.dpop.mjs",
+		"./discovery": "./src/oauth2.discovery.mjs",
+		"./discovery.mjs": "./src/oauth2.discovery.mjs",
+		"./popup": "./src/oauth2.popup.mjs",
+		"./popup.mjs": "./src/oauth2.popup.mjs",
+		"./tokenstore": "./src/tokenstore.mjs",
+		"./tokenstore.mjs": "./src/tokenstore.mjs",
+		"./keysstore": "./src/keysstore.mjs",
+		"./keysstore.mjs": "./src/keysstore.mjs",
 		"./testing": "./src/testing.mjs",
 		"./src/*": "./src/*",
 		"./package.json": "./package.json"
-	}
+	},
+	"sideEffects": [
+		"./src/browser.mjs",
+		"./dist/browser.js",
+		"./dist/browser.min.js"
+	]
 }

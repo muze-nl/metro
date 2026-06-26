@@ -3,9 +3,9 @@
  * incorporating errata set 2 - december 15, 2023
  * https://openid.net/specs/openid-connect-registration-1_0.html
  */
-import metro from '@muze-nl/metro'
-import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
-import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
+import * as metro from '@muze-nl/metro-core'
+import jsonmw from '@muze-nl/metro-middleware/json'
+import throwermw from '@muze-nl/metro-middleware/thrower'
 import { validJWA, validAuthMethods, MustHave } from './oidc.util.mjs'
 import { assert, Required, Optional, oneOf, anyOf, validURL, validEmail, not, instanceOf } from '@muze-nl/assert'
 

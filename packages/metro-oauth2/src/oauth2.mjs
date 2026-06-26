@@ -1,4 +1,4 @@
-import * as metro from '@muze-nl/metro/src/metro.mjs'
+import * as metro from '@muze-nl/metro-core'
 import { assert, Required, validURL } from '@muze-nl/assert'
 import {tokenStore} from './tokenstore.mjs'
 

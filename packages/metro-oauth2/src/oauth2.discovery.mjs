@@ -1,4 +1,4 @@
-import metro from '@muze-nl/metro'
+import * as metro from '@muze-nl/metro-core'
 import { assert, validURL, Required, Recommended, Optional, anyOf } from '@muze-nl/assert'
 // import mwOauth2DPoP from './oauth2.DPoP.mjs'
 

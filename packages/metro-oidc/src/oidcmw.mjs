@@ -1,12 +1,12 @@
-import * as metro from '@muze-nl/metro/src/metro.mjs'
-import oauth2mw, * as oauth2 from '@muze-nl/metro-oauth2/src/oauth2.mjs'
-import dpopmw from '@muze-nl/metro-oauth2/src/oauth2.dpop.mjs'
+import * as metro from '@muze-nl/metro-core'
+import oauth2mw, * as oauth2 from '@muze-nl/metro-oauth2/oauth2'
+import dpopmw from '@muze-nl/metro-oauth2/dpop'
 import { assert, Required, Optional, validURL, instanceOf } from '@muze-nl/assert'
 import discover from './oidc.discovery.mjs'
 import register from './oidc.register.mjs'
 import oidcStore from './oidc.store.mjs'
-import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
-import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
+import jsonmw from '@muze-nl/metro-middleware/json'
+import throwermw from '@muze-nl/metro-middleware/thrower'
 import { validateIdToken } from './oidc.jwt.mjs'
 
 export default function oidcmw(options={}) {

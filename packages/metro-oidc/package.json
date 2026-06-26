@@ -6,7 +6,7 @@
 	"source": [
 		"src/browser.mjs"
 	],
-	"main": "src/browser.mjs",
+	"main": "src/index.mjs",
 	"targets": {
 		"default": {
 			"distDir": "./dist",
@@ -52,14 +52,34 @@
 	],
 	"dependencies": {
 		"@muze-nl/assert": "^0.5.1",
-		"@muze-nl/metro": "^0.7.1",
+		"@muze-nl/metro-core": "0.7.1",
+		"@muze-nl/metro-middleware": "0.7.1",
 		"@muze-nl/metro-oauth2": "^0.8.1",
 		"jose": "^6.2.3"
 	},
 	"exports": {
-		".": "./src/browser.mjs",
+		".": "./src/index.mjs",
+		"./browser": "./src/browser.mjs",
+		"./browser.mjs": "./src/browser.mjs",
+		"./middleware": "./src/oidcmw.mjs",
+		"./middleware.mjs": "./src/oidcmw.mjs",
+		"./oidcmw": "./src/oidcmw.mjs",
+		"./oidcmw.mjs": "./src/oidcmw.mjs",
+		"./discovery": "./src/oidc.discovery.mjs",
+		"./discovery.mjs": "./src/oidc.discovery.mjs",
+		"./register": "./src/oidc.register.mjs",
+		"./register.mjs": "./src/oidc.register.mjs",
+		"./store": "./src/oidc.store.mjs",
+		"./store.mjs": "./src/oidc.store.mjs",
+		"./jwt": "./src/oidc.jwt.mjs",
+		"./jwt.mjs": "./src/oidc.jwt.mjs",
 		"./testing": "./src/testing.mjs",
 		"./src/*": "./src/*",
 		"./package.json": "./package.json"
-	}
+	},
+	"sideEffects": [
+		"./src/browser.mjs",
+		"./dist/browser.js",
+		"./dist/browser.min.js"
+	]
 }
