@@ -1,5 +1,6 @@
 node_modules/
 package-lock.json
+.tap/
 .nyc_output
 src/attic/
 .parcel-cache/
