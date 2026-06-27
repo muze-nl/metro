@@ -1,10 +1,5 @@
 # @muze-nl/metro-api
 
-Optional API helper classes and constructors for Metro:
+API helper classes and constructors for Metro clients: `API`, `JsonAPI`, `api()`, and `jsonApi()`.
 
-- `API`
-- `JsonAPI`
-- `api()`
-- `jsonApi()`
-
-These are also re-exported by the beginner-friendly `@muze-nl/metro` package.
+See [`docs/`](docs/) for installation, usage, and reference.

@@ -40,7 +40,8 @@
   },
   "files": [
     "/src",
-    "/dist"
+    "/dist",
+    "/docs"
   ],
   "dependencies": {
     "@muze-nl/oldm": "^0.5.3"

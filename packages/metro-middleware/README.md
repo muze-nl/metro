@@ -1,7 +1,5 @@
 # @muze-nl/metro-middleware
 
-Optional middleware for Metro. These are also included in the beginner-friendly `@muze-nl/metro` package as `metro.mw.*`.
+Generic middleware for Metro clients: JSON, thrower, getdata, retry, timeout, abort, backoff, and test mocks.
 
-```js
-import { retry, timeout, json } from '@muze-nl/metro-middleware'
-```
+See [`docs/`](docs/) for installation, usage, and reference.

@@ -37,7 +37,8 @@
     "/src",
     "/dist",
     "/LICENSE",
-    "/README.md"
+    "/README.md",
+    "/docs"
   ],
   "exports": {
     ".": "./src/index.mjs",

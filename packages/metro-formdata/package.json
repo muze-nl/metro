@@ -14,7 +14,8 @@
   "files": [
     "/src",
     "/LICENSE",
-    "/README.md"
+    "/README.md",
+    "/docs"
   ],
   "repository": {
     "type": "git",

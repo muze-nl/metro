@@ -15,7 +15,8 @@
     "/src",
     "/LICENSE",
     "/README.md",
-    "/MUZE_ALIGNMENT.md"
+    "/MUZE_ALIGNMENT.md",
+    "/docs"
   ],
   "repository": {
     "type": "git",

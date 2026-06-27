@@ -1,3 +1,5 @@
 # @muze-nl/metro-formdata
 
-Optional FormData helper for Metro. It is also re-exported from the combined `@muze-nl/metro` package as `metro.formdata`.
+Small `formdata()` helper for Metro and Fetch request bodies.
+
+See [`docs/`](docs/) for installation, usage, and reference.
