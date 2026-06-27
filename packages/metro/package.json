@@ -67,7 +67,13 @@
     "./mw/abort.mjs": "./src/mw/abort.mjs",
     "./mw/backoff.mjs": "./src/mw/backoff.mjs",
     "./mw/echo.mock.mjs": "./src/mw/echo.mock.mjs",
-    "./mw/error.mock.mjs": "./src/mw/error.mock.mjs"
+    "./mw/error.mock.mjs": "./src/mw/error.mock.mjs",
+    "./src/browser.mjs": "./src/browser.mjs",
+    "./src/everything.mjs": "./src/everything.mjs",
+    "./dist/browser.js": "./dist/browser.js",
+    "./dist/browser.min.js": "./dist/browser.min.js",
+    "./dist/everything.js": "./dist/everything.js",
+    "./dist/everything.min.js": "./dist/everything.min.js"
   },
   "dependencies": {
     "@muze-nl/metro-core": "0.7.1",
