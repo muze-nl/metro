@@ -4,18 +4,18 @@
   "description": "linked data middleware for @muze-nl/metro",
   "type": "module",
   "source": [
-    "src/index.mjs"
+    "src/browser.mjs"
   ],
   "main": "src/index.mjs",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "tap --disable-coverage test/*.mjs",
+    "test": "tap --disable-coverage --jobs=1 test/*.mjs",
     "tap": "tap",
-    "build": "esbuild src/index.mjs --outfile=dist/browser.min.js --bundle --minify --sourcemap",
-    "build-dev": "esbuild src/index.mjs --outfile=dist/browser.js --bundle --sourcemap",
-    "build:dev": "esbuild src/index.mjs --outfile=dist/browser.js --bundle --sourcemap"
+    "build": "esbuild src/browser.mjs --outfile=dist/browser.min.js --bundle --minify --sourcemap",
+    "build-dev": "esbuild src/browser.mjs --outfile=dist/browser.js --bundle --sourcemap",
+    "build:dev": "esbuild src/browser.mjs --outfile=dist/browser.js --bundle --sourcemap"
   },
   "repository": {
     "type": "git",
@@ -41,7 +41,10 @@
   "files": [
     "/src",
     "/dist",
-    "/docs"
+    "/docs",
+    "/LICENSE",
+    "/README.md",
+    "/MUZE_ALIGNMENT.md"
   ],
   "dependencies": {
     "@muze-nl/oldm": "^0.5.3"
@@ -52,5 +55,18 @@
       "optimize": true
     },
     "main": false
-  }
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./browser": "./src/browser.mjs",
+    "./browser.mjs": "./src/browser.mjs",
+    "./oldmmw": "./src/oldmmw.mjs",
+    "./oldmmw.mjs": "./src/oldmmw.mjs",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "./src/browser.mjs",
+    "./dist/browser.js",
+    "./dist/browser.min.js"
+  ]
 }

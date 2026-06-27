@@ -22,4 +22,4 @@ Use this package for generic request/response behaviour that should not live in 
 
 ## Reference
 
-See [reference](reference.md).
+See [reference](reference.md). For custom middleware, start with the root guide: [Writing Metro middleware](../../../docs/middleware-authoring.md).

@@ -22,6 +22,7 @@ Metro is Fetch with a small composable client around it. Use the combined `@muze
 - [Tutorial](tutorial.md)
 - [Package structure](packages.md)
 - [Debugging and tracing](debugging.md)
+- [Writing middleware](middleware-authoring.md)
 - [Error details](details/)
 
 ## Package docs

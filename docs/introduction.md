@@ -30,4 +30,4 @@ async function addHeader(req, next, context) {
 
 Middleware can change a request before it reaches `fetch()`, inspect or change the response on the way back, return a mock response, throw an error, or call other Metro clients while preserving trace context. That makes it a good place for JSON handling, retries, timeouts, auth, linked-data parsing, and debugging hooks.
 
-Start with the [quickstart](quickstart.md), then use the [package structure](packages.md) page to decide whether the combined package or focused package imports fit your project better.
+Start with the [quickstart](quickstart.md), then use the [package structure](packages.md) page to decide whether the combined package or focused package imports fit your project better. If you are writing your own request behaviour, read [Writing middleware](middleware-authoring.md).

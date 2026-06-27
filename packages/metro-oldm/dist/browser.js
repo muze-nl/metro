@@ -12314,8 +12314,13 @@
   }
 
   // src/index.mjs
-  globalThis.oldmmw = oldmmw;
   var index_default = oldmmw;
+
+  // src/browser.mjs
+  if (!globalThis.oldmmw) {
+    globalThis.oldmmw = index_default;
+  }
+  var browser_default = index_default;
 })();
 /*! Bundled license information:
 

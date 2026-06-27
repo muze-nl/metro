@@ -8,11 +8,15 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
+    "test": "node scripts/test-workspaces.mjs",
     "test:core": "npm run test -w @muze-nl/metro",
     "test:oauth2": "npm run test -w @muze-nl/metro-oauth2",
     "build": "npm run build --workspaces --if-present",
-    "build:dev": "npm run build-dev --workspaces --if-present"
+    "build:dev": "npm run build-dev --workspaces --if-present",
+    "pack:dry-run": "npm pack --dry-run --workspaces",
+    "release:check": "npm test && npm run build && npm run pack:dry-run",
+    "smoke": "node scripts/test-workspaces.mjs",
+    "test:workspaces": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

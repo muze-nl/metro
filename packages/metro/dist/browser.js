@@ -357,7 +357,7 @@
     let r = new Request(requestParams.url, requestParams);
     let data = requestParams.body;
     if (data) {
-      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (typeof globalThis.TypedArray == "undefined" || !(data instanceof globalThis.TypedArray))) {
+      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (globalThis.ArrayBuffer && ArrayBuffer.isView(data))) {
         if (typeof data.toString == "function") {
           requestParams.body = data.toString({ headers: r.headers });
           r = new Request(requestParams.url, requestParams);
@@ -377,7 +377,7 @@
             break;
           case "with":
             result = function(...options2) {
-              if (data) {
+              if (typeof data !== "undefined") {
                 options2.unshift({ body: data });
               }
               return request(target, ...options2);
@@ -389,8 +389,16 @@
           default:
             if (target[prop] instanceof Function) {
               if (prop === "clone") {
+                result = function() {
+                  const cloned = target.clone();
+                  if (typeof data != "undefined" && !(typeof ReadableStream != "undefined" && data instanceof ReadableStream)) {
+                    return request(cloned, { body: data });
+                  }
+                  return request(cloned);
+                };
+              } else {
+                result = target[prop].bind(target);
               }
-              result = target[prop].bind(target);
             } else {
               result = target[prop];
             }
@@ -471,7 +479,7 @@
             result = data;
             break;
           case "ok":
-            result = target.status >= 200 && target.status < 400;
+            result = target.status >= 200 && target.status < 300;
             break;
           default:
             if (typeof target[prop] == "function") {
@@ -602,7 +610,7 @@
             result = target.pathname.split("/").pop();
             break;
           case "folderpath":
-            result = target.pathname.substring(0, target.pathname.lastIndexOf("\\") + 1);
+            result = target.pathname.substring(0, target.pathname.lastIndexOf("/") + 1);
             break;
           case "authority":
             result = target.username ?? "";
@@ -612,11 +620,6 @@
             result += target.port ? ":" + target.port : "";
             result += "/";
             result = target.protocol + "//" + result;
-            break;
-          case "origin":
-            result = target.protocol + "//" + target.hostname;
-            result += target.port ? ":" + target.port : "";
-            result += "/";
             break;
           case "fragment":
             result = target.hash.substring(1);
@@ -663,7 +666,7 @@
       return object.slice().map(deepClone);
     }
     if (object && typeof object === "object") {
-      if (object.__proto__.constructor == Object || !object.__proto__) {
+      if (object.__proto__?.constructor == Object || !object.__proto__) {
         let result = Object.assign({}, object);
         Object.keys(result).forEach((key) => {
           result[key] = deepClone(object[key]);
@@ -2563,9 +2566,12 @@
     hashParams: src_exports3,
     formdata
   });
-  if (!globalThis.metro) {
-    globalThis.metro = metro;
-  }
   var index_default = metro;
+
+  // src/browser.mjs
+  if (!globalThis.metro) {
+    globalThis.metro = index_default;
+  }
+  var browser_default = index_default;
 })();
 //# sourceMappingURL=browser.js.map

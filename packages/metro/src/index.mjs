@@ -16,10 +16,6 @@ const metro = Object.assign({}, core, {
 	formdata
 })
 
-if (!globalThis.metro) {
-	globalThis.metro = metro
-}
-
 export * from '@muze-nl/metro-core'
 export { API, JsonAPI, api, jsonApi } from '@muze-nl/metro-api'
 export { default as mw } from '@muze-nl/metro-middleware'

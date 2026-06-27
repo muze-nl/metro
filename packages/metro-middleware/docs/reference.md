@@ -151,3 +151,19 @@ mw.retry()
 ```
 
 The default export is an object containing the named middleware factories.
+## Writing your own middleware
+
+```js
+function addHeader(name, value) {
+  return async function addHeader(req, next) {
+    return next(req.with({
+      headers: {
+        [name]: value
+      }
+    }))
+  }
+}
+```
+
+For middleware invariants and examples, see [Writing Metro middleware](../../../docs/middleware-authoring.md).
+

@@ -45,5 +45,8 @@
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "tap --disable-coverage --jobs=1 test/*.mjs"
   }
 }

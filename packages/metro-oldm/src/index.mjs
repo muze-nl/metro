@@ -1,5 +1,4 @@
 import oldmmw from './oldmmw.mjs'
 
-globalThis.oldmmw = oldmmw
-
+export { oldmmw }
 export default oldmmw

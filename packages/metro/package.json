@@ -9,7 +9,7 @@
   ],
   "main": "src/index.mjs",
   "scripts": {
-    "test": "tap --disable-coverage test/*.mjs",
+    "test": "tap --disable-coverage --jobs=1 test/*.mjs",
     "tap": "tap",
     "build-dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap; esbuild --bundle src/everything.mjs --outfile=dist/everything.js --sourcemap",
     "build": "esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --minify --sourcemap; esbuild --bundle src/everything.mjs --outfile=dist/everything.min.js --minify --sourcemap",
@@ -73,7 +73,8 @@
     "./dist/browser.js": "./dist/browser.js",
     "./dist/browser.min.js": "./dist/browser.min.js",
     "./dist/everything.js": "./dist/everything.js",
-    "./dist/everything.min.js": "./dist/everything.min.js"
+    "./dist/everything.min.js": "./dist/everything.min.js",
+    "./package.json": "./package.json"
   },
   "dependencies": {
     "@muze-nl/metro-core": "0.7.1",

@@ -8,7 +8,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "tap --disable-coverage test/*.mjs",
+    "test": "tap --disable-coverage --jobs=1 test/*.mjs",
     "build": "esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --sourcemap --minify",
     "build-dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap",
     "build:dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap"
