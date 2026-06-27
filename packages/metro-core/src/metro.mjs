@@ -460,7 +460,7 @@ export function request(...options)
 			&& !(data instanceof DataView)
 			&& !(data instanceof FormData)
 			&& !(data instanceof URLSearchParams)
-			&& (globalThis.ArrayBuffer && ArrayBuffer.isView(data)) //TypedArray
+			&& !(globalThis.ArrayBuffer && ArrayBuffer.isView(data)) //TypedArray
 		) {
 			// if we are here, body is set with an object of a type
 			// not natively understood by Request, coerce it to a string
