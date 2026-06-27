@@ -942,7 +942,7 @@
         get: () => localStorage.getItem("metro/state:" + site),
         set: (value) => localStorage.setItem("metro/state:" + site, value),
         has: () => localStorage.getItem("metro/state:" + site) !== null,
-        delete: () => localStorage.remoteItem("metro/state:" + site)
+        delete: () => localStorage.removeItem("metro/state:" + site)
       };
       localTokens = {
         get: (name) => JSON.parse(localStorage.getItem(site + ":" + name)),
