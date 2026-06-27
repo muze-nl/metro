@@ -1,12 +1,12 @@
 {
   "name": "@muze-nl/metro-oldm",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "linked data middleware for @muze-nl/metro",
   "type": "module",
   "source": [
     "src/browser.mjs"
   ],
-  "main": "src/index.mjs",
+  "main": "src/browser.mjs",
   "directories": {
     "test": "test"
   },
