@@ -17,6 +17,8 @@ const api = client('https://pod.example/')
       schema: 'https://schema.org/'
     }
   }))
+
+const result = api.get('foo.ttl')
 ```
 
 Use this package when Metro should parse Linked Data responses into OLDM data and serialize OLDM-shaped data back to a Linked Data format.
