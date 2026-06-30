@@ -28,7 +28,7 @@ metro.trace.add('debug', {
 })
 ```
 
-A tracer is an object with at most three functions, named 'request', 'response', and 'error'. You don't have to specify both of them. A tracer function doesn't return anything. It can not change the request or response.
+A tracer is an object with at most three functions, named 'request', 'response', and 'error'. You don't have to specify all of them. A tracer function doesn't return anything. It can not change the request or response.
 
 You can add more than one global tracer. Each name must be unique. You can remove a tracer by name, or clear all tracers. Global tracers run on any Metro client request. For focused debugging, you can also scope a tracer to a single client or pass the current trace context into nested Metro calls.
 
