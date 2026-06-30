@@ -151,6 +151,7 @@ mw.retry()
 ```
 
 The default export is an object containing the named middleware factories.
+
 ## Writing your own middleware
 
 ```js
