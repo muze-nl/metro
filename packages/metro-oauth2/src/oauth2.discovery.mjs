@@ -62,11 +62,11 @@ export default function makeClient(options={}) {
 async function fetchWellknownOauthAuthorizationServer(issuer, client)
 {
 	let res = client.get(metro.url(issuer,'.wellknown/oauth_authorization_server'))
-	if (res.ok) {
-		assert(res.headers.get('Content-Type'), /application\/json.*/)
-		let configuration = await res.json()
-		assert(configuration, oauth_authorization_server_metadata)
-		return configuration
+	if (!res.ok) {
+		throw metro.metroError('metro.oidcmw: Error while fetching '+issuer+'.wellknown/oauth_authorization_server', res)
 	}
-	throw metro.metroError('metro.oidcmw: Error while fetching '+issuer+'.wellknown/oauth_authorization_server', res)
+	assert(res.headers.get('Content-Type'), /application\/json.*/)
+	let configuration = await res.json()
+	assert(configuration, oauth_authorization_server_metadata)
+	return configuration
 }
