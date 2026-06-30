@@ -19,6 +19,8 @@ const api = client('https://example.solidcommunity.net/')
       redirect_uris: [location.href]
     }
   }))
+
+const result = api.get('foo')
 ```
 
 Use this package when a resource is protected by OpenID Connect. It can discover the issuer metadata, dynamically register a client when supported, configure OAuth2, validate the ID token, and store the resulting ID token claims.
