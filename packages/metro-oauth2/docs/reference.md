@@ -68,6 +68,7 @@ if (isAuthorized(tokens)) {
 
 `parseBearerChallenge(value)` parses `WWW-Authenticate` Bearer/DPoP challenges.
 
+<a name="popup-flow"></a>
 ## Popup flow
 
 ```js
