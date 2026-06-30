@@ -1,0 +1,12 @@
+<!doctype html>
+<script src="../src/metro.mjs" type="module"></script>
+<h1>Browser test</h1>
+<pre id="test">
+</pre>
+<script type="module">
+	import * as metro from '../src/metro.mjs'
+	const client = metro.client()
+	let res = await client.get('test.txt')
+	let test = await res.text()
+	document.getElementById('test').innerText = test
+</script>

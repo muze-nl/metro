@@ -1,0 +1,38 @@
+<!doctype html>
+<h1>oidc discovery test</h1>
+<form>
+	<label>
+		Issuer: 
+		<input type="url" id="issuer">
+	</label>
+</form>
+<pre id="response"></pre>
+<pre id="client_info"></pre>
+<pre id="error"></pre>
+<script src="../dist/browser.js"></script>
+<script>
+	globalThis.assertEnabled = true
+	document.addEventListener('submit', async (evt) => {
+		try {
+			evt.preventDefault()
+			let config = await oidc.discover({
+				issuer: document.getElementById('issuer').value
+			})
+			document.getElementById('response').innerText = JSON.stringify(config.registration_endpoint, null, 4)
+
+			let client_info = await oidc.register({
+				registration_endpoint: config.registration_endpoint,
+				client_info: {
+					client_name: 'Foobar',
+					redirect_uris: [
+						'https://localhost/metro-oidc/www/discovery.html'
+					]
+				}
+			})
+			document.getElementById('client_info').innerText = JSON.stringify(client_info, null, 4)
+		} catch(err) {
+			console.error(err)
+			document.getElementById('error').innerText = JSON.stringify(err, null, 4)
+		}
+	})
+</script>

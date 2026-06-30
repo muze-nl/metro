@@ -1,0 +1,52 @@
+{
+  "name": "@muze-nl/metro-middleware",
+  "version": "0.7.1",
+  "description": "Optional middleware for Metro",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./json": "./src/json.mjs",
+    "./json.mjs": "./src/json.mjs",
+    "./thrower": "./src/thrower.mjs",
+    "./thrower.mjs": "./src/thrower.mjs",
+    "./getdata": "./src/getdata.mjs",
+    "./getdata.mjs": "./src/getdata.mjs",
+    "./retry": "./src/retry.mjs",
+    "./retry.mjs": "./src/retry.mjs",
+    "./timeout": "./src/timeout.mjs",
+    "./timeout.mjs": "./src/timeout.mjs",
+    "./abort": "./src/abort.mjs",
+    "./abort.mjs": "./src/abort.mjs",
+    "./backoff": "./src/backoff.mjs",
+    "./backoff.mjs": "./src/backoff.mjs",
+    "./echo.mock": "./src/echo.mock.mjs",
+    "./echo.mock.mjs": "./src/echo.mock.mjs",
+    "./error.mock": "./src/error.mock.mjs",
+    "./error.mock.mjs": "./src/error.mock.mjs",
+    "./src/_trace.mjs": "./src/_trace.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@muze-nl/metro-core": "0.7.1"
+  },
+  "files": [
+    "/src",
+    "/LICENSE",
+    "/README.md",
+    "/docs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-middleware"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "tap --disable-coverage --jobs=1 test/*.mjs"
+  }
+}

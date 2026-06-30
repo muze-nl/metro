@@ -1,32 +1,33 @@
+---
+title: 'Introduction'
+weight: 0
+---
 # Introduction
 
-## About MetroJS
-
-MetroJS is an HTTPS client with support for middleware. Similar to ExpressJS, but for the client:
-
-```javascript
+```js
 import metro from '@muze-nl/metro'
 
-const token = 'my-token'
+const client = metro.client('https://jsonplaceholder.typicode.com/')
+  .with(metro.mw.json())
 
-const client = metro.client({
-  url: 'https://api.github.com/',
-  headers: {
-    'Authorization':'Bearer '+token
-  }
-}).with(metro.mw.json())
+const response = await client.get('/posts/1')
+console.log(response.data.title)
+```
 
-let response = await client.get('/repos/muze-nl/metro/commits')
+Metro is an HTTP client built around the Fetch API. It does not replace Fetch objects with a separate model; Metro requests and responses are proxies around standard `Request` and `Response` objects, so normal Fetch code still works. The additions are small but useful: a reusable client, middleware, a `.with()` method for deriving requests and responses without mutating them, and optional packages for common client-side concerns.
 
-if (response.ok) {
-  for ( const commit of response.data ) {
-    console.log(commit.commit.message)
-  }
+A Metro middleware function looks like this:
+
+```js
+async function addHeader(req, next, context) {
+  return next(req.with({
+    headers: {
+      'X-App': 'demo'
+    }
+  }))
 }
 ```
 
-MetroJS is designed to be fully compatible with the Fetch API, including Request, Response, URL and FormData.
+Middleware can change a request before it reaches `fetch()`, inspect or change the response on the way back, return a mock response, throw an error, or call other Metro clients while preserving trace context. That makes it a good place for JSON handling, retries, timeouts, auth, linked-data parsing, and debugging hooks.
 
-The metro versions of Request, Response, etc. are all a Proxy to the real Request, Response, etc. The proxies add abilities that a normal Request or Response do not have. Like a with() function to create a derived version. Or in the case of Response, the ability to set values that aren't accessible in the normal Response constructor.
-
-This allows metro to implement full middleware capabilities, including creating mocks, without giving up compatibility with normal Request and Response code.
+Start with the [quickstart](quickstart.md), then use the [package structure](packages.md) page to decide whether the combined package or focused package imports fit your project better. If you are writing your own request behaviour, read [Writing middleware](middleware-authoring.md).
