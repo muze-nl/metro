@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-trace",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Optional tracing and console graph support for Metro",
   "type": "module",
   "main": "src/index.mjs",

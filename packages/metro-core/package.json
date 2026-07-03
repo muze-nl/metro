@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-core",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Core Metro fetch-compatible client and request helpers",
   "type": "module",
   "main": "src/index.mjs",

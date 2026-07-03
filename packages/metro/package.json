@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Beginner-friendly combined Metro package",
   "type": "module",
   "source": [
