@@ -1,0 +1,34 @@
+{
+  "name": "@muze-nl/metro-api",
+  "version": "0.8.0",
+  "description": "API helpers for Metro clients",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@muze-nl/metro-core": "0.7.1",
+    "@muze-nl/metro-middleware": "0.7.1"
+  },
+  "files": [
+    "/src",
+    "/LICENSE",
+    "/README.md",
+    "/docs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-api"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "tap --disable-coverage --jobs=1 test/*.mjs"
+  }
+}

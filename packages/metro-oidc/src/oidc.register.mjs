@@ -3,9 +3,9 @@
  * incorporating errata set 2 - december 15, 2023
  * https://openid.net/specs/openid-connect-registration-1_0.html
  */
-import metro from '@muze-nl/metro'
-import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
-import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
+import * as metro from '@muze-nl/metro-core'
+import jsonmw from '@muze-nl/metro-middleware/json'
+import throwermw from '@muze-nl/metro-middleware/thrower'
 import { validJWA, validAuthMethods, MustHave } from './oidc.util.mjs'
 import { assert, Required, Optional, oneOf, anyOf, validURL, validEmail, not, instanceOf } from '@muze-nl/assert'
 
@@ -60,6 +60,7 @@ export default async function register(options)
 	}
 
 	options = Object.assign({}, defaultOptions, options)
+	options.client = options.client.with(throwermw()).with(jsonmw())
 	if (!options.client_info) {
 		options.client_info = {}
 	} 
@@ -71,8 +72,8 @@ export default async function register(options)
 			body: options.client_info
 		})
 	let info = response.data
-	if (!info.client_id || !info.client_secret) {
-		throw metro.metroError('metro.oidc: Error: dynamic registration of client failed, no client_id or client_secret returned', response)
+	if (!info.client_id) {
+		throw metro.metroError('metro.oidc: Error: dynamic registration of client failed, no client_id returned', response)
 	}
 	options.client_info = Object.assign(options.client_info, info)
 	return options.client_info

@@ -1,6 +1,5 @@
-import metro from '@muze-nl/metro'
+import * as metro from '@muze-nl/metro-core'
 import { assert, validURL, Required, Recommended, Optional, anyOf } from '@muze-nl/assert'
-// import mwOauth2DPoP from './oauth2.DPoP.mjs'
 
 /**
  * This module allows for oauth2 discovery and returns an oauth2
@@ -19,28 +18,30 @@ const validAuthMethods = [
 ]
 
 const oauth_authorization_server_metadata = {
-	issuer: Required(validURL),
 	authorization_endpoint: Required(validURL),
-	token_endpoint: Required(validURL),
-	jwks_uri: Optional(validURL),
-	registration_endpoint: Optional(validURL),
-	scopes_supported: Recommended([]),
+	issuer: Required(validURL),
 	response_types_supported: Required(anyOf('code','token')),
-	response_modes_supported: Optional([]),
+	token_endpoint: Required(validURL),
+
+	scopes_supported: Recommended([]),
+
+	code_challendge_methods_supported: Optional([]),
 	grant_types_supported: Optional([]),
-	token_endpoint_auth_methods_supported: Optional([]),
-	token_endpoint_auth_signing_alg_values_supported: Optional([]),
-	service_documentation: Optional(validURL),
-	ui_locales_supported: Optional([]),
-	op_policy_uri: Optional(validURL),
-	op_tos_uri: Optional(validURL),
-	revocation_endpoint: Optional(validURL),
-	revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
-	revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
 	introspection_endpoint: Optional(validURL),
 	introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
 	introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
-	code_challendge_methods_supported: Optional([])
+	jwks_uri: Optional(validURL),
+	op_policy_uri: Optional(validURL),
+	op_tos_uri: Optional(validURL),
+	registration_endpoint: Optional(validURL),
+	response_modes_supported: Optional([]),
+	revocation_endpoint: Optional(validURL),
+	revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
+	revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+	service_documentation: Optional(validURL),
+	token_endpoint_auth_methods_supported: Optional([]),
+	token_endpoint_auth_signing_alg_values_supported: Optional([]),
+	ui_locales_supported: Optional([])
 }
 
 export default function makeClient(options={}) {
@@ -61,11 +62,11 @@ export default function makeClient(options={}) {
 async function fetchWellknownOauthAuthorizationServer(issuer, client)
 {
 	let res = client.get(metro.url(issuer,'.wellknown/oauth_authorization_server'))
-	if (res.ok) {
-		assert(res.headers.get('Content-Type'), /application\/json.*/)
-		let configuration = await res.json()
-		assert(configuration, oauth_authorization_server_metadata)
-		return configuration
+	if (!res.ok) {
+		throw metro.metroError('metro.oidcmw: Error while fetching '+issuer+'.wellknown/oauth_authorization_server', res)
 	}
-	throw metro.metroError('metro.oidcmw: Error while fetching '+issuer+'.wellknown/oauth_authorization_server', res)
+	assert(res.headers.get('Content-Type'), /application\/json.*/)
+	let configuration = await res.json()
+	assert(configuration, oauth_authorization_server_metadata)
+	return configuration
 }

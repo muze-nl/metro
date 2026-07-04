@@ -2,9 +2,9 @@
  * This module adheres to OpenID Connect Discovery 1.0 incorporating errata set 2 - december 15, 2023
  * https://openid.net/specs/openid-connect-discovery-1_0.html
  */
-import metro from '@muze-nl/metro'
-import jsonmw from '@muze-nl/metro/src/mw/json.mjs'
-import throwermw from '@muze-nl/metro/src/mw/thrower.mjs'
+import * as metro from '@muze-nl/metro-core'
+import jsonmw from '@muze-nl/metro-middleware/json'
+import throwermw from '@muze-nl/metro-middleware/thrower'
 import { validJWA, MustInclude, validAuthMethods } from './oidc.util.mjs'
 import { assert, fails, Required, Recommended, Optional, oneOf, anyOf, allOf, validURL, instanceOf, not, error } from '@muze-nl/assert'
 
@@ -29,6 +29,7 @@ export default async function oidcDiscovery(options={}) {
 	}
 
 	options = Object.assign({},defaultOptions,options)
+	options.client = options.client.with(throwermw()).with(jsonmw())
 
 	const TestSucceeded = false
 	function MustUseHTTPS(url) {

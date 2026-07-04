@@ -6,7 +6,11 @@
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
   var __commonJS = (cb, mod) => function __require() {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+    try {
+      return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+    } catch (e) {
+      throw mod = 0, e;
+    }
   };
   var __export = (target, all) => {
     for (var name in all)
@@ -29,9 +33,9 @@
     mod
   ));
 
-  // node_modules/base64-js/index.js
+  // ../../node_modules/base64-js/index.js
   var require_base64_js = __commonJS({
-    "node_modules/base64-js/index.js"(exports) {
+    "../../node_modules/base64-js/index.js"(exports) {
       "use strict";
       exports.byteLength = byteLength;
       exports.toByteArray = toByteArray;
@@ -130,9 +134,9 @@
     }
   });
 
-  // node_modules/ieee754/index.js
+  // ../../node_modules/ieee754/index.js
   var require_ieee754 = __commonJS({
-    "node_modules/ieee754/index.js"(exports) {
+    "../../node_modules/ieee754/index.js"(exports) {
       exports.read = function(buffer, offset, isLE, mLen, nBytes) {
         var e, m;
         var eLen = nBytes * 8 - mLen - 1;
@@ -213,9 +217,9 @@
     }
   });
 
-  // node_modules/buffer/index.js
+  // ../../node_modules/buffer/index.js
   var require_buffer = __commonJS({
-    "node_modules/buffer/index.js"(exports) {
+    "../../node_modules/buffer/index.js"(exports) {
       "use strict";
       var base64 = require_base64_js();
       var ieee754 = require_ieee754();
@@ -1805,6283 +1809,7 @@
     }
   });
 
-  // node_modules/readable-stream/lib/ours/primordials.js
-  var require_primordials = __commonJS({
-    "node_modules/readable-stream/lib/ours/primordials.js"(exports, module) {
-      "use strict";
-      var AggregateError = class extends Error {
-        constructor(errors) {
-          if (!Array.isArray(errors)) {
-            throw new TypeError(`Expected input to be an Array, got ${typeof errors}`);
-          }
-          let message = "";
-          for (let i = 0; i < errors.length; i++) {
-            message += `    ${errors[i].stack}
-`;
-          }
-          super(message);
-          this.name = "AggregateError";
-          this.errors = errors;
-        }
-      };
-      module.exports = {
-        AggregateError,
-        ArrayIsArray(self2) {
-          return Array.isArray(self2);
-        },
-        ArrayPrototypeIncludes(self2, el) {
-          return self2.includes(el);
-        },
-        ArrayPrototypeIndexOf(self2, el) {
-          return self2.indexOf(el);
-        },
-        ArrayPrototypeJoin(self2, sep) {
-          return self2.join(sep);
-        },
-        ArrayPrototypeMap(self2, fn) {
-          return self2.map(fn);
-        },
-        ArrayPrototypePop(self2, el) {
-          return self2.pop(el);
-        },
-        ArrayPrototypePush(self2, el) {
-          return self2.push(el);
-        },
-        ArrayPrototypeSlice(self2, start, end) {
-          return self2.slice(start, end);
-        },
-        Error,
-        FunctionPrototypeCall(fn, thisArgs, ...args) {
-          return fn.call(thisArgs, ...args);
-        },
-        FunctionPrototypeSymbolHasInstance(self2, instance) {
-          return Function.prototype[Symbol.hasInstance].call(self2, instance);
-        },
-        MathFloor: Math.floor,
-        Number,
-        NumberIsInteger: Number.isInteger,
-        NumberIsNaN: Number.isNaN,
-        NumberMAX_SAFE_INTEGER: Number.MAX_SAFE_INTEGER,
-        NumberMIN_SAFE_INTEGER: Number.MIN_SAFE_INTEGER,
-        NumberParseInt: Number.parseInt,
-        ObjectDefineProperties(self2, props) {
-          return Object.defineProperties(self2, props);
-        },
-        ObjectDefineProperty(self2, name, prop) {
-          return Object.defineProperty(self2, name, prop);
-        },
-        ObjectGetOwnPropertyDescriptor(self2, name) {
-          return Object.getOwnPropertyDescriptor(self2, name);
-        },
-        ObjectKeys(obj) {
-          return Object.keys(obj);
-        },
-        ObjectSetPrototypeOf(target, proto) {
-          return Object.setPrototypeOf(target, proto);
-        },
-        Promise,
-        PromisePrototypeCatch(self2, fn) {
-          return self2.catch(fn);
-        },
-        PromisePrototypeThen(self2, thenFn, catchFn) {
-          return self2.then(thenFn, catchFn);
-        },
-        PromiseReject(err) {
-          return Promise.reject(err);
-        },
-        PromiseResolve(val) {
-          return Promise.resolve(val);
-        },
-        ReflectApply: Reflect.apply,
-        RegExpPrototypeTest(self2, value) {
-          return self2.test(value);
-        },
-        SafeSet: Set,
-        String,
-        StringPrototypeSlice(self2, start, end) {
-          return self2.slice(start, end);
-        },
-        StringPrototypeToLowerCase(self2) {
-          return self2.toLowerCase();
-        },
-        StringPrototypeToUpperCase(self2) {
-          return self2.toUpperCase();
-        },
-        StringPrototypeTrim(self2) {
-          return self2.trim();
-        },
-        Symbol,
-        SymbolFor: Symbol.for,
-        SymbolAsyncIterator: Symbol.asyncIterator,
-        SymbolHasInstance: Symbol.hasInstance,
-        SymbolIterator: Symbol.iterator,
-        SymbolDispose: Symbol.dispose || /* @__PURE__ */ Symbol("Symbol.dispose"),
-        SymbolAsyncDispose: Symbol.asyncDispose || /* @__PURE__ */ Symbol("Symbol.asyncDispose"),
-        TypedArrayPrototypeSet(self2, buf, len) {
-          return self2.set(buf, len);
-        },
-        Boolean,
-        Uint8Array
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/ours/util/inspect.js
-  var require_inspect = __commonJS({
-    "node_modules/readable-stream/lib/ours/util/inspect.js"(exports, module) {
-      "use strict";
-      module.exports = {
-        format(format, ...args) {
-          return format.replace(/%([sdifj])/g, function(...[_unused, type]) {
-            const replacement = args.shift();
-            if (type === "f") {
-              return replacement.toFixed(6);
-            } else if (type === "j") {
-              return JSON.stringify(replacement);
-            } else if (type === "s" && typeof replacement === "object") {
-              const ctor = replacement.constructor !== Object ? replacement.constructor.name : "";
-              return `${ctor} {}`.trim();
-            } else {
-              return replacement.toString();
-            }
-          });
-        },
-        inspect(value) {
-          switch (typeof value) {
-            case "string":
-              if (value.includes("'")) {
-                if (!value.includes('"')) {
-                  return `"${value}"`;
-                } else if (!value.includes("`") && !value.includes("${")) {
-                  return `\`${value}\``;
-                }
-              }
-              return `'${value}'`;
-            case "number":
-              if (isNaN(value)) {
-                return "NaN";
-              } else if (Object.is(value, -0)) {
-                return String(value);
-              }
-              return value;
-            case "bigint":
-              return `${String(value)}n`;
-            case "boolean":
-            case "undefined":
-              return String(value);
-            case "object":
-              return "{}";
-          }
-        }
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/ours/errors.js
-  var require_errors = __commonJS({
-    "node_modules/readable-stream/lib/ours/errors.js"(exports, module) {
-      "use strict";
-      var { format, inspect } = require_inspect();
-      var { AggregateError: CustomAggregateError } = require_primordials();
-      var AggregateError = globalThis.AggregateError || CustomAggregateError;
-      var kIsNodeError = /* @__PURE__ */ Symbol("kIsNodeError");
-      var kTypes = [
-        "string",
-        "function",
-        "number",
-        "object",
-        // Accept 'Function' and 'Object' as alternative to the lower cased version.
-        "Function",
-        "Object",
-        "boolean",
-        "bigint",
-        "symbol"
-      ];
-      var classRegExp = /^([A-Z][a-z0-9]*)+$/;
-      var nodeInternalPrefix = "__node_internal_";
-      var codes = {};
-      function assert(value, message) {
-        if (!value) {
-          throw new codes.ERR_INTERNAL_ASSERTION(message);
-        }
-      }
-      function addNumericalSeparator(val) {
-        let res = "";
-        let i = val.length;
-        const start = val[0] === "-" ? 1 : 0;
-        for (; i >= start + 4; i -= 3) {
-          res = `_${val.slice(i - 3, i)}${res}`;
-        }
-        return `${val.slice(0, i)}${res}`;
-      }
-      function getMessage(key, msg, args) {
-        if (typeof msg === "function") {
-          assert(
-            msg.length <= args.length,
-            // Default options do not count.
-            `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${msg.length}).`
-          );
-          return msg(...args);
-        }
-        const expectedLength = (msg.match(/%[dfijoOs]/g) || []).length;
-        assert(
-          expectedLength === args.length,
-          `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${expectedLength}).`
-        );
-        if (args.length === 0) {
-          return msg;
-        }
-        return format(msg, ...args);
-      }
-      function E(code, message, Base) {
-        if (!Base) {
-          Base = Error;
-        }
-        class NodeError extends Base {
-          constructor(...args) {
-            super(getMessage(code, message, args));
-          }
-          toString() {
-            return `${this.name} [${code}]: ${this.message}`;
-          }
-        }
-        Object.defineProperties(NodeError.prototype, {
-          name: {
-            value: Base.name,
-            writable: true,
-            enumerable: false,
-            configurable: true
-          },
-          toString: {
-            value() {
-              return `${this.name} [${code}]: ${this.message}`;
-            },
-            writable: true,
-            enumerable: false,
-            configurable: true
-          }
-        });
-        NodeError.prototype.code = code;
-        NodeError.prototype[kIsNodeError] = true;
-        codes[code] = NodeError;
-      }
-      function hideStackFrames(fn) {
-        const hidden = nodeInternalPrefix + fn.name;
-        Object.defineProperty(fn, "name", {
-          value: hidden
-        });
-        return fn;
-      }
-      function aggregateTwoErrors(innerError, outerError) {
-        if (innerError && outerError && innerError !== outerError) {
-          if (Array.isArray(outerError.errors)) {
-            outerError.errors.push(innerError);
-            return outerError;
-          }
-          const err = new AggregateError([outerError, innerError], outerError.message);
-          err.code = outerError.code;
-          return err;
-        }
-        return innerError || outerError;
-      }
-      var AbortError = class extends Error {
-        constructor(message = "The operation was aborted", options = void 0) {
-          if (options !== void 0 && typeof options !== "object") {
-            throw new codes.ERR_INVALID_ARG_TYPE("options", "Object", options);
-          }
-          super(message, options);
-          this.code = "ABORT_ERR";
-          this.name = "AbortError";
-        }
-      };
-      E("ERR_ASSERTION", "%s", Error);
-      E(
-        "ERR_INVALID_ARG_TYPE",
-        (name, expected, actual) => {
-          assert(typeof name === "string", "'name' must be a string");
-          if (!Array.isArray(expected)) {
-            expected = [expected];
-          }
-          let msg = "The ";
-          if (name.endsWith(" argument")) {
-            msg += `${name} `;
-          } else {
-            msg += `"${name}" ${name.includes(".") ? "property" : "argument"} `;
-          }
-          msg += "must be ";
-          const types = [];
-          const instances = [];
-          const other = [];
-          for (const value of expected) {
-            assert(typeof value === "string", "All expected entries have to be of type string");
-            if (kTypes.includes(value)) {
-              types.push(value.toLowerCase());
-            } else if (classRegExp.test(value)) {
-              instances.push(value);
-            } else {
-              assert(value !== "object", 'The value "object" should be written as "Object"');
-              other.push(value);
-            }
-          }
-          if (instances.length > 0) {
-            const pos = types.indexOf("object");
-            if (pos !== -1) {
-              types.splice(types, pos, 1);
-              instances.push("Object");
-            }
-          }
-          if (types.length > 0) {
-            switch (types.length) {
-              case 1:
-                msg += `of type ${types[0]}`;
-                break;
-              case 2:
-                msg += `one of type ${types[0]} or ${types[1]}`;
-                break;
-              default: {
-                const last = types.pop();
-                msg += `one of type ${types.join(", ")}, or ${last}`;
-              }
-            }
-            if (instances.length > 0 || other.length > 0) {
-              msg += " or ";
-            }
-          }
-          if (instances.length > 0) {
-            switch (instances.length) {
-              case 1:
-                msg += `an instance of ${instances[0]}`;
-                break;
-              case 2:
-                msg += `an instance of ${instances[0]} or ${instances[1]}`;
-                break;
-              default: {
-                const last = instances.pop();
-                msg += `an instance of ${instances.join(", ")}, or ${last}`;
-              }
-            }
-            if (other.length > 0) {
-              msg += " or ";
-            }
-          }
-          switch (other.length) {
-            case 0:
-              break;
-            case 1:
-              if (other[0].toLowerCase() !== other[0]) {
-                msg += "an ";
-              }
-              msg += `${other[0]}`;
-              break;
-            case 2:
-              msg += `one of ${other[0]} or ${other[1]}`;
-              break;
-            default: {
-              const last = other.pop();
-              msg += `one of ${other.join(", ")}, or ${last}`;
-            }
-          }
-          if (actual == null) {
-            msg += `. Received ${actual}`;
-          } else if (typeof actual === "function" && actual.name) {
-            msg += `. Received function ${actual.name}`;
-          } else if (typeof actual === "object") {
-            var _actual$constructor;
-            if ((_actual$constructor = actual.constructor) !== null && _actual$constructor !== void 0 && _actual$constructor.name) {
-              msg += `. Received an instance of ${actual.constructor.name}`;
-            } else {
-              const inspected = inspect(actual, {
-                depth: -1
-              });
-              msg += `. Received ${inspected}`;
-            }
-          } else {
-            let inspected = inspect(actual, {
-              colors: false
-            });
-            if (inspected.length > 25) {
-              inspected = `${inspected.slice(0, 25)}...`;
-            }
-            msg += `. Received type ${typeof actual} (${inspected})`;
-          }
-          return msg;
-        },
-        TypeError
-      );
-      E(
-        "ERR_INVALID_ARG_VALUE",
-        (name, value, reason = "is invalid") => {
-          let inspected = inspect(value);
-          if (inspected.length > 128) {
-            inspected = inspected.slice(0, 128) + "...";
-          }
-          const type = name.includes(".") ? "property" : "argument";
-          return `The ${type} '${name}' ${reason}. Received ${inspected}`;
-        },
-        TypeError
-      );
-      E(
-        "ERR_INVALID_RETURN_VALUE",
-        (input, name, value) => {
-          var _value$constructor;
-          const type = value !== null && value !== void 0 && (_value$constructor = value.constructor) !== null && _value$constructor !== void 0 && _value$constructor.name ? `instance of ${value.constructor.name}` : `type ${typeof value}`;
-          return `Expected ${input} to be returned from the "${name}" function but got ${type}.`;
-        },
-        TypeError
-      );
-      E(
-        "ERR_MISSING_ARGS",
-        (...args) => {
-          assert(args.length > 0, "At least one arg needs to be specified");
-          let msg;
-          const len = args.length;
-          args = (Array.isArray(args) ? args : [args]).map((a) => `"${a}"`).join(" or ");
-          switch (len) {
-            case 1:
-              msg += `The ${args[0]} argument`;
-              break;
-            case 2:
-              msg += `The ${args[0]} and ${args[1]} arguments`;
-              break;
-            default:
-              {
-                const last = args.pop();
-                msg += `The ${args.join(", ")}, and ${last} arguments`;
-              }
-              break;
-          }
-          return `${msg} must be specified`;
-        },
-        TypeError
-      );
-      E(
-        "ERR_OUT_OF_RANGE",
-        (str, range, input) => {
-          assert(range, 'Missing "range" argument');
-          let received;
-          if (Number.isInteger(input) && Math.abs(input) > 2 ** 32) {
-            received = addNumericalSeparator(String(input));
-          } else if (typeof input === "bigint") {
-            received = String(input);
-            const limit = BigInt(2) ** BigInt(32);
-            if (input > limit || input < -limit) {
-              received = addNumericalSeparator(received);
-            }
-            received += "n";
-          } else {
-            received = inspect(input);
-          }
-          return `The value of "${str}" is out of range. It must be ${range}. Received ${received}`;
-        },
-        RangeError
-      );
-      E("ERR_MULTIPLE_CALLBACK", "Callback called multiple times", Error);
-      E("ERR_METHOD_NOT_IMPLEMENTED", "The %s method is not implemented", Error);
-      E("ERR_STREAM_ALREADY_FINISHED", "Cannot call %s after a stream was finished", Error);
-      E("ERR_STREAM_CANNOT_PIPE", "Cannot pipe, not readable", Error);
-      E("ERR_STREAM_DESTROYED", "Cannot call %s after a stream was destroyed", Error);
-      E("ERR_STREAM_NULL_VALUES", "May not write null values to stream", TypeError);
-      E("ERR_STREAM_PREMATURE_CLOSE", "Premature close", Error);
-      E("ERR_STREAM_PUSH_AFTER_EOF", "stream.push() after EOF", Error);
-      E("ERR_STREAM_UNSHIFT_AFTER_END_EVENT", "stream.unshift() after end event", Error);
-      E("ERR_STREAM_WRITE_AFTER_END", "write after end", Error);
-      E("ERR_UNKNOWN_ENCODING", "Unknown encoding: %s", TypeError);
-      module.exports = {
-        AbortError,
-        aggregateTwoErrors: hideStackFrames(aggregateTwoErrors),
-        hideStackFrames,
-        codes
-      };
-    }
-  });
-
-  // node_modules/abort-controller/browser.js
-  var require_browser = __commonJS({
-    "node_modules/abort-controller/browser.js"(exports, module) {
-      "use strict";
-      var { AbortController, AbortSignal } = typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : (
-        /* otherwise */
-        void 0
-      );
-      module.exports = AbortController;
-      module.exports.AbortSignal = AbortSignal;
-      module.exports.default = AbortController;
-    }
-  });
-
-  // node_modules/events/events.js
-  var require_events = __commonJS({
-    "node_modules/events/events.js"(exports, module) {
-      "use strict";
-      var R = typeof Reflect === "object" ? Reflect : null;
-      var ReflectApply = R && typeof R.apply === "function" ? R.apply : function ReflectApply2(target, receiver, args) {
-        return Function.prototype.apply.call(target, receiver, args);
-      };
-      var ReflectOwnKeys;
-      if (R && typeof R.ownKeys === "function") {
-        ReflectOwnKeys = R.ownKeys;
-      } else if (Object.getOwnPropertySymbols) {
-        ReflectOwnKeys = function ReflectOwnKeys2(target) {
-          return Object.getOwnPropertyNames(target).concat(Object.getOwnPropertySymbols(target));
-        };
-      } else {
-        ReflectOwnKeys = function ReflectOwnKeys2(target) {
-          return Object.getOwnPropertyNames(target);
-        };
-      }
-      function ProcessEmitWarning(warning) {
-        if (console && console.warn) console.warn(warning);
-      }
-      var NumberIsNaN = Number.isNaN || function NumberIsNaN2(value) {
-        return value !== value;
-      };
-      function EventEmitter() {
-        EventEmitter.init.call(this);
-      }
-      module.exports = EventEmitter;
-      module.exports.once = once;
-      EventEmitter.EventEmitter = EventEmitter;
-      EventEmitter.prototype._events = void 0;
-      EventEmitter.prototype._eventsCount = 0;
-      EventEmitter.prototype._maxListeners = void 0;
-      var defaultMaxListeners = 10;
-      function checkListener(listener) {
-        if (typeof listener !== "function") {
-          throw new TypeError('The "listener" argument must be of type Function. Received type ' + typeof listener);
-        }
-      }
-      Object.defineProperty(EventEmitter, "defaultMaxListeners", {
-        enumerable: true,
-        get: function() {
-          return defaultMaxListeners;
-        },
-        set: function(arg) {
-          if (typeof arg !== "number" || arg < 0 || NumberIsNaN(arg)) {
-            throw new RangeError('The value of "defaultMaxListeners" is out of range. It must be a non-negative number. Received ' + arg + ".");
-          }
-          defaultMaxListeners = arg;
-        }
-      });
-      EventEmitter.init = function() {
-        if (this._events === void 0 || this._events === Object.getPrototypeOf(this)._events) {
-          this._events = /* @__PURE__ */ Object.create(null);
-          this._eventsCount = 0;
-        }
-        this._maxListeners = this._maxListeners || void 0;
-      };
-      EventEmitter.prototype.setMaxListeners = function setMaxListeners(n) {
-        if (typeof n !== "number" || n < 0 || NumberIsNaN(n)) {
-          throw new RangeError('The value of "n" is out of range. It must be a non-negative number. Received ' + n + ".");
-        }
-        this._maxListeners = n;
-        return this;
-      };
-      function _getMaxListeners(that) {
-        if (that._maxListeners === void 0)
-          return EventEmitter.defaultMaxListeners;
-        return that._maxListeners;
-      }
-      EventEmitter.prototype.getMaxListeners = function getMaxListeners() {
-        return _getMaxListeners(this);
-      };
-      EventEmitter.prototype.emit = function emit(type) {
-        var args = [];
-        for (var i = 1; i < arguments.length; i++) args.push(arguments[i]);
-        var doError = type === "error";
-        var events = this._events;
-        if (events !== void 0)
-          doError = doError && events.error === void 0;
-        else if (!doError)
-          return false;
-        if (doError) {
-          var er;
-          if (args.length > 0)
-            er = args[0];
-          if (er instanceof Error) {
-            throw er;
-          }
-          var err = new Error("Unhandled error." + (er ? " (" + er.message + ")" : ""));
-          err.context = er;
-          throw err;
-        }
-        var handler = events[type];
-        if (handler === void 0)
-          return false;
-        if (typeof handler === "function") {
-          ReflectApply(handler, this, args);
-        } else {
-          var len = handler.length;
-          var listeners = arrayClone(handler, len);
-          for (var i = 0; i < len; ++i)
-            ReflectApply(listeners[i], this, args);
-        }
-        return true;
-      };
-      function _addListener(target, type, listener, prepend) {
-        var m;
-        var events;
-        var existing;
-        checkListener(listener);
-        events = target._events;
-        if (events === void 0) {
-          events = target._events = /* @__PURE__ */ Object.create(null);
-          target._eventsCount = 0;
-        } else {
-          if (events.newListener !== void 0) {
-            target.emit(
-              "newListener",
-              type,
-              listener.listener ? listener.listener : listener
-            );
-            events = target._events;
-          }
-          existing = events[type];
-        }
-        if (existing === void 0) {
-          existing = events[type] = listener;
-          ++target._eventsCount;
-        } else {
-          if (typeof existing === "function") {
-            existing = events[type] = prepend ? [listener, existing] : [existing, listener];
-          } else if (prepend) {
-            existing.unshift(listener);
-          } else {
-            existing.push(listener);
-          }
-          m = _getMaxListeners(target);
-          if (m > 0 && existing.length > m && !existing.warned) {
-            existing.warned = true;
-            var w = new Error("Possible EventEmitter memory leak detected. " + existing.length + " " + String(type) + " listeners added. Use emitter.setMaxListeners() to increase limit");
-            w.name = "MaxListenersExceededWarning";
-            w.emitter = target;
-            w.type = type;
-            w.count = existing.length;
-            ProcessEmitWarning(w);
-          }
-        }
-        return target;
-      }
-      EventEmitter.prototype.addListener = function addListener(type, listener) {
-        return _addListener(this, type, listener, false);
-      };
-      EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-      EventEmitter.prototype.prependListener = function prependListener(type, listener) {
-        return _addListener(this, type, listener, true);
-      };
-      function onceWrapper() {
-        if (!this.fired) {
-          this.target.removeListener(this.type, this.wrapFn);
-          this.fired = true;
-          if (arguments.length === 0)
-            return this.listener.call(this.target);
-          return this.listener.apply(this.target, arguments);
-        }
-      }
-      function _onceWrap(target, type, listener) {
-        var state = { fired: false, wrapFn: void 0, target, type, listener };
-        var wrapped = onceWrapper.bind(state);
-        wrapped.listener = listener;
-        state.wrapFn = wrapped;
-        return wrapped;
-      }
-      EventEmitter.prototype.once = function once2(type, listener) {
-        checkListener(listener);
-        this.on(type, _onceWrap(this, type, listener));
-        return this;
-      };
-      EventEmitter.prototype.prependOnceListener = function prependOnceListener(type, listener) {
-        checkListener(listener);
-        this.prependListener(type, _onceWrap(this, type, listener));
-        return this;
-      };
-      EventEmitter.prototype.removeListener = function removeListener(type, listener) {
-        var list, events, position, i, originalListener;
-        checkListener(listener);
-        events = this._events;
-        if (events === void 0)
-          return this;
-        list = events[type];
-        if (list === void 0)
-          return this;
-        if (list === listener || list.listener === listener) {
-          if (--this._eventsCount === 0)
-            this._events = /* @__PURE__ */ Object.create(null);
-          else {
-            delete events[type];
-            if (events.removeListener)
-              this.emit("removeListener", type, list.listener || listener);
-          }
-        } else if (typeof list !== "function") {
-          position = -1;
-          for (i = list.length - 1; i >= 0; i--) {
-            if (list[i] === listener || list[i].listener === listener) {
-              originalListener = list[i].listener;
-              position = i;
-              break;
-            }
-          }
-          if (position < 0)
-            return this;
-          if (position === 0)
-            list.shift();
-          else {
-            spliceOne(list, position);
-          }
-          if (list.length === 1)
-            events[type] = list[0];
-          if (events.removeListener !== void 0)
-            this.emit("removeListener", type, originalListener || listener);
-        }
-        return this;
-      };
-      EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
-      EventEmitter.prototype.removeAllListeners = function removeAllListeners(type) {
-        var listeners, events, i;
-        events = this._events;
-        if (events === void 0)
-          return this;
-        if (events.removeListener === void 0) {
-          if (arguments.length === 0) {
-            this._events = /* @__PURE__ */ Object.create(null);
-            this._eventsCount = 0;
-          } else if (events[type] !== void 0) {
-            if (--this._eventsCount === 0)
-              this._events = /* @__PURE__ */ Object.create(null);
-            else
-              delete events[type];
-          }
-          return this;
-        }
-        if (arguments.length === 0) {
-          var keys = Object.keys(events);
-          var key;
-          for (i = 0; i < keys.length; ++i) {
-            key = keys[i];
-            if (key === "removeListener") continue;
-            this.removeAllListeners(key);
-          }
-          this.removeAllListeners("removeListener");
-          this._events = /* @__PURE__ */ Object.create(null);
-          this._eventsCount = 0;
-          return this;
-        }
-        listeners = events[type];
-        if (typeof listeners === "function") {
-          this.removeListener(type, listeners);
-        } else if (listeners !== void 0) {
-          for (i = listeners.length - 1; i >= 0; i--) {
-            this.removeListener(type, listeners[i]);
-          }
-        }
-        return this;
-      };
-      function _listeners(target, type, unwrap) {
-        var events = target._events;
-        if (events === void 0)
-          return [];
-        var evlistener = events[type];
-        if (evlistener === void 0)
-          return [];
-        if (typeof evlistener === "function")
-          return unwrap ? [evlistener.listener || evlistener] : [evlistener];
-        return unwrap ? unwrapListeners(evlistener) : arrayClone(evlistener, evlistener.length);
-      }
-      EventEmitter.prototype.listeners = function listeners(type) {
-        return _listeners(this, type, true);
-      };
-      EventEmitter.prototype.rawListeners = function rawListeners(type) {
-        return _listeners(this, type, false);
-      };
-      EventEmitter.listenerCount = function(emitter, type) {
-        if (typeof emitter.listenerCount === "function") {
-          return emitter.listenerCount(type);
-        } else {
-          return listenerCount.call(emitter, type);
-        }
-      };
-      EventEmitter.prototype.listenerCount = listenerCount;
-      function listenerCount(type) {
-        var events = this._events;
-        if (events !== void 0) {
-          var evlistener = events[type];
-          if (typeof evlistener === "function") {
-            return 1;
-          } else if (evlistener !== void 0) {
-            return evlistener.length;
-          }
-        }
-        return 0;
-      }
-      EventEmitter.prototype.eventNames = function eventNames() {
-        return this._eventsCount > 0 ? ReflectOwnKeys(this._events) : [];
-      };
-      function arrayClone(arr, n) {
-        var copy = new Array(n);
-        for (var i = 0; i < n; ++i)
-          copy[i] = arr[i];
-        return copy;
-      }
-      function spliceOne(list, index) {
-        for (; index + 1 < list.length; index++)
-          list[index] = list[index + 1];
-        list.pop();
-      }
-      function unwrapListeners(arr) {
-        var ret = new Array(arr.length);
-        for (var i = 0; i < ret.length; ++i) {
-          ret[i] = arr[i].listener || arr[i];
-        }
-        return ret;
-      }
-      function once(emitter, name) {
-        return new Promise(function(resolve, reject) {
-          function errorListener(err) {
-            emitter.removeListener(name, resolver);
-            reject(err);
-          }
-          function resolver() {
-            if (typeof emitter.removeListener === "function") {
-              emitter.removeListener("error", errorListener);
-            }
-            resolve([].slice.call(arguments));
-          }
-          ;
-          eventTargetAgnosticAddListener(emitter, name, resolver, { once: true });
-          if (name !== "error") {
-            addErrorHandlerIfEventEmitter(emitter, errorListener, { once: true });
-          }
-        });
-      }
-      function addErrorHandlerIfEventEmitter(emitter, handler, flags) {
-        if (typeof emitter.on === "function") {
-          eventTargetAgnosticAddListener(emitter, "error", handler, flags);
-        }
-      }
-      function eventTargetAgnosticAddListener(emitter, name, listener, flags) {
-        if (typeof emitter.on === "function") {
-          if (flags.once) {
-            emitter.once(name, listener);
-          } else {
-            emitter.on(name, listener);
-          }
-        } else if (typeof emitter.addEventListener === "function") {
-          emitter.addEventListener(name, function wrapListener(arg) {
-            if (flags.once) {
-              emitter.removeEventListener(name, wrapListener);
-            }
-            listener(arg);
-          });
-        } else {
-          throw new TypeError('The "emitter" argument must be of type EventEmitter. Received type ' + typeof emitter);
-        }
-      }
-    }
-  });
-
-  // node_modules/readable-stream/lib/ours/util.js
-  var require_util = __commonJS({
-    "node_modules/readable-stream/lib/ours/util.js"(exports, module) {
-      "use strict";
-      var bufferModule = require_buffer();
-      var { format, inspect } = require_inspect();
-      var {
-        codes: { ERR_INVALID_ARG_TYPE }
-      } = require_errors();
-      var { kResistStopPropagation, AggregateError, SymbolDispose } = require_primordials();
-      var AbortSignal = globalThis.AbortSignal || require_browser().AbortSignal;
-      var AbortController = globalThis.AbortController || require_browser().AbortController;
-      var AsyncFunction = Object.getPrototypeOf(async function() {
-      }).constructor;
-      var Blob = globalThis.Blob || bufferModule.Blob;
-      var isBlob = typeof Blob !== "undefined" ? function isBlob2(b) {
-        return b instanceof Blob;
-      } : function isBlob2(b) {
-        return false;
-      };
-      var validateAbortSignal = (signal, name) => {
-        if (signal !== void 0 && (signal === null || typeof signal !== "object" || !("aborted" in signal))) {
-          throw new ERR_INVALID_ARG_TYPE(name, "AbortSignal", signal);
-        }
-      };
-      var validateFunction = (value, name) => {
-        if (typeof value !== "function") {
-          throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
-        }
-      };
-      module.exports = {
-        AggregateError,
-        kEmptyObject: Object.freeze({}),
-        once(callback) {
-          let called = false;
-          return function(...args) {
-            if (called) {
-              return;
-            }
-            called = true;
-            callback.apply(this, args);
-          };
-        },
-        createDeferredPromise: function() {
-          let resolve;
-          let reject;
-          const promise = new Promise((res, rej) => {
-            resolve = res;
-            reject = rej;
-          });
-          return {
-            promise,
-            resolve,
-            reject
-          };
-        },
-        promisify(fn) {
-          return new Promise((resolve, reject) => {
-            fn((err, ...args) => {
-              if (err) {
-                return reject(err);
-              }
-              return resolve(...args);
-            });
-          });
-        },
-        debuglog() {
-          return function() {
-          };
-        },
-        format,
-        inspect,
-        types: {
-          isAsyncFunction(fn) {
-            return fn instanceof AsyncFunction;
-          },
-          isArrayBufferView(arr) {
-            return ArrayBuffer.isView(arr);
-          }
-        },
-        isBlob,
-        deprecate(fn, message) {
-          return fn;
-        },
-        addAbortListener: require_events().addAbortListener || function addAbortListener(signal, listener) {
-          if (signal === void 0) {
-            throw new ERR_INVALID_ARG_TYPE("signal", "AbortSignal", signal);
-          }
-          validateAbortSignal(signal, "signal");
-          validateFunction(listener, "listener");
-          let removeEventListener;
-          if (signal.aborted) {
-            queueMicrotask(() => listener());
-          } else {
-            signal.addEventListener("abort", listener, {
-              __proto__: null,
-              once: true,
-              [kResistStopPropagation]: true
-            });
-            removeEventListener = () => {
-              signal.removeEventListener("abort", listener);
-            };
-          }
-          return {
-            __proto__: null,
-            [SymbolDispose]() {
-              var _removeEventListener;
-              (_removeEventListener = removeEventListener) === null || _removeEventListener === void 0 ? void 0 : _removeEventListener();
-            }
-          };
-        },
-        AbortSignalAny: AbortSignal.any || function AbortSignalAny(signals) {
-          if (signals.length === 1) {
-            return signals[0];
-          }
-          const ac = new AbortController();
-          const abort = () => ac.abort();
-          signals.forEach((signal) => {
-            validateAbortSignal(signal, "signals");
-            signal.addEventListener("abort", abort, {
-              once: true
-            });
-          });
-          ac.signal.addEventListener(
-            "abort",
-            () => {
-              signals.forEach((signal) => signal.removeEventListener("abort", abort));
-            },
-            {
-              once: true
-            }
-          );
-          return ac.signal;
-        }
-      };
-      module.exports.promisify.custom = /* @__PURE__ */ Symbol.for("nodejs.util.promisify.custom");
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/validators.js
-  var require_validators = __commonJS({
-    "node_modules/readable-stream/lib/internal/validators.js"(exports, module) {
-      "use strict";
-      var {
-        ArrayIsArray,
-        ArrayPrototypeIncludes,
-        ArrayPrototypeJoin,
-        ArrayPrototypeMap,
-        NumberIsInteger,
-        NumberIsNaN,
-        NumberMAX_SAFE_INTEGER,
-        NumberMIN_SAFE_INTEGER,
-        NumberParseInt,
-        ObjectPrototypeHasOwnProperty,
-        RegExpPrototypeExec,
-        String: String2,
-        StringPrototypeToUpperCase,
-        StringPrototypeTrim
-      } = require_primordials();
-      var {
-        hideStackFrames,
-        codes: { ERR_SOCKET_BAD_PORT, ERR_INVALID_ARG_TYPE, ERR_INVALID_ARG_VALUE, ERR_OUT_OF_RANGE, ERR_UNKNOWN_SIGNAL }
-      } = require_errors();
-      var { normalizeEncoding } = require_util();
-      var { isAsyncFunction, isArrayBufferView } = require_util().types;
-      var signals = {};
-      function isInt32(value) {
-        return value === (value | 0);
-      }
-      function isUint32(value) {
-        return value === value >>> 0;
-      }
-      var octalReg = /^[0-7]+$/;
-      var modeDesc = "must be a 32-bit unsigned integer or an octal string";
-      function parseFileMode(value, name, def) {
-        if (typeof value === "undefined") {
-          value = def;
-        }
-        if (typeof value === "string") {
-          if (RegExpPrototypeExec(octalReg, value) === null) {
-            throw new ERR_INVALID_ARG_VALUE(name, value, modeDesc);
-          }
-          value = NumberParseInt(value, 8);
-        }
-        validateUint32(value, name);
-        return value;
-      }
-      var validateInteger = hideStackFrames((value, name, min = NumberMIN_SAFE_INTEGER, max = NumberMAX_SAFE_INTEGER) => {
-        if (typeof value !== "number") throw new ERR_INVALID_ARG_TYPE(name, "number", value);
-        if (!NumberIsInteger(value)) throw new ERR_OUT_OF_RANGE(name, "an integer", value);
-        if (value < min || value > max) throw new ERR_OUT_OF_RANGE(name, `>= ${min} && <= ${max}`, value);
-      });
-      var validateInt32 = hideStackFrames((value, name, min = -2147483648, max = 2147483647) => {
-        if (typeof value !== "number") {
-          throw new ERR_INVALID_ARG_TYPE(name, "number", value);
-        }
-        if (!NumberIsInteger(value)) {
-          throw new ERR_OUT_OF_RANGE(name, "an integer", value);
-        }
-        if (value < min || value > max) {
-          throw new ERR_OUT_OF_RANGE(name, `>= ${min} && <= ${max}`, value);
-        }
-      });
-      var validateUint32 = hideStackFrames((value, name, positive = false) => {
-        if (typeof value !== "number") {
-          throw new ERR_INVALID_ARG_TYPE(name, "number", value);
-        }
-        if (!NumberIsInteger(value)) {
-          throw new ERR_OUT_OF_RANGE(name, "an integer", value);
-        }
-        const min = positive ? 1 : 0;
-        const max = 4294967295;
-        if (value < min || value > max) {
-          throw new ERR_OUT_OF_RANGE(name, `>= ${min} && <= ${max}`, value);
-        }
-      });
-      function validateString(value, name) {
-        if (typeof value !== "string") throw new ERR_INVALID_ARG_TYPE(name, "string", value);
-      }
-      function validateNumber(value, name, min = void 0, max) {
-        if (typeof value !== "number") throw new ERR_INVALID_ARG_TYPE(name, "number", value);
-        if (min != null && value < min || max != null && value > max || (min != null || max != null) && NumberIsNaN(value)) {
-          throw new ERR_OUT_OF_RANGE(
-            name,
-            `${min != null ? `>= ${min}` : ""}${min != null && max != null ? " && " : ""}${max != null ? `<= ${max}` : ""}`,
-            value
-          );
-        }
-      }
-      var validateOneOf = hideStackFrames((value, name, oneOf) => {
-        if (!ArrayPrototypeIncludes(oneOf, value)) {
-          const allowed = ArrayPrototypeJoin(
-            ArrayPrototypeMap(oneOf, (v) => typeof v === "string" ? `'${v}'` : String2(v)),
-            ", "
-          );
-          const reason = "must be one of: " + allowed;
-          throw new ERR_INVALID_ARG_VALUE(name, value, reason);
-        }
-      });
-      function validateBoolean(value, name) {
-        if (typeof value !== "boolean") throw new ERR_INVALID_ARG_TYPE(name, "boolean", value);
-      }
-      function getOwnPropertyValueOrDefault(options, key, defaultValue) {
-        return options == null || !ObjectPrototypeHasOwnProperty(options, key) ? defaultValue : options[key];
-      }
-      var validateObject = hideStackFrames((value, name, options = null) => {
-        const allowArray = getOwnPropertyValueOrDefault(options, "allowArray", false);
-        const allowFunction = getOwnPropertyValueOrDefault(options, "allowFunction", false);
-        const nullable = getOwnPropertyValueOrDefault(options, "nullable", false);
-        if (!nullable && value === null || !allowArray && ArrayIsArray(value) || typeof value !== "object" && (!allowFunction || typeof value !== "function")) {
-          throw new ERR_INVALID_ARG_TYPE(name, "Object", value);
-        }
-      });
-      var validateDictionary = hideStackFrames((value, name) => {
-        if (value != null && typeof value !== "object" && typeof value !== "function") {
-          throw new ERR_INVALID_ARG_TYPE(name, "a dictionary", value);
-        }
-      });
-      var validateArray = hideStackFrames((value, name, minLength = 0) => {
-        if (!ArrayIsArray(value)) {
-          throw new ERR_INVALID_ARG_TYPE(name, "Array", value);
-        }
-        if (value.length < minLength) {
-          const reason = `must be longer than ${minLength}`;
-          throw new ERR_INVALID_ARG_VALUE(name, value, reason);
-        }
-      });
-      function validateStringArray(value, name) {
-        validateArray(value, name);
-        for (let i = 0; i < value.length; i++) {
-          validateString(value[i], `${name}[${i}]`);
-        }
-      }
-      function validateBooleanArray(value, name) {
-        validateArray(value, name);
-        for (let i = 0; i < value.length; i++) {
-          validateBoolean(value[i], `${name}[${i}]`);
-        }
-      }
-      function validateAbortSignalArray(value, name) {
-        validateArray(value, name);
-        for (let i = 0; i < value.length; i++) {
-          const signal = value[i];
-          const indexedName = `${name}[${i}]`;
-          if (signal == null) {
-            throw new ERR_INVALID_ARG_TYPE(indexedName, "AbortSignal", signal);
-          }
-          validateAbortSignal(signal, indexedName);
-        }
-      }
-      function validateSignalName(signal, name = "signal") {
-        validateString(signal, name);
-        if (signals[signal] === void 0) {
-          if (signals[StringPrototypeToUpperCase(signal)] !== void 0) {
-            throw new ERR_UNKNOWN_SIGNAL(signal + " (signals must use all capital letters)");
-          }
-          throw new ERR_UNKNOWN_SIGNAL(signal);
-        }
-      }
-      var validateBuffer = hideStackFrames((buffer, name = "buffer") => {
-        if (!isArrayBufferView(buffer)) {
-          throw new ERR_INVALID_ARG_TYPE(name, ["Buffer", "TypedArray", "DataView"], buffer);
-        }
-      });
-      function validateEncoding(data, encoding) {
-        const normalizedEncoding = normalizeEncoding(encoding);
-        const length = data.length;
-        if (normalizedEncoding === "hex" && length % 2 !== 0) {
-          throw new ERR_INVALID_ARG_VALUE("encoding", encoding, `is invalid for data of length ${length}`);
-        }
-      }
-      function validatePort(port, name = "Port", allowZero = true) {
-        if (typeof port !== "number" && typeof port !== "string" || typeof port === "string" && StringPrototypeTrim(port).length === 0 || +port !== +port >>> 0 || port > 65535 || port === 0 && !allowZero) {
-          throw new ERR_SOCKET_BAD_PORT(name, port, allowZero);
-        }
-        return port | 0;
-      }
-      var validateAbortSignal = hideStackFrames((signal, name) => {
-        if (signal !== void 0 && (signal === null || typeof signal !== "object" || !("aborted" in signal))) {
-          throw new ERR_INVALID_ARG_TYPE(name, "AbortSignal", signal);
-        }
-      });
-      var validateFunction = hideStackFrames((value, name) => {
-        if (typeof value !== "function") throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
-      });
-      var validatePlainFunction = hideStackFrames((value, name) => {
-        if (typeof value !== "function" || isAsyncFunction(value)) throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
-      });
-      var validateUndefined = hideStackFrames((value, name) => {
-        if (value !== void 0) throw new ERR_INVALID_ARG_TYPE(name, "undefined", value);
-      });
-      function validateUnion(value, name, union) {
-        if (!ArrayPrototypeIncludes(union, value)) {
-          throw new ERR_INVALID_ARG_TYPE(name, `('${ArrayPrototypeJoin(union, "|")}')`, value);
-        }
-      }
-      var linkValueRegExp = /^(?:<[^>]*>)(?:\s*;\s*[^;"\s]+(?:=(")?[^;"\s]*\1)?)*$/;
-      function validateLinkHeaderFormat(value, name) {
-        if (typeof value === "undefined" || !RegExpPrototypeExec(linkValueRegExp, value)) {
-          throw new ERR_INVALID_ARG_VALUE(
-            name,
-            value,
-            'must be an array or string of format "</styles.css>; rel=preload; as=style"'
-          );
-        }
-      }
-      function validateLinkHeaderValue(hints) {
-        if (typeof hints === "string") {
-          validateLinkHeaderFormat(hints, "hints");
-          return hints;
-        } else if (ArrayIsArray(hints)) {
-          const hintsLength = hints.length;
-          let result2 = "";
-          if (hintsLength === 0) {
-            return result2;
-          }
-          for (let i = 0; i < hintsLength; i++) {
-            const link = hints[i];
-            validateLinkHeaderFormat(link, "hints");
-            result2 += link;
-            if (i !== hintsLength - 1) {
-              result2 += ", ";
-            }
-          }
-          return result2;
-        }
-        throw new ERR_INVALID_ARG_VALUE(
-          "hints",
-          hints,
-          'must be an array or string of format "</styles.css>; rel=preload; as=style"'
-        );
-      }
-      module.exports = {
-        isInt32,
-        isUint32,
-        parseFileMode,
-        validateArray,
-        validateStringArray,
-        validateBooleanArray,
-        validateAbortSignalArray,
-        validateBoolean,
-        validateBuffer,
-        validateDictionary,
-        validateEncoding,
-        validateFunction,
-        validateInt32,
-        validateInteger,
-        validateNumber,
-        validateObject,
-        validateOneOf,
-        validatePlainFunction,
-        validatePort,
-        validateSignalName,
-        validateString,
-        validateUint32,
-        validateUndefined,
-        validateUnion,
-        validateAbortSignal,
-        validateLinkHeaderValue
-      };
-    }
-  });
-
-  // node_modules/process/browser.js
-  var require_browser2 = __commonJS({
-    "node_modules/process/browser.js"(exports, module) {
-      var process = module.exports = {};
-      var cachedSetTimeout;
-      var cachedClearTimeout;
-      function defaultSetTimout() {
-        throw new Error("setTimeout has not been defined");
-      }
-      function defaultClearTimeout() {
-        throw new Error("clearTimeout has not been defined");
-      }
-      (function() {
-        try {
-          if (typeof setTimeout === "function") {
-            cachedSetTimeout = setTimeout;
-          } else {
-            cachedSetTimeout = defaultSetTimout;
-          }
-        } catch (e) {
-          cachedSetTimeout = defaultSetTimout;
-        }
-        try {
-          if (typeof clearTimeout === "function") {
-            cachedClearTimeout = clearTimeout;
-          } else {
-            cachedClearTimeout = defaultClearTimeout;
-          }
-        } catch (e) {
-          cachedClearTimeout = defaultClearTimeout;
-        }
-      })();
-      function runTimeout(fun) {
-        if (cachedSetTimeout === setTimeout) {
-          return setTimeout(fun, 0);
-        }
-        if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-          cachedSetTimeout = setTimeout;
-          return setTimeout(fun, 0);
-        }
-        try {
-          return cachedSetTimeout(fun, 0);
-        } catch (e) {
-          try {
-            return cachedSetTimeout.call(null, fun, 0);
-          } catch (e2) {
-            return cachedSetTimeout.call(this, fun, 0);
-          }
-        }
-      }
-      function runClearTimeout(marker) {
-        if (cachedClearTimeout === clearTimeout) {
-          return clearTimeout(marker);
-        }
-        if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-          cachedClearTimeout = clearTimeout;
-          return clearTimeout(marker);
-        }
-        try {
-          return cachedClearTimeout(marker);
-        } catch (e) {
-          try {
-            return cachedClearTimeout.call(null, marker);
-          } catch (e2) {
-            return cachedClearTimeout.call(this, marker);
-          }
-        }
-      }
-      var queue = [];
-      var draining = false;
-      var currentQueue;
-      var queueIndex = -1;
-      function cleanUpNextTick() {
-        if (!draining || !currentQueue) {
-          return;
-        }
-        draining = false;
-        if (currentQueue.length) {
-          queue = currentQueue.concat(queue);
-        } else {
-          queueIndex = -1;
-        }
-        if (queue.length) {
-          drainQueue();
-        }
-      }
-      function drainQueue() {
-        if (draining) {
-          return;
-        }
-        var timeout = runTimeout(cleanUpNextTick);
-        draining = true;
-        var len = queue.length;
-        while (len) {
-          currentQueue = queue;
-          queue = [];
-          while (++queueIndex < len) {
-            if (currentQueue) {
-              currentQueue[queueIndex].run();
-            }
-          }
-          queueIndex = -1;
-          len = queue.length;
-        }
-        currentQueue = null;
-        draining = false;
-        runClearTimeout(timeout);
-      }
-      process.nextTick = function(fun) {
-        var args = new Array(arguments.length - 1);
-        if (arguments.length > 1) {
-          for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-          }
-        }
-        queue.push(new Item(fun, args));
-        if (queue.length === 1 && !draining) {
-          runTimeout(drainQueue);
-        }
-      };
-      function Item(fun, array) {
-        this.fun = fun;
-        this.array = array;
-      }
-      Item.prototype.run = function() {
-        this.fun.apply(null, this.array);
-      };
-      process.title = "browser";
-      process.browser = true;
-      process.env = {};
-      process.argv = [];
-      process.version = "";
-      process.versions = {};
-      function noop2() {
-      }
-      process.on = noop2;
-      process.addListener = noop2;
-      process.once = noop2;
-      process.off = noop2;
-      process.removeListener = noop2;
-      process.removeAllListeners = noop2;
-      process.emit = noop2;
-      process.prependListener = noop2;
-      process.prependOnceListener = noop2;
-      process.listeners = function(name) {
-        return [];
-      };
-      process.binding = function(name) {
-        throw new Error("process.binding is not supported");
-      };
-      process.cwd = function() {
-        return "/";
-      };
-      process.chdir = function(dir) {
-        throw new Error("process.chdir is not supported");
-      };
-      process.umask = function() {
-        return 0;
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/utils.js
-  var require_utils = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/utils.js"(exports, module) {
-      "use strict";
-      var { SymbolAsyncIterator, SymbolIterator, SymbolFor } = require_primordials();
-      var kIsDestroyed = SymbolFor("nodejs.stream.destroyed");
-      var kIsErrored = SymbolFor("nodejs.stream.errored");
-      var kIsReadable = SymbolFor("nodejs.stream.readable");
-      var kIsWritable = SymbolFor("nodejs.stream.writable");
-      var kIsDisturbed = SymbolFor("nodejs.stream.disturbed");
-      var kIsClosedPromise = SymbolFor("nodejs.webstream.isClosedPromise");
-      var kControllerErrorFunction = SymbolFor("nodejs.webstream.controllerErrorFunction");
-      function isReadableNodeStream(obj, strict = false) {
-        var _obj$_readableState;
-        return !!(obj && typeof obj.pipe === "function" && typeof obj.on === "function" && (!strict || typeof obj.pause === "function" && typeof obj.resume === "function") && (!obj._writableState || ((_obj$_readableState = obj._readableState) === null || _obj$_readableState === void 0 ? void 0 : _obj$_readableState.readable) !== false) && // Duplex
-        (!obj._writableState || obj._readableState));
-      }
-      function isWritableNodeStream(obj) {
-        var _obj$_writableState;
-        return !!(obj && typeof obj.write === "function" && typeof obj.on === "function" && (!obj._readableState || ((_obj$_writableState = obj._writableState) === null || _obj$_writableState === void 0 ? void 0 : _obj$_writableState.writable) !== false));
-      }
-      function isDuplexNodeStream(obj) {
-        return !!(obj && typeof obj.pipe === "function" && obj._readableState && typeof obj.on === "function" && typeof obj.write === "function");
-      }
-      function isNodeStream(obj) {
-        return obj && (obj._readableState || obj._writableState || typeof obj.write === "function" && typeof obj.on === "function" || typeof obj.pipe === "function" && typeof obj.on === "function");
-      }
-      function isReadableStream(obj) {
-        return !!(obj && !isNodeStream(obj) && typeof obj.pipeThrough === "function" && typeof obj.getReader === "function" && typeof obj.cancel === "function");
-      }
-      function isWritableStream(obj) {
-        return !!(obj && !isNodeStream(obj) && typeof obj.getWriter === "function" && typeof obj.abort === "function");
-      }
-      function isTransformStream(obj) {
-        return !!(obj && !isNodeStream(obj) && typeof obj.readable === "object" && typeof obj.writable === "object");
-      }
-      function isWebStream(obj) {
-        return isReadableStream(obj) || isWritableStream(obj) || isTransformStream(obj);
-      }
-      function isIterable(obj, isAsync) {
-        if (obj == null) return false;
-        if (isAsync === true) return typeof obj[SymbolAsyncIterator] === "function";
-        if (isAsync === false) return typeof obj[SymbolIterator] === "function";
-        return typeof obj[SymbolAsyncIterator] === "function" || typeof obj[SymbolIterator] === "function";
-      }
-      function isDestroyed(stream) {
-        if (!isNodeStream(stream)) return null;
-        const wState = stream._writableState;
-        const rState = stream._readableState;
-        const state = wState || rState;
-        return !!(stream.destroyed || stream[kIsDestroyed] || state !== null && state !== void 0 && state.destroyed);
-      }
-      function isWritableEnded(stream) {
-        if (!isWritableNodeStream(stream)) return null;
-        if (stream.writableEnded === true) return true;
-        const wState = stream._writableState;
-        if (wState !== null && wState !== void 0 && wState.errored) return false;
-        if (typeof (wState === null || wState === void 0 ? void 0 : wState.ended) !== "boolean") return null;
-        return wState.ended;
-      }
-      function isWritableFinished(stream, strict) {
-        if (!isWritableNodeStream(stream)) return null;
-        if (stream.writableFinished === true) return true;
-        const wState = stream._writableState;
-        if (wState !== null && wState !== void 0 && wState.errored) return false;
-        if (typeof (wState === null || wState === void 0 ? void 0 : wState.finished) !== "boolean") return null;
-        return !!(wState.finished || strict === false && wState.ended === true && wState.length === 0);
-      }
-      function isReadableEnded(stream) {
-        if (!isReadableNodeStream(stream)) return null;
-        if (stream.readableEnded === true) return true;
-        const rState = stream._readableState;
-        if (!rState || rState.errored) return false;
-        if (typeof (rState === null || rState === void 0 ? void 0 : rState.ended) !== "boolean") return null;
-        return rState.ended;
-      }
-      function isReadableFinished(stream, strict) {
-        if (!isReadableNodeStream(stream)) return null;
-        const rState = stream._readableState;
-        if (rState !== null && rState !== void 0 && rState.errored) return false;
-        if (typeof (rState === null || rState === void 0 ? void 0 : rState.endEmitted) !== "boolean") return null;
-        return !!(rState.endEmitted || strict === false && rState.ended === true && rState.length === 0);
-      }
-      function isReadable(stream) {
-        if (stream && stream[kIsReadable] != null) return stream[kIsReadable];
-        if (typeof (stream === null || stream === void 0 ? void 0 : stream.readable) !== "boolean") return null;
-        if (isDestroyed(stream)) return false;
-        return isReadableNodeStream(stream) && stream.readable && !isReadableFinished(stream);
-      }
-      function isWritable(stream) {
-        if (stream && stream[kIsWritable] != null) return stream[kIsWritable];
-        if (typeof (stream === null || stream === void 0 ? void 0 : stream.writable) !== "boolean") return null;
-        if (isDestroyed(stream)) return false;
-        return isWritableNodeStream(stream) && stream.writable && !isWritableEnded(stream);
-      }
-      function isFinished(stream, opts) {
-        if (!isNodeStream(stream)) {
-          return null;
-        }
-        if (isDestroyed(stream)) {
-          return true;
-        }
-        if ((opts === null || opts === void 0 ? void 0 : opts.readable) !== false && isReadable(stream)) {
-          return false;
-        }
-        if ((opts === null || opts === void 0 ? void 0 : opts.writable) !== false && isWritable(stream)) {
-          return false;
-        }
-        return true;
-      }
-      function isWritableErrored(stream) {
-        var _stream$_writableStat, _stream$_writableStat2;
-        if (!isNodeStream(stream)) {
-          return null;
-        }
-        if (stream.writableErrored) {
-          return stream.writableErrored;
-        }
-        return (_stream$_writableStat = (_stream$_writableStat2 = stream._writableState) === null || _stream$_writableStat2 === void 0 ? void 0 : _stream$_writableStat2.errored) !== null && _stream$_writableStat !== void 0 ? _stream$_writableStat : null;
-      }
-      function isReadableErrored(stream) {
-        var _stream$_readableStat, _stream$_readableStat2;
-        if (!isNodeStream(stream)) {
-          return null;
-        }
-        if (stream.readableErrored) {
-          return stream.readableErrored;
-        }
-        return (_stream$_readableStat = (_stream$_readableStat2 = stream._readableState) === null || _stream$_readableStat2 === void 0 ? void 0 : _stream$_readableStat2.errored) !== null && _stream$_readableStat !== void 0 ? _stream$_readableStat : null;
-      }
-      function isClosed(stream) {
-        if (!isNodeStream(stream)) {
-          return null;
-        }
-        if (typeof stream.closed === "boolean") {
-          return stream.closed;
-        }
-        const wState = stream._writableState;
-        const rState = stream._readableState;
-        if (typeof (wState === null || wState === void 0 ? void 0 : wState.closed) === "boolean" || typeof (rState === null || rState === void 0 ? void 0 : rState.closed) === "boolean") {
-          return (wState === null || wState === void 0 ? void 0 : wState.closed) || (rState === null || rState === void 0 ? void 0 : rState.closed);
-        }
-        if (typeof stream._closed === "boolean" && isOutgoingMessage(stream)) {
-          return stream._closed;
-        }
-        return null;
-      }
-      function isOutgoingMessage(stream) {
-        return typeof stream._closed === "boolean" && typeof stream._defaultKeepAlive === "boolean" && typeof stream._removedConnection === "boolean" && typeof stream._removedContLen === "boolean";
-      }
-      function isServerResponse(stream) {
-        return typeof stream._sent100 === "boolean" && isOutgoingMessage(stream);
-      }
-      function isServerRequest(stream) {
-        var _stream$req;
-        return typeof stream._consuming === "boolean" && typeof stream._dumped === "boolean" && ((_stream$req = stream.req) === null || _stream$req === void 0 ? void 0 : _stream$req.upgradeOrConnect) === void 0;
-      }
-      function willEmitClose(stream) {
-        if (!isNodeStream(stream)) return null;
-        const wState = stream._writableState;
-        const rState = stream._readableState;
-        const state = wState || rState;
-        return !state && isServerResponse(stream) || !!(state && state.autoDestroy && state.emitClose && state.closed === false);
-      }
-      function isDisturbed(stream) {
-        var _stream$kIsDisturbed;
-        return !!(stream && ((_stream$kIsDisturbed = stream[kIsDisturbed]) !== null && _stream$kIsDisturbed !== void 0 ? _stream$kIsDisturbed : stream.readableDidRead || stream.readableAborted));
-      }
-      function isErrored(stream) {
-        var _ref, _ref2, _ref3, _ref4, _ref5, _stream$kIsErrored, _stream$_readableStat3, _stream$_writableStat3, _stream$_readableStat4, _stream$_writableStat4;
-        return !!(stream && ((_ref = (_ref2 = (_ref3 = (_ref4 = (_ref5 = (_stream$kIsErrored = stream[kIsErrored]) !== null && _stream$kIsErrored !== void 0 ? _stream$kIsErrored : stream.readableErrored) !== null && _ref5 !== void 0 ? _ref5 : stream.writableErrored) !== null && _ref4 !== void 0 ? _ref4 : (_stream$_readableStat3 = stream._readableState) === null || _stream$_readableStat3 === void 0 ? void 0 : _stream$_readableStat3.errorEmitted) !== null && _ref3 !== void 0 ? _ref3 : (_stream$_writableStat3 = stream._writableState) === null || _stream$_writableStat3 === void 0 ? void 0 : _stream$_writableStat3.errorEmitted) !== null && _ref2 !== void 0 ? _ref2 : (_stream$_readableStat4 = stream._readableState) === null || _stream$_readableStat4 === void 0 ? void 0 : _stream$_readableStat4.errored) !== null && _ref !== void 0 ? _ref : (_stream$_writableStat4 = stream._writableState) === null || _stream$_writableStat4 === void 0 ? void 0 : _stream$_writableStat4.errored));
-      }
-      module.exports = {
-        isDestroyed,
-        kIsDestroyed,
-        isDisturbed,
-        kIsDisturbed,
-        isErrored,
-        kIsErrored,
-        isReadable,
-        kIsReadable,
-        kIsClosedPromise,
-        kControllerErrorFunction,
-        kIsWritable,
-        isClosed,
-        isDuplexNodeStream,
-        isFinished,
-        isIterable,
-        isReadableNodeStream,
-        isReadableStream,
-        isReadableEnded,
-        isReadableFinished,
-        isReadableErrored,
-        isNodeStream,
-        isWebStream,
-        isWritable,
-        isWritableNodeStream,
-        isWritableStream,
-        isWritableEnded,
-        isWritableFinished,
-        isWritableErrored,
-        isServerRequest,
-        isServerResponse,
-        willEmitClose,
-        isTransformStream
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/end-of-stream.js
-  var require_end_of_stream = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/end-of-stream.js"(exports, module) {
-      "use strict";
-      var process = require_browser2();
-      var { AbortError, codes } = require_errors();
-      var { ERR_INVALID_ARG_TYPE, ERR_STREAM_PREMATURE_CLOSE } = codes;
-      var { kEmptyObject, once } = require_util();
-      var { validateAbortSignal, validateFunction, validateObject, validateBoolean } = require_validators();
-      var { Promise: Promise2, PromisePrototypeThen, SymbolDispose } = require_primordials();
-      var {
-        isClosed,
-        isReadable,
-        isReadableNodeStream,
-        isReadableStream,
-        isReadableFinished,
-        isReadableErrored,
-        isWritable,
-        isWritableNodeStream,
-        isWritableStream,
-        isWritableFinished,
-        isWritableErrored,
-        isNodeStream,
-        willEmitClose: _willEmitClose,
-        kIsClosedPromise
-      } = require_utils();
-      var addAbortListener;
-      function isRequest(stream) {
-        return stream.setHeader && typeof stream.abort === "function";
-      }
-      var nop = () => {
-      };
-      function eos(stream, options, callback) {
-        var _options$readable, _options$writable;
-        if (arguments.length === 2) {
-          callback = options;
-          options = kEmptyObject;
-        } else if (options == null) {
-          options = kEmptyObject;
-        } else {
-          validateObject(options, "options");
-        }
-        validateFunction(callback, "callback");
-        validateAbortSignal(options.signal, "options.signal");
-        callback = once(callback);
-        if (isReadableStream(stream) || isWritableStream(stream)) {
-          return eosWeb(stream, options, callback);
-        }
-        if (!isNodeStream(stream)) {
-          throw new ERR_INVALID_ARG_TYPE("stream", ["ReadableStream", "WritableStream", "Stream"], stream);
-        }
-        const readable = (_options$readable = options.readable) !== null && _options$readable !== void 0 ? _options$readable : isReadableNodeStream(stream);
-        const writable = (_options$writable = options.writable) !== null && _options$writable !== void 0 ? _options$writable : isWritableNodeStream(stream);
-        const wState = stream._writableState;
-        const rState = stream._readableState;
-        const onlegacyfinish = () => {
-          if (!stream.writable) {
-            onfinish();
-          }
-        };
-        let willEmitClose = _willEmitClose(stream) && isReadableNodeStream(stream) === readable && isWritableNodeStream(stream) === writable;
-        let writableFinished = isWritableFinished(stream, false);
-        const onfinish = () => {
-          writableFinished = true;
-          if (stream.destroyed) {
-            willEmitClose = false;
-          }
-          if (willEmitClose && (!stream.readable || readable)) {
-            return;
-          }
-          if (!readable || readableFinished) {
-            callback.call(stream);
-          }
-        };
-        let readableFinished = isReadableFinished(stream, false);
-        const onend = () => {
-          readableFinished = true;
-          if (stream.destroyed) {
-            willEmitClose = false;
-          }
-          if (willEmitClose && (!stream.writable || writable)) {
-            return;
-          }
-          if (!writable || writableFinished) {
-            callback.call(stream);
-          }
-        };
-        const onerror = (err) => {
-          callback.call(stream, err);
-        };
-        let closed = isClosed(stream);
-        const onclose = () => {
-          closed = true;
-          const errored = isWritableErrored(stream) || isReadableErrored(stream);
-          if (errored && typeof errored !== "boolean") {
-            return callback.call(stream, errored);
-          }
-          if (readable && !readableFinished && isReadableNodeStream(stream, true)) {
-            if (!isReadableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE());
-          }
-          if (writable && !writableFinished) {
-            if (!isWritableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE());
-          }
-          callback.call(stream);
-        };
-        const onclosed = () => {
-          closed = true;
-          const errored = isWritableErrored(stream) || isReadableErrored(stream);
-          if (errored && typeof errored !== "boolean") {
-            return callback.call(stream, errored);
-          }
-          callback.call(stream);
-        };
-        const onrequest = () => {
-          stream.req.on("finish", onfinish);
-        };
-        if (isRequest(stream)) {
-          stream.on("complete", onfinish);
-          if (!willEmitClose) {
-            stream.on("abort", onclose);
-          }
-          if (stream.req) {
-            onrequest();
-          } else {
-            stream.on("request", onrequest);
-          }
-        } else if (writable && !wState) {
-          stream.on("end", onlegacyfinish);
-          stream.on("close", onlegacyfinish);
-        }
-        if (!willEmitClose && typeof stream.aborted === "boolean") {
-          stream.on("aborted", onclose);
-        }
-        stream.on("end", onend);
-        stream.on("finish", onfinish);
-        if (options.error !== false) {
-          stream.on("error", onerror);
-        }
-        stream.on("close", onclose);
-        if (closed) {
-          process.nextTick(onclose);
-        } else if (wState !== null && wState !== void 0 && wState.errorEmitted || rState !== null && rState !== void 0 && rState.errorEmitted) {
-          if (!willEmitClose) {
-            process.nextTick(onclosed);
-          }
-        } else if (!readable && (!willEmitClose || isReadable(stream)) && (writableFinished || isWritable(stream) === false)) {
-          process.nextTick(onclosed);
-        } else if (!writable && (!willEmitClose || isWritable(stream)) && (readableFinished || isReadable(stream) === false)) {
-          process.nextTick(onclosed);
-        } else if (rState && stream.req && stream.aborted) {
-          process.nextTick(onclosed);
-        }
-        const cleanup = () => {
-          callback = nop;
-          stream.removeListener("aborted", onclose);
-          stream.removeListener("complete", onfinish);
-          stream.removeListener("abort", onclose);
-          stream.removeListener("request", onrequest);
-          if (stream.req) stream.req.removeListener("finish", onfinish);
-          stream.removeListener("end", onlegacyfinish);
-          stream.removeListener("close", onlegacyfinish);
-          stream.removeListener("finish", onfinish);
-          stream.removeListener("end", onend);
-          stream.removeListener("error", onerror);
-          stream.removeListener("close", onclose);
-        };
-        if (options.signal && !closed) {
-          const abort = () => {
-            const endCallback = callback;
-            cleanup();
-            endCallback.call(
-              stream,
-              new AbortError(void 0, {
-                cause: options.signal.reason
-              })
-            );
-          };
-          if (options.signal.aborted) {
-            process.nextTick(abort);
-          } else {
-            addAbortListener = addAbortListener || require_util().addAbortListener;
-            const disposable = addAbortListener(options.signal, abort);
-            const originalCallback = callback;
-            callback = once((...args) => {
-              disposable[SymbolDispose]();
-              originalCallback.apply(stream, args);
-            });
-          }
-        }
-        return cleanup;
-      }
-      function eosWeb(stream, options, callback) {
-        let isAborted = false;
-        let abort = nop;
-        if (options.signal) {
-          abort = () => {
-            isAborted = true;
-            callback.call(
-              stream,
-              new AbortError(void 0, {
-                cause: options.signal.reason
-              })
-            );
-          };
-          if (options.signal.aborted) {
-            process.nextTick(abort);
-          } else {
-            addAbortListener = addAbortListener || require_util().addAbortListener;
-            const disposable = addAbortListener(options.signal, abort);
-            const originalCallback = callback;
-            callback = once((...args) => {
-              disposable[SymbolDispose]();
-              originalCallback.apply(stream, args);
-            });
-          }
-        }
-        const resolverFn = (...args) => {
-          if (!isAborted) {
-            process.nextTick(() => callback.apply(stream, args));
-          }
-        };
-        PromisePrototypeThen(stream[kIsClosedPromise].promise, resolverFn, resolverFn);
-        return nop;
-      }
-      function finished(stream, opts) {
-        var _opts;
-        let autoCleanup = false;
-        if (opts === null) {
-          opts = kEmptyObject;
-        }
-        if ((_opts = opts) !== null && _opts !== void 0 && _opts.cleanup) {
-          validateBoolean(opts.cleanup, "cleanup");
-          autoCleanup = opts.cleanup;
-        }
-        return new Promise2((resolve, reject) => {
-          const cleanup = eos(stream, opts, (err) => {
-            if (autoCleanup) {
-              cleanup();
-            }
-            if (err) {
-              reject(err);
-            } else {
-              resolve();
-            }
-          });
-        });
-      }
-      module.exports = eos;
-      module.exports.finished = finished;
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/destroy.js
-  var require_destroy = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/destroy.js"(exports, module) {
-      "use strict";
-      var process = require_browser2();
-      var {
-        aggregateTwoErrors,
-        codes: { ERR_MULTIPLE_CALLBACK },
-        AbortError
-      } = require_errors();
-      var { Symbol: Symbol2 } = require_primordials();
-      var { kIsDestroyed, isDestroyed, isFinished, isServerRequest } = require_utils();
-      var kDestroy = Symbol2("kDestroy");
-      var kConstruct = Symbol2("kConstruct");
-      function checkError(err, w, r) {
-        if (err) {
-          err.stack;
-          if (w && !w.errored) {
-            w.errored = err;
-          }
-          if (r && !r.errored) {
-            r.errored = err;
-          }
-        }
-      }
-      function destroy(err, cb) {
-        const r = this._readableState;
-        const w = this._writableState;
-        const s = w || r;
-        if (w !== null && w !== void 0 && w.destroyed || r !== null && r !== void 0 && r.destroyed) {
-          if (typeof cb === "function") {
-            cb();
-          }
-          return this;
-        }
-        checkError(err, w, r);
-        if (w) {
-          w.destroyed = true;
-        }
-        if (r) {
-          r.destroyed = true;
-        }
-        if (!s.constructed) {
-          this.once(kDestroy, function(er) {
-            _destroy(this, aggregateTwoErrors(er, err), cb);
-          });
-        } else {
-          _destroy(this, err, cb);
-        }
-        return this;
-      }
-      function _destroy(self2, err, cb) {
-        let called = false;
-        function onDestroy(err2) {
-          if (called) {
-            return;
-          }
-          called = true;
-          const r = self2._readableState;
-          const w = self2._writableState;
-          checkError(err2, w, r);
-          if (w) {
-            w.closed = true;
-          }
-          if (r) {
-            r.closed = true;
-          }
-          if (typeof cb === "function") {
-            cb(err2);
-          }
-          if (err2) {
-            process.nextTick(emitErrorCloseNT, self2, err2);
-          } else {
-            process.nextTick(emitCloseNT, self2);
-          }
-        }
-        try {
-          self2._destroy(err || null, onDestroy);
-        } catch (err2) {
-          onDestroy(err2);
-        }
-      }
-      function emitErrorCloseNT(self2, err) {
-        emitErrorNT(self2, err);
-        emitCloseNT(self2);
-      }
-      function emitCloseNT(self2) {
-        const r = self2._readableState;
-        const w = self2._writableState;
-        if (w) {
-          w.closeEmitted = true;
-        }
-        if (r) {
-          r.closeEmitted = true;
-        }
-        if (w !== null && w !== void 0 && w.emitClose || r !== null && r !== void 0 && r.emitClose) {
-          self2.emit("close");
-        }
-      }
-      function emitErrorNT(self2, err) {
-        const r = self2._readableState;
-        const w = self2._writableState;
-        if (w !== null && w !== void 0 && w.errorEmitted || r !== null && r !== void 0 && r.errorEmitted) {
-          return;
-        }
-        if (w) {
-          w.errorEmitted = true;
-        }
-        if (r) {
-          r.errorEmitted = true;
-        }
-        self2.emit("error", err);
-      }
-      function undestroy() {
-        const r = this._readableState;
-        const w = this._writableState;
-        if (r) {
-          r.constructed = true;
-          r.closed = false;
-          r.closeEmitted = false;
-          r.destroyed = false;
-          r.errored = null;
-          r.errorEmitted = false;
-          r.reading = false;
-          r.ended = r.readable === false;
-          r.endEmitted = r.readable === false;
-        }
-        if (w) {
-          w.constructed = true;
-          w.destroyed = false;
-          w.closed = false;
-          w.closeEmitted = false;
-          w.errored = null;
-          w.errorEmitted = false;
-          w.finalCalled = false;
-          w.prefinished = false;
-          w.ended = w.writable === false;
-          w.ending = w.writable === false;
-          w.finished = w.writable === false;
-        }
-      }
-      function errorOrDestroy(stream, err, sync) {
-        const r = stream._readableState;
-        const w = stream._writableState;
-        if (w !== null && w !== void 0 && w.destroyed || r !== null && r !== void 0 && r.destroyed) {
-          return this;
-        }
-        if (r !== null && r !== void 0 && r.autoDestroy || w !== null && w !== void 0 && w.autoDestroy)
-          stream.destroy(err);
-        else if (err) {
-          err.stack;
-          if (w && !w.errored) {
-            w.errored = err;
-          }
-          if (r && !r.errored) {
-            r.errored = err;
-          }
-          if (sync) {
-            process.nextTick(emitErrorNT, stream, err);
-          } else {
-            emitErrorNT(stream, err);
-          }
-        }
-      }
-      function construct(stream, cb) {
-        if (typeof stream._construct !== "function") {
-          return;
-        }
-        const r = stream._readableState;
-        const w = stream._writableState;
-        if (r) {
-          r.constructed = false;
-        }
-        if (w) {
-          w.constructed = false;
-        }
-        stream.once(kConstruct, cb);
-        if (stream.listenerCount(kConstruct) > 1) {
-          return;
-        }
-        process.nextTick(constructNT, stream);
-      }
-      function constructNT(stream) {
-        let called = false;
-        function onConstruct(err) {
-          if (called) {
-            errorOrDestroy(stream, err !== null && err !== void 0 ? err : new ERR_MULTIPLE_CALLBACK());
-            return;
-          }
-          called = true;
-          const r = stream._readableState;
-          const w = stream._writableState;
-          const s = w || r;
-          if (r) {
-            r.constructed = true;
-          }
-          if (w) {
-            w.constructed = true;
-          }
-          if (s.destroyed) {
-            stream.emit(kDestroy, err);
-          } else if (err) {
-            errorOrDestroy(stream, err, true);
-          } else {
-            process.nextTick(emitConstructNT, stream);
-          }
-        }
-        try {
-          stream._construct((err) => {
-            process.nextTick(onConstruct, err);
-          });
-        } catch (err) {
-          process.nextTick(onConstruct, err);
-        }
-      }
-      function emitConstructNT(stream) {
-        stream.emit(kConstruct);
-      }
-      function isRequest(stream) {
-        return (stream === null || stream === void 0 ? void 0 : stream.setHeader) && typeof stream.abort === "function";
-      }
-      function emitCloseLegacy(stream) {
-        stream.emit("close");
-      }
-      function emitErrorCloseLegacy(stream, err) {
-        stream.emit("error", err);
-        process.nextTick(emitCloseLegacy, stream);
-      }
-      function destroyer(stream, err) {
-        if (!stream || isDestroyed(stream)) {
-          return;
-        }
-        if (!err && !isFinished(stream)) {
-          err = new AbortError();
-        }
-        if (isServerRequest(stream)) {
-          stream.socket = null;
-          stream.destroy(err);
-        } else if (isRequest(stream)) {
-          stream.abort();
-        } else if (isRequest(stream.req)) {
-          stream.req.abort();
-        } else if (typeof stream.destroy === "function") {
-          stream.destroy(err);
-        } else if (typeof stream.close === "function") {
-          stream.close();
-        } else if (err) {
-          process.nextTick(emitErrorCloseLegacy, stream, err);
-        } else {
-          process.nextTick(emitCloseLegacy, stream);
-        }
-        if (!stream.destroyed) {
-          stream[kIsDestroyed] = true;
-        }
-      }
-      module.exports = {
-        construct,
-        destroyer,
-        destroy,
-        undestroy,
-        errorOrDestroy
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/legacy.js
-  var require_legacy = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/legacy.js"(exports, module) {
-      "use strict";
-      var { ArrayIsArray, ObjectSetPrototypeOf } = require_primordials();
-      var { EventEmitter: EE } = require_events();
-      function Stream(opts) {
-        EE.call(this, opts);
-      }
-      ObjectSetPrototypeOf(Stream.prototype, EE.prototype);
-      ObjectSetPrototypeOf(Stream, EE);
-      Stream.prototype.pipe = function(dest, options) {
-        const source = this;
-        function ondata(chunk) {
-          if (dest.writable && dest.write(chunk) === false && source.pause) {
-            source.pause();
-          }
-        }
-        source.on("data", ondata);
-        function ondrain() {
-          if (source.readable && source.resume) {
-            source.resume();
-          }
-        }
-        dest.on("drain", ondrain);
-        if (!dest._isStdio && (!options || options.end !== false)) {
-          source.on("end", onend);
-          source.on("close", onclose);
-        }
-        let didOnEnd = false;
-        function onend() {
-          if (didOnEnd) return;
-          didOnEnd = true;
-          dest.end();
-        }
-        function onclose() {
-          if (didOnEnd) return;
-          didOnEnd = true;
-          if (typeof dest.destroy === "function") dest.destroy();
-        }
-        function onerror(er) {
-          cleanup();
-          if (EE.listenerCount(this, "error") === 0) {
-            this.emit("error", er);
-          }
-        }
-        prependListener(source, "error", onerror);
-        prependListener(dest, "error", onerror);
-        function cleanup() {
-          source.removeListener("data", ondata);
-          dest.removeListener("drain", ondrain);
-          source.removeListener("end", onend);
-          source.removeListener("close", onclose);
-          source.removeListener("error", onerror);
-          dest.removeListener("error", onerror);
-          source.removeListener("end", cleanup);
-          source.removeListener("close", cleanup);
-          dest.removeListener("close", cleanup);
-        }
-        source.on("end", cleanup);
-        source.on("close", cleanup);
-        dest.on("close", cleanup);
-        dest.emit("pipe", source);
-        return dest;
-      };
-      function prependListener(emitter, event, fn) {
-        if (typeof emitter.prependListener === "function") return emitter.prependListener(event, fn);
-        if (!emitter._events || !emitter._events[event]) emitter.on(event, fn);
-        else if (ArrayIsArray(emitter._events[event])) emitter._events[event].unshift(fn);
-        else emitter._events[event] = [fn, emitter._events[event]];
-      }
-      module.exports = {
-        Stream,
-        prependListener
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/add-abort-signal.js
-  var require_add_abort_signal = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/add-abort-signal.js"(exports, module) {
-      "use strict";
-      var { SymbolDispose } = require_primordials();
-      var { AbortError, codes } = require_errors();
-      var { isNodeStream, isWebStream, kControllerErrorFunction } = require_utils();
-      var eos = require_end_of_stream();
-      var { ERR_INVALID_ARG_TYPE } = codes;
-      var addAbortListener;
-      var validateAbortSignal = (signal, name) => {
-        if (typeof signal !== "object" || !("aborted" in signal)) {
-          throw new ERR_INVALID_ARG_TYPE(name, "AbortSignal", signal);
-        }
-      };
-      module.exports.addAbortSignal = function addAbortSignal(signal, stream) {
-        validateAbortSignal(signal, "signal");
-        if (!isNodeStream(stream) && !isWebStream(stream)) {
-          throw new ERR_INVALID_ARG_TYPE("stream", ["ReadableStream", "WritableStream", "Stream"], stream);
-        }
-        return module.exports.addAbortSignalNoValidate(signal, stream);
-      };
-      module.exports.addAbortSignalNoValidate = function(signal, stream) {
-        if (typeof signal !== "object" || !("aborted" in signal)) {
-          return stream;
-        }
-        const onAbort = isNodeStream(stream) ? () => {
-          stream.destroy(
-            new AbortError(void 0, {
-              cause: signal.reason
-            })
-          );
-        } : () => {
-          stream[kControllerErrorFunction](
-            new AbortError(void 0, {
-              cause: signal.reason
-            })
-          );
-        };
-        if (signal.aborted) {
-          onAbort();
-        } else {
-          addAbortListener = addAbortListener || require_util().addAbortListener;
-          const disposable = addAbortListener(signal, onAbort);
-          eos(stream, disposable[SymbolDispose]);
-        }
-        return stream;
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/buffer_list.js
-  var require_buffer_list = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/buffer_list.js"(exports, module) {
-      "use strict";
-      var { StringPrototypeSlice, SymbolIterator, TypedArrayPrototypeSet, Uint8Array: Uint8Array2 } = require_primordials();
-      var { Buffer: Buffer3 } = require_buffer();
-      var { inspect } = require_util();
-      module.exports = class BufferList {
-        constructor() {
-          this.head = null;
-          this.tail = null;
-          this.length = 0;
-        }
-        push(v) {
-          const entry = {
-            data: v,
-            next: null
-          };
-          if (this.length > 0) this.tail.next = entry;
-          else this.head = entry;
-          this.tail = entry;
-          ++this.length;
-        }
-        unshift(v) {
-          const entry = {
-            data: v,
-            next: this.head
-          };
-          if (this.length === 0) this.tail = entry;
-          this.head = entry;
-          ++this.length;
-        }
-        shift() {
-          if (this.length === 0) return;
-          const ret = this.head.data;
-          if (this.length === 1) this.head = this.tail = null;
-          else this.head = this.head.next;
-          --this.length;
-          return ret;
-        }
-        clear() {
-          this.head = this.tail = null;
-          this.length = 0;
-        }
-        join(s) {
-          if (this.length === 0) return "";
-          let p = this.head;
-          let ret = "" + p.data;
-          while ((p = p.next) !== null) ret += s + p.data;
-          return ret;
-        }
-        concat(n) {
-          if (this.length === 0) return Buffer3.alloc(0);
-          const ret = Buffer3.allocUnsafe(n >>> 0);
-          let p = this.head;
-          let i = 0;
-          while (p) {
-            TypedArrayPrototypeSet(ret, p.data, i);
-            i += p.data.length;
-            p = p.next;
-          }
-          return ret;
-        }
-        // Consumes a specified amount of bytes or characters from the buffered data.
-        consume(n, hasStrings) {
-          const data = this.head.data;
-          if (n < data.length) {
-            const slice = data.slice(0, n);
-            this.head.data = data.slice(n);
-            return slice;
-          }
-          if (n === data.length) {
-            return this.shift();
-          }
-          return hasStrings ? this._getString(n) : this._getBuffer(n);
-        }
-        first() {
-          return this.head.data;
-        }
-        *[SymbolIterator]() {
-          for (let p = this.head; p; p = p.next) {
-            yield p.data;
-          }
-        }
-        // Consumes a specified amount of characters from the buffered data.
-        _getString(n) {
-          let ret = "";
-          let p = this.head;
-          let c = 0;
-          do {
-            const str = p.data;
-            if (n > str.length) {
-              ret += str;
-              n -= str.length;
-            } else {
-              if (n === str.length) {
-                ret += str;
-                ++c;
-                if (p.next) this.head = p.next;
-                else this.head = this.tail = null;
-              } else {
-                ret += StringPrototypeSlice(str, 0, n);
-                this.head = p;
-                p.data = StringPrototypeSlice(str, n);
-              }
-              break;
-            }
-            ++c;
-          } while ((p = p.next) !== null);
-          this.length -= c;
-          return ret;
-        }
-        // Consumes a specified amount of bytes from the buffered data.
-        _getBuffer(n) {
-          const ret = Buffer3.allocUnsafe(n);
-          const retLen = n;
-          let p = this.head;
-          let c = 0;
-          do {
-            const buf = p.data;
-            if (n > buf.length) {
-              TypedArrayPrototypeSet(ret, buf, retLen - n);
-              n -= buf.length;
-            } else {
-              if (n === buf.length) {
-                TypedArrayPrototypeSet(ret, buf, retLen - n);
-                ++c;
-                if (p.next) this.head = p.next;
-                else this.head = this.tail = null;
-              } else {
-                TypedArrayPrototypeSet(ret, new Uint8Array2(buf.buffer, buf.byteOffset, n), retLen - n);
-                this.head = p;
-                p.data = buf.slice(n);
-              }
-              break;
-            }
-            ++c;
-          } while ((p = p.next) !== null);
-          this.length -= c;
-          return ret;
-        }
-        // Make sure the linked list only shows the minimal necessary information.
-        [/* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom")](_, options) {
-          return inspect(this, {
-            ...options,
-            // Only inspect one level.
-            depth: 0,
-            // It should not recurse.
-            customInspect: false
-          });
-        }
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/state.js
-  var require_state = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/state.js"(exports, module) {
-      "use strict";
-      var { MathFloor, NumberIsInteger } = require_primordials();
-      var { validateInteger } = require_validators();
-      var { ERR_INVALID_ARG_VALUE } = require_errors().codes;
-      var defaultHighWaterMarkBytes = 16 * 1024;
-      var defaultHighWaterMarkObjectMode = 16;
-      function highWaterMarkFrom(options, isDuplex, duplexKey) {
-        return options.highWaterMark != null ? options.highWaterMark : isDuplex ? options[duplexKey] : null;
-      }
-      function getDefaultHighWaterMark(objectMode) {
-        return objectMode ? defaultHighWaterMarkObjectMode : defaultHighWaterMarkBytes;
-      }
-      function setDefaultHighWaterMark(objectMode, value) {
-        validateInteger(value, "value", 0);
-        if (objectMode) {
-          defaultHighWaterMarkObjectMode = value;
-        } else {
-          defaultHighWaterMarkBytes = value;
-        }
-      }
-      function getHighWaterMark(state, options, duplexKey, isDuplex) {
-        const hwm = highWaterMarkFrom(options, isDuplex, duplexKey);
-        if (hwm != null) {
-          if (!NumberIsInteger(hwm) || hwm < 0) {
-            const name = isDuplex ? `options.${duplexKey}` : "options.highWaterMark";
-            throw new ERR_INVALID_ARG_VALUE(name, hwm);
-          }
-          return MathFloor(hwm);
-        }
-        return getDefaultHighWaterMark(state.objectMode);
-      }
-      module.exports = {
-        getHighWaterMark,
-        getDefaultHighWaterMark,
-        setDefaultHighWaterMark
-      };
-    }
-  });
-
-  // node_modules/safe-buffer/index.js
-  var require_safe_buffer = __commonJS({
-    "node_modules/safe-buffer/index.js"(exports, module) {
-      var buffer = require_buffer();
-      var Buffer3 = buffer.Buffer;
-      function copyProps(src, dst) {
-        for (var key in src) {
-          dst[key] = src[key];
-        }
-      }
-      if (Buffer3.from && Buffer3.alloc && Buffer3.allocUnsafe && Buffer3.allocUnsafeSlow) {
-        module.exports = buffer;
-      } else {
-        copyProps(buffer, exports);
-        exports.Buffer = SafeBuffer;
-      }
-      function SafeBuffer(arg, encodingOrOffset, length) {
-        return Buffer3(arg, encodingOrOffset, length);
-      }
-      SafeBuffer.prototype = Object.create(Buffer3.prototype);
-      copyProps(Buffer3, SafeBuffer);
-      SafeBuffer.from = function(arg, encodingOrOffset, length) {
-        if (typeof arg === "number") {
-          throw new TypeError("Argument must not be a number");
-        }
-        return Buffer3(arg, encodingOrOffset, length);
-      };
-      SafeBuffer.alloc = function(size, fill, encoding) {
-        if (typeof size !== "number") {
-          throw new TypeError("Argument must be a number");
-        }
-        var buf = Buffer3(size);
-        if (fill !== void 0) {
-          if (typeof encoding === "string") {
-            buf.fill(fill, encoding);
-          } else {
-            buf.fill(fill);
-          }
-        } else {
-          buf.fill(0);
-        }
-        return buf;
-      };
-      SafeBuffer.allocUnsafe = function(size) {
-        if (typeof size !== "number") {
-          throw new TypeError("Argument must be a number");
-        }
-        return Buffer3(size);
-      };
-      SafeBuffer.allocUnsafeSlow = function(size) {
-        if (typeof size !== "number") {
-          throw new TypeError("Argument must be a number");
-        }
-        return buffer.SlowBuffer(size);
-      };
-    }
-  });
-
-  // node_modules/string_decoder/lib/string_decoder.js
-  var require_string_decoder = __commonJS({
-    "node_modules/string_decoder/lib/string_decoder.js"(exports) {
-      "use strict";
-      var Buffer3 = require_safe_buffer().Buffer;
-      var isEncoding = Buffer3.isEncoding || function(encoding) {
-        encoding = "" + encoding;
-        switch (encoding && encoding.toLowerCase()) {
-          case "hex":
-          case "utf8":
-          case "utf-8":
-          case "ascii":
-          case "binary":
-          case "base64":
-          case "ucs2":
-          case "ucs-2":
-          case "utf16le":
-          case "utf-16le":
-          case "raw":
-            return true;
-          default:
-            return false;
-        }
-      };
-      function _normalizeEncoding(enc) {
-        if (!enc) return "utf8";
-        var retried;
-        while (true) {
-          switch (enc) {
-            case "utf8":
-            case "utf-8":
-              return "utf8";
-            case "ucs2":
-            case "ucs-2":
-            case "utf16le":
-            case "utf-16le":
-              return "utf16le";
-            case "latin1":
-            case "binary":
-              return "latin1";
-            case "base64":
-            case "ascii":
-            case "hex":
-              return enc;
-            default:
-              if (retried) return;
-              enc = ("" + enc).toLowerCase();
-              retried = true;
-          }
-        }
-      }
-      function normalizeEncoding(enc) {
-        var nenc = _normalizeEncoding(enc);
-        if (typeof nenc !== "string" && (Buffer3.isEncoding === isEncoding || !isEncoding(enc))) throw new Error("Unknown encoding: " + enc);
-        return nenc || enc;
-      }
-      exports.StringDecoder = StringDecoder;
-      function StringDecoder(encoding) {
-        this.encoding = normalizeEncoding(encoding);
-        var nb;
-        switch (this.encoding) {
-          case "utf16le":
-            this.text = utf16Text;
-            this.end = utf16End;
-            nb = 4;
-            break;
-          case "utf8":
-            this.fillLast = utf8FillLast;
-            nb = 4;
-            break;
-          case "base64":
-            this.text = base64Text;
-            this.end = base64End;
-            nb = 3;
-            break;
-          default:
-            this.write = simpleWrite;
-            this.end = simpleEnd;
-            return;
-        }
-        this.lastNeed = 0;
-        this.lastTotal = 0;
-        this.lastChar = Buffer3.allocUnsafe(nb);
-      }
-      StringDecoder.prototype.write = function(buf) {
-        if (buf.length === 0) return "";
-        var r;
-        var i;
-        if (this.lastNeed) {
-          r = this.fillLast(buf);
-          if (r === void 0) return "";
-          i = this.lastNeed;
-          this.lastNeed = 0;
-        } else {
-          i = 0;
-        }
-        if (i < buf.length) return r ? r + this.text(buf, i) : this.text(buf, i);
-        return r || "";
-      };
-      StringDecoder.prototype.end = utf8End;
-      StringDecoder.prototype.text = utf8Text;
-      StringDecoder.prototype.fillLast = function(buf) {
-        if (this.lastNeed <= buf.length) {
-          buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, this.lastNeed);
-          return this.lastChar.toString(this.encoding, 0, this.lastTotal);
-        }
-        buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, buf.length);
-        this.lastNeed -= buf.length;
-      };
-      function utf8CheckByte(byte) {
-        if (byte <= 127) return 0;
-        else if (byte >> 5 === 6) return 2;
-        else if (byte >> 4 === 14) return 3;
-        else if (byte >> 3 === 30) return 4;
-        return byte >> 6 === 2 ? -1 : -2;
-      }
-      function utf8CheckIncomplete(self2, buf, i) {
-        var j = buf.length - 1;
-        if (j < i) return 0;
-        var nb = utf8CheckByte(buf[j]);
-        if (nb >= 0) {
-          if (nb > 0) self2.lastNeed = nb - 1;
-          return nb;
-        }
-        if (--j < i || nb === -2) return 0;
-        nb = utf8CheckByte(buf[j]);
-        if (nb >= 0) {
-          if (nb > 0) self2.lastNeed = nb - 2;
-          return nb;
-        }
-        if (--j < i || nb === -2) return 0;
-        nb = utf8CheckByte(buf[j]);
-        if (nb >= 0) {
-          if (nb > 0) {
-            if (nb === 2) nb = 0;
-            else self2.lastNeed = nb - 3;
-          }
-          return nb;
-        }
-        return 0;
-      }
-      function utf8CheckExtraBytes(self2, buf, p) {
-        if ((buf[0] & 192) !== 128) {
-          self2.lastNeed = 0;
-          return "\uFFFD";
-        }
-        if (self2.lastNeed > 1 && buf.length > 1) {
-          if ((buf[1] & 192) !== 128) {
-            self2.lastNeed = 1;
-            return "\uFFFD";
-          }
-          if (self2.lastNeed > 2 && buf.length > 2) {
-            if ((buf[2] & 192) !== 128) {
-              self2.lastNeed = 2;
-              return "\uFFFD";
-            }
-          }
-        }
-      }
-      function utf8FillLast(buf) {
-        var p = this.lastTotal - this.lastNeed;
-        var r = utf8CheckExtraBytes(this, buf, p);
-        if (r !== void 0) return r;
-        if (this.lastNeed <= buf.length) {
-          buf.copy(this.lastChar, p, 0, this.lastNeed);
-          return this.lastChar.toString(this.encoding, 0, this.lastTotal);
-        }
-        buf.copy(this.lastChar, p, 0, buf.length);
-        this.lastNeed -= buf.length;
-      }
-      function utf8Text(buf, i) {
-        var total = utf8CheckIncomplete(this, buf, i);
-        if (!this.lastNeed) return buf.toString("utf8", i);
-        this.lastTotal = total;
-        var end = buf.length - (total - this.lastNeed);
-        buf.copy(this.lastChar, 0, end);
-        return buf.toString("utf8", i, end);
-      }
-      function utf8End(buf) {
-        var r = buf && buf.length ? this.write(buf) : "";
-        if (this.lastNeed) return r + "\uFFFD";
-        return r;
-      }
-      function utf16Text(buf, i) {
-        if ((buf.length - i) % 2 === 0) {
-          var r = buf.toString("utf16le", i);
-          if (r) {
-            var c = r.charCodeAt(r.length - 1);
-            if (c >= 55296 && c <= 56319) {
-              this.lastNeed = 2;
-              this.lastTotal = 4;
-              this.lastChar[0] = buf[buf.length - 2];
-              this.lastChar[1] = buf[buf.length - 1];
-              return r.slice(0, -1);
-            }
-          }
-          return r;
-        }
-        this.lastNeed = 1;
-        this.lastTotal = 2;
-        this.lastChar[0] = buf[buf.length - 1];
-        return buf.toString("utf16le", i, buf.length - 1);
-      }
-      function utf16End(buf) {
-        var r = buf && buf.length ? this.write(buf) : "";
-        if (this.lastNeed) {
-          var end = this.lastTotal - this.lastNeed;
-          return r + this.lastChar.toString("utf16le", 0, end);
-        }
-        return r;
-      }
-      function base64Text(buf, i) {
-        var n = (buf.length - i) % 3;
-        if (n === 0) return buf.toString("base64", i);
-        this.lastNeed = 3 - n;
-        this.lastTotal = 3;
-        if (n === 1) {
-          this.lastChar[0] = buf[buf.length - 1];
-        } else {
-          this.lastChar[0] = buf[buf.length - 2];
-          this.lastChar[1] = buf[buf.length - 1];
-        }
-        return buf.toString("base64", i, buf.length - n);
-      }
-      function base64End(buf) {
-        var r = buf && buf.length ? this.write(buf) : "";
-        if (this.lastNeed) return r + this.lastChar.toString("base64", 0, 3 - this.lastNeed);
-        return r;
-      }
-      function simpleWrite(buf) {
-        return buf.toString(this.encoding);
-      }
-      function simpleEnd(buf) {
-        return buf && buf.length ? this.write(buf) : "";
-      }
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/from.js
-  var require_from = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/from.js"(exports, module) {
-      "use strict";
-      var process = require_browser2();
-      var { PromisePrototypeThen, SymbolAsyncIterator, SymbolIterator } = require_primordials();
-      var { Buffer: Buffer3 } = require_buffer();
-      var { ERR_INVALID_ARG_TYPE, ERR_STREAM_NULL_VALUES } = require_errors().codes;
-      function from(Readable2, iterable, opts) {
-        let iterator;
-        if (typeof iterable === "string" || iterable instanceof Buffer3) {
-          return new Readable2({
-            objectMode: true,
-            ...opts,
-            read() {
-              this.push(iterable);
-              this.push(null);
-            }
-          });
-        }
-        let isAsync;
-        if (iterable && iterable[SymbolAsyncIterator]) {
-          isAsync = true;
-          iterator = iterable[SymbolAsyncIterator]();
-        } else if (iterable && iterable[SymbolIterator]) {
-          isAsync = false;
-          iterator = iterable[SymbolIterator]();
-        } else {
-          throw new ERR_INVALID_ARG_TYPE("iterable", ["Iterable"], iterable);
-        }
-        const readable = new Readable2({
-          objectMode: true,
-          highWaterMark: 1,
-          // TODO(ronag): What options should be allowed?
-          ...opts
-        });
-        let reading = false;
-        readable._read = function() {
-          if (!reading) {
-            reading = true;
-            next();
-          }
-        };
-        readable._destroy = function(error, cb) {
-          PromisePrototypeThen(
-            close(error),
-            () => process.nextTick(cb, error),
-            // nextTick is here in case cb throws
-            (e) => process.nextTick(cb, e || error)
-          );
-        };
-        async function close(error) {
-          const hadError = error !== void 0 && error !== null;
-          const hasThrow = typeof iterator.throw === "function";
-          if (hadError && hasThrow) {
-            const { value, done } = await iterator.throw(error);
-            await value;
-            if (done) {
-              return;
-            }
-          }
-          if (typeof iterator.return === "function") {
-            const { value } = await iterator.return();
-            await value;
-          }
-        }
-        async function next() {
-          for (; ; ) {
-            try {
-              const { value, done } = isAsync ? await iterator.next() : iterator.next();
-              if (done) {
-                readable.push(null);
-              } else {
-                const res = value && typeof value.then === "function" ? await value : value;
-                if (res === null) {
-                  reading = false;
-                  throw new ERR_STREAM_NULL_VALUES();
-                } else if (readable.push(res)) {
-                  continue;
-                } else {
-                  reading = false;
-                }
-              }
-            } catch (err) {
-              readable.destroy(err);
-            }
-            break;
-          }
-        }
-        return readable;
-      }
-      module.exports = from;
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/readable.js
-  var require_readable = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/readable.js"(exports, module) {
-      "use strict";
-      var process = require_browser2();
-      var {
-        ArrayPrototypeIndexOf,
-        NumberIsInteger,
-        NumberIsNaN,
-        NumberParseInt,
-        ObjectDefineProperties,
-        ObjectKeys,
-        ObjectSetPrototypeOf,
-        Promise: Promise2,
-        SafeSet,
-        SymbolAsyncDispose,
-        SymbolAsyncIterator,
-        Symbol: Symbol2
-      } = require_primordials();
-      module.exports = Readable2;
-      Readable2.ReadableState = ReadableState;
-      var { EventEmitter: EE } = require_events();
-      var { Stream, prependListener } = require_legacy();
-      var { Buffer: Buffer3 } = require_buffer();
-      var { addAbortSignal } = require_add_abort_signal();
-      var eos = require_end_of_stream();
-      var debug = require_util().debuglog("stream", (fn) => {
-        debug = fn;
-      });
-      var BufferList = require_buffer_list();
-      var destroyImpl = require_destroy();
-      var { getHighWaterMark, getDefaultHighWaterMark } = require_state();
-      var {
-        aggregateTwoErrors,
-        codes: {
-          ERR_INVALID_ARG_TYPE,
-          ERR_METHOD_NOT_IMPLEMENTED,
-          ERR_OUT_OF_RANGE,
-          ERR_STREAM_PUSH_AFTER_EOF,
-          ERR_STREAM_UNSHIFT_AFTER_END_EVENT
-        },
-        AbortError
-      } = require_errors();
-      var { validateObject } = require_validators();
-      var kPaused = Symbol2("kPaused");
-      var { StringDecoder } = require_string_decoder();
-      var from = require_from();
-      ObjectSetPrototypeOf(Readable2.prototype, Stream.prototype);
-      ObjectSetPrototypeOf(Readable2, Stream);
-      var nop = () => {
-      };
-      var { errorOrDestroy } = destroyImpl;
-      var kObjectMode = 1 << 0;
-      var kEnded = 1 << 1;
-      var kEndEmitted = 1 << 2;
-      var kReading = 1 << 3;
-      var kConstructed = 1 << 4;
-      var kSync = 1 << 5;
-      var kNeedReadable = 1 << 6;
-      var kEmittedReadable = 1 << 7;
-      var kReadableListening = 1 << 8;
-      var kResumeScheduled = 1 << 9;
-      var kErrorEmitted = 1 << 10;
-      var kEmitClose = 1 << 11;
-      var kAutoDestroy = 1 << 12;
-      var kDestroyed = 1 << 13;
-      var kClosed = 1 << 14;
-      var kCloseEmitted = 1 << 15;
-      var kMultiAwaitDrain = 1 << 16;
-      var kReadingMore = 1 << 17;
-      var kDataEmitted = 1 << 18;
-      function makeBitMapDescriptor(bit) {
-        return {
-          enumerable: false,
-          get() {
-            return (this.state & bit) !== 0;
-          },
-          set(value) {
-            if (value) this.state |= bit;
-            else this.state &= ~bit;
-          }
-        };
-      }
-      ObjectDefineProperties(ReadableState.prototype, {
-        objectMode: makeBitMapDescriptor(kObjectMode),
-        ended: makeBitMapDescriptor(kEnded),
-        endEmitted: makeBitMapDescriptor(kEndEmitted),
-        reading: makeBitMapDescriptor(kReading),
-        // Stream is still being constructed and cannot be
-        // destroyed until construction finished or failed.
-        // Async construction is opt in, therefore we start as
-        // constructed.
-        constructed: makeBitMapDescriptor(kConstructed),
-        // A flag to be able to tell if the event 'readable'/'data' is emitted
-        // immediately, or on a later tick.  We set this to true at first, because
-        // any actions that shouldn't happen until "later" should generally also
-        // not happen before the first read call.
-        sync: makeBitMapDescriptor(kSync),
-        // Whenever we return null, then we set a flag to say
-        // that we're awaiting a 'readable' event emission.
-        needReadable: makeBitMapDescriptor(kNeedReadable),
-        emittedReadable: makeBitMapDescriptor(kEmittedReadable),
-        readableListening: makeBitMapDescriptor(kReadableListening),
-        resumeScheduled: makeBitMapDescriptor(kResumeScheduled),
-        // True if the error was already emitted and should not be thrown again.
-        errorEmitted: makeBitMapDescriptor(kErrorEmitted),
-        emitClose: makeBitMapDescriptor(kEmitClose),
-        autoDestroy: makeBitMapDescriptor(kAutoDestroy),
-        // Has it been destroyed.
-        destroyed: makeBitMapDescriptor(kDestroyed),
-        // Indicates whether the stream has finished destroying.
-        closed: makeBitMapDescriptor(kClosed),
-        // True if close has been emitted or would have been emitted
-        // depending on emitClose.
-        closeEmitted: makeBitMapDescriptor(kCloseEmitted),
-        multiAwaitDrain: makeBitMapDescriptor(kMultiAwaitDrain),
-        // If true, a maybeReadMore has been scheduled.
-        readingMore: makeBitMapDescriptor(kReadingMore),
-        dataEmitted: makeBitMapDescriptor(kDataEmitted)
-      });
-      function ReadableState(options, stream, isDuplex) {
-        if (typeof isDuplex !== "boolean") isDuplex = stream instanceof require_duplex();
-        this.state = kEmitClose | kAutoDestroy | kConstructed | kSync;
-        if (options && options.objectMode) this.state |= kObjectMode;
-        if (isDuplex && options && options.readableObjectMode) this.state |= kObjectMode;
-        this.highWaterMark = options ? getHighWaterMark(this, options, "readableHighWaterMark", isDuplex) : getDefaultHighWaterMark(false);
-        this.buffer = new BufferList();
-        this.length = 0;
-        this.pipes = [];
-        this.flowing = null;
-        this[kPaused] = null;
-        if (options && options.emitClose === false) this.state &= ~kEmitClose;
-        if (options && options.autoDestroy === false) this.state &= ~kAutoDestroy;
-        this.errored = null;
-        this.defaultEncoding = options && options.defaultEncoding || "utf8";
-        this.awaitDrainWriters = null;
-        this.decoder = null;
-        this.encoding = null;
-        if (options && options.encoding) {
-          this.decoder = new StringDecoder(options.encoding);
-          this.encoding = options.encoding;
-        }
-      }
-      function Readable2(options) {
-        if (!(this instanceof Readable2)) return new Readable2(options);
-        const isDuplex = this instanceof require_duplex();
-        this._readableState = new ReadableState(options, this, isDuplex);
-        if (options) {
-          if (typeof options.read === "function") this._read = options.read;
-          if (typeof options.destroy === "function") this._destroy = options.destroy;
-          if (typeof options.construct === "function") this._construct = options.construct;
-          if (options.signal && !isDuplex) addAbortSignal(options.signal, this);
-        }
-        Stream.call(this, options);
-        destroyImpl.construct(this, () => {
-          if (this._readableState.needReadable) {
-            maybeReadMore(this, this._readableState);
-          }
-        });
-      }
-      Readable2.prototype.destroy = destroyImpl.destroy;
-      Readable2.prototype._undestroy = destroyImpl.undestroy;
-      Readable2.prototype._destroy = function(err, cb) {
-        cb(err);
-      };
-      Readable2.prototype[EE.captureRejectionSymbol] = function(err) {
-        this.destroy(err);
-      };
-      Readable2.prototype[SymbolAsyncDispose] = function() {
-        let error;
-        if (!this.destroyed) {
-          error = this.readableEnded ? null : new AbortError();
-          this.destroy(error);
-        }
-        return new Promise2((resolve, reject) => eos(this, (err) => err && err !== error ? reject(err) : resolve(null)));
-      };
-      Readable2.prototype.push = function(chunk, encoding) {
-        return readableAddChunk(this, chunk, encoding, false);
-      };
-      Readable2.prototype.unshift = function(chunk, encoding) {
-        return readableAddChunk(this, chunk, encoding, true);
-      };
-      function readableAddChunk(stream, chunk, encoding, addToFront) {
-        debug("readableAddChunk", chunk);
-        const state = stream._readableState;
-        let err;
-        if ((state.state & kObjectMode) === 0) {
-          if (typeof chunk === "string") {
-            encoding = encoding || state.defaultEncoding;
-            if (state.encoding !== encoding) {
-              if (addToFront && state.encoding) {
-                chunk = Buffer3.from(chunk, encoding).toString(state.encoding);
-              } else {
-                chunk = Buffer3.from(chunk, encoding);
-                encoding = "";
-              }
-            }
-          } else if (chunk instanceof Buffer3) {
-            encoding = "";
-          } else if (Stream._isUint8Array(chunk)) {
-            chunk = Stream._uint8ArrayToBuffer(chunk);
-            encoding = "";
-          } else if (chunk != null) {
-            err = new ERR_INVALID_ARG_TYPE("chunk", ["string", "Buffer", "Uint8Array"], chunk);
-          }
-        }
-        if (err) {
-          errorOrDestroy(stream, err);
-        } else if (chunk === null) {
-          state.state &= ~kReading;
-          onEofChunk(stream, state);
-        } else if ((state.state & kObjectMode) !== 0 || chunk && chunk.length > 0) {
-          if (addToFront) {
-            if ((state.state & kEndEmitted) !== 0) errorOrDestroy(stream, new ERR_STREAM_UNSHIFT_AFTER_END_EVENT());
-            else if (state.destroyed || state.errored) return false;
-            else addChunk(stream, state, chunk, true);
-          } else if (state.ended) {
-            errorOrDestroy(stream, new ERR_STREAM_PUSH_AFTER_EOF());
-          } else if (state.destroyed || state.errored) {
-            return false;
-          } else {
-            state.state &= ~kReading;
-            if (state.decoder && !encoding) {
-              chunk = state.decoder.write(chunk);
-              if (state.objectMode || chunk.length !== 0) addChunk(stream, state, chunk, false);
-              else maybeReadMore(stream, state);
-            } else {
-              addChunk(stream, state, chunk, false);
-            }
-          }
-        } else if (!addToFront) {
-          state.state &= ~kReading;
-          maybeReadMore(stream, state);
-        }
-        return !state.ended && (state.length < state.highWaterMark || state.length === 0);
-      }
-      function addChunk(stream, state, chunk, addToFront) {
-        if (state.flowing && state.length === 0 && !state.sync && stream.listenerCount("data") > 0) {
-          if ((state.state & kMultiAwaitDrain) !== 0) {
-            state.awaitDrainWriters.clear();
-          } else {
-            state.awaitDrainWriters = null;
-          }
-          state.dataEmitted = true;
-          stream.emit("data", chunk);
-        } else {
-          state.length += state.objectMode ? 1 : chunk.length;
-          if (addToFront) state.buffer.unshift(chunk);
-          else state.buffer.push(chunk);
-          if ((state.state & kNeedReadable) !== 0) emitReadable(stream);
-        }
-        maybeReadMore(stream, state);
-      }
-      Readable2.prototype.isPaused = function() {
-        const state = this._readableState;
-        return state[kPaused] === true || state.flowing === false;
-      };
-      Readable2.prototype.setEncoding = function(enc) {
-        const decoder = new StringDecoder(enc);
-        this._readableState.decoder = decoder;
-        this._readableState.encoding = this._readableState.decoder.encoding;
-        const buffer = this._readableState.buffer;
-        let content = "";
-        for (const data of buffer) {
-          content += decoder.write(data);
-        }
-        buffer.clear();
-        if (content !== "") buffer.push(content);
-        this._readableState.length = content.length;
-        return this;
-      };
-      var MAX_HWM = 1073741824;
-      function computeNewHighWaterMark(n) {
-        if (n > MAX_HWM) {
-          throw new ERR_OUT_OF_RANGE("size", "<= 1GiB", n);
-        } else {
-          n--;
-          n |= n >>> 1;
-          n |= n >>> 2;
-          n |= n >>> 4;
-          n |= n >>> 8;
-          n |= n >>> 16;
-          n++;
-        }
-        return n;
-      }
-      function howMuchToRead(n, state) {
-        if (n <= 0 || state.length === 0 && state.ended) return 0;
-        if ((state.state & kObjectMode) !== 0) return 1;
-        if (NumberIsNaN(n)) {
-          if (state.flowing && state.length) return state.buffer.first().length;
-          return state.length;
-        }
-        if (n <= state.length) return n;
-        return state.ended ? state.length : 0;
-      }
-      Readable2.prototype.read = function(n) {
-        debug("read", n);
-        if (n === void 0) {
-          n = NaN;
-        } else if (!NumberIsInteger(n)) {
-          n = NumberParseInt(n, 10);
-        }
-        const state = this._readableState;
-        const nOrig = n;
-        if (n > state.highWaterMark) state.highWaterMark = computeNewHighWaterMark(n);
-        if (n !== 0) state.state &= ~kEmittedReadable;
-        if (n === 0 && state.needReadable && ((state.highWaterMark !== 0 ? state.length >= state.highWaterMark : state.length > 0) || state.ended)) {
-          debug("read: emitReadable", state.length, state.ended);
-          if (state.length === 0 && state.ended) endReadable(this);
-          else emitReadable(this);
-          return null;
-        }
-        n = howMuchToRead(n, state);
-        if (n === 0 && state.ended) {
-          if (state.length === 0) endReadable(this);
-          return null;
-        }
-        let doRead = (state.state & kNeedReadable) !== 0;
-        debug("need readable", doRead);
-        if (state.length === 0 || state.length - n < state.highWaterMark) {
-          doRead = true;
-          debug("length less than watermark", doRead);
-        }
-        if (state.ended || state.reading || state.destroyed || state.errored || !state.constructed) {
-          doRead = false;
-          debug("reading, ended or constructing", doRead);
-        } else if (doRead) {
-          debug("do read");
-          state.state |= kReading | kSync;
-          if (state.length === 0) state.state |= kNeedReadable;
-          try {
-            this._read(state.highWaterMark);
-          } catch (err) {
-            errorOrDestroy(this, err);
-          }
-          state.state &= ~kSync;
-          if (!state.reading) n = howMuchToRead(nOrig, state);
-        }
-        let ret;
-        if (n > 0) ret = fromList(n, state);
-        else ret = null;
-        if (ret === null) {
-          state.needReadable = state.length <= state.highWaterMark;
-          n = 0;
-        } else {
-          state.length -= n;
-          if (state.multiAwaitDrain) {
-            state.awaitDrainWriters.clear();
-          } else {
-            state.awaitDrainWriters = null;
-          }
-        }
-        if (state.length === 0) {
-          if (!state.ended) state.needReadable = true;
-          if (nOrig !== n && state.ended) endReadable(this);
-        }
-        if (ret !== null && !state.errorEmitted && !state.closeEmitted) {
-          state.dataEmitted = true;
-          this.emit("data", ret);
-        }
-        return ret;
-      };
-      function onEofChunk(stream, state) {
-        debug("onEofChunk");
-        if (state.ended) return;
-        if (state.decoder) {
-          const chunk = state.decoder.end();
-          if (chunk && chunk.length) {
-            state.buffer.push(chunk);
-            state.length += state.objectMode ? 1 : chunk.length;
-          }
-        }
-        state.ended = true;
-        if (state.sync) {
-          emitReadable(stream);
-        } else {
-          state.needReadable = false;
-          state.emittedReadable = true;
-          emitReadable_(stream);
-        }
-      }
-      function emitReadable(stream) {
-        const state = stream._readableState;
-        debug("emitReadable", state.needReadable, state.emittedReadable);
-        state.needReadable = false;
-        if (!state.emittedReadable) {
-          debug("emitReadable", state.flowing);
-          state.emittedReadable = true;
-          process.nextTick(emitReadable_, stream);
-        }
-      }
-      function emitReadable_(stream) {
-        const state = stream._readableState;
-        debug("emitReadable_", state.destroyed, state.length, state.ended);
-        if (!state.destroyed && !state.errored && (state.length || state.ended)) {
-          stream.emit("readable");
-          state.emittedReadable = false;
-        }
-        state.needReadable = !state.flowing && !state.ended && state.length <= state.highWaterMark;
-        flow(stream);
-      }
-      function maybeReadMore(stream, state) {
-        if (!state.readingMore && state.constructed) {
-          state.readingMore = true;
-          process.nextTick(maybeReadMore_, stream, state);
-        }
-      }
-      function maybeReadMore_(stream, state) {
-        while (!state.reading && !state.ended && (state.length < state.highWaterMark || state.flowing && state.length === 0)) {
-          const len = state.length;
-          debug("maybeReadMore read 0");
-          stream.read(0);
-          if (len === state.length)
-            break;
-        }
-        state.readingMore = false;
-      }
-      Readable2.prototype._read = function(n) {
-        throw new ERR_METHOD_NOT_IMPLEMENTED("_read()");
-      };
-      Readable2.prototype.pipe = function(dest, pipeOpts) {
-        const src = this;
-        const state = this._readableState;
-        if (state.pipes.length === 1) {
-          if (!state.multiAwaitDrain) {
-            state.multiAwaitDrain = true;
-            state.awaitDrainWriters = new SafeSet(state.awaitDrainWriters ? [state.awaitDrainWriters] : []);
-          }
-        }
-        state.pipes.push(dest);
-        debug("pipe count=%d opts=%j", state.pipes.length, pipeOpts);
-        const doEnd = (!pipeOpts || pipeOpts.end !== false) && dest !== process.stdout && dest !== process.stderr;
-        const endFn = doEnd ? onend : unpipe;
-        if (state.endEmitted) process.nextTick(endFn);
-        else src.once("end", endFn);
-        dest.on("unpipe", onunpipe);
-        function onunpipe(readable, unpipeInfo) {
-          debug("onunpipe");
-          if (readable === src) {
-            if (unpipeInfo && unpipeInfo.hasUnpiped === false) {
-              unpipeInfo.hasUnpiped = true;
-              cleanup();
-            }
-          }
-        }
-        function onend() {
-          debug("onend");
-          dest.end();
-        }
-        let ondrain;
-        let cleanedUp = false;
-        function cleanup() {
-          debug("cleanup");
-          dest.removeListener("close", onclose);
-          dest.removeListener("finish", onfinish);
-          if (ondrain) {
-            dest.removeListener("drain", ondrain);
-          }
-          dest.removeListener("error", onerror);
-          dest.removeListener("unpipe", onunpipe);
-          src.removeListener("end", onend);
-          src.removeListener("end", unpipe);
-          src.removeListener("data", ondata);
-          cleanedUp = true;
-          if (ondrain && state.awaitDrainWriters && (!dest._writableState || dest._writableState.needDrain)) ondrain();
-        }
-        function pause() {
-          if (!cleanedUp) {
-            if (state.pipes.length === 1 && state.pipes[0] === dest) {
-              debug("false write response, pause", 0);
-              state.awaitDrainWriters = dest;
-              state.multiAwaitDrain = false;
-            } else if (state.pipes.length > 1 && state.pipes.includes(dest)) {
-              debug("false write response, pause", state.awaitDrainWriters.size);
-              state.awaitDrainWriters.add(dest);
-            }
-            src.pause();
-          }
-          if (!ondrain) {
-            ondrain = pipeOnDrain(src, dest);
-            dest.on("drain", ondrain);
-          }
-        }
-        src.on("data", ondata);
-        function ondata(chunk) {
-          debug("ondata");
-          const ret = dest.write(chunk);
-          debug("dest.write", ret);
-          if (ret === false) {
-            pause();
-          }
-        }
-        function onerror(er) {
-          debug("onerror", er);
-          unpipe();
-          dest.removeListener("error", onerror);
-          if (dest.listenerCount("error") === 0) {
-            const s = dest._writableState || dest._readableState;
-            if (s && !s.errorEmitted) {
-              errorOrDestroy(dest, er);
-            } else {
-              dest.emit("error", er);
-            }
-          }
-        }
-        prependListener(dest, "error", onerror);
-        function onclose() {
-          dest.removeListener("finish", onfinish);
-          unpipe();
-        }
-        dest.once("close", onclose);
-        function onfinish() {
-          debug("onfinish");
-          dest.removeListener("close", onclose);
-          unpipe();
-        }
-        dest.once("finish", onfinish);
-        function unpipe() {
-          debug("unpipe");
-          src.unpipe(dest);
-        }
-        dest.emit("pipe", src);
-        if (dest.writableNeedDrain === true) {
-          pause();
-        } else if (!state.flowing) {
-          debug("pipe resume");
-          src.resume();
-        }
-        return dest;
-      };
-      function pipeOnDrain(src, dest) {
-        return function pipeOnDrainFunctionResult() {
-          const state = src._readableState;
-          if (state.awaitDrainWriters === dest) {
-            debug("pipeOnDrain", 1);
-            state.awaitDrainWriters = null;
-          } else if (state.multiAwaitDrain) {
-            debug("pipeOnDrain", state.awaitDrainWriters.size);
-            state.awaitDrainWriters.delete(dest);
-          }
-          if ((!state.awaitDrainWriters || state.awaitDrainWriters.size === 0) && src.listenerCount("data")) {
-            src.resume();
-          }
-        };
-      }
-      Readable2.prototype.unpipe = function(dest) {
-        const state = this._readableState;
-        const unpipeInfo = {
-          hasUnpiped: false
-        };
-        if (state.pipes.length === 0) return this;
-        if (!dest) {
-          const dests = state.pipes;
-          state.pipes = [];
-          this.pause();
-          for (let i = 0; i < dests.length; i++)
-            dests[i].emit("unpipe", this, {
-              hasUnpiped: false
-            });
-          return this;
-        }
-        const index = ArrayPrototypeIndexOf(state.pipes, dest);
-        if (index === -1) return this;
-        state.pipes.splice(index, 1);
-        if (state.pipes.length === 0) this.pause();
-        dest.emit("unpipe", this, unpipeInfo);
-        return this;
-      };
-      Readable2.prototype.on = function(ev, fn) {
-        const res = Stream.prototype.on.call(this, ev, fn);
-        const state = this._readableState;
-        if (ev === "data") {
-          state.readableListening = this.listenerCount("readable") > 0;
-          if (state.flowing !== false) this.resume();
-        } else if (ev === "readable") {
-          if (!state.endEmitted && !state.readableListening) {
-            state.readableListening = state.needReadable = true;
-            state.flowing = false;
-            state.emittedReadable = false;
-            debug("on readable", state.length, state.reading);
-            if (state.length) {
-              emitReadable(this);
-            } else if (!state.reading) {
-              process.nextTick(nReadingNextTick, this);
-            }
-          }
-        }
-        return res;
-      };
-      Readable2.prototype.addListener = Readable2.prototype.on;
-      Readable2.prototype.removeListener = function(ev, fn) {
-        const res = Stream.prototype.removeListener.call(this, ev, fn);
-        if (ev === "readable") {
-          process.nextTick(updateReadableListening, this);
-        }
-        return res;
-      };
-      Readable2.prototype.off = Readable2.prototype.removeListener;
-      Readable2.prototype.removeAllListeners = function(ev) {
-        const res = Stream.prototype.removeAllListeners.apply(this, arguments);
-        if (ev === "readable" || ev === void 0) {
-          process.nextTick(updateReadableListening, this);
-        }
-        return res;
-      };
-      function updateReadableListening(self2) {
-        const state = self2._readableState;
-        state.readableListening = self2.listenerCount("readable") > 0;
-        if (state.resumeScheduled && state[kPaused] === false) {
-          state.flowing = true;
-        } else if (self2.listenerCount("data") > 0) {
-          self2.resume();
-        } else if (!state.readableListening) {
-          state.flowing = null;
-        }
-      }
-      function nReadingNextTick(self2) {
-        debug("readable nexttick read 0");
-        self2.read(0);
-      }
-      Readable2.prototype.resume = function() {
-        const state = this._readableState;
-        if (!state.flowing) {
-          debug("resume");
-          state.flowing = !state.readableListening;
-          resume(this, state);
-        }
-        state[kPaused] = false;
-        return this;
-      };
-      function resume(stream, state) {
-        if (!state.resumeScheduled) {
-          state.resumeScheduled = true;
-          process.nextTick(resume_, stream, state);
-        }
-      }
-      function resume_(stream, state) {
-        debug("resume", state.reading);
-        if (!state.reading) {
-          stream.read(0);
-        }
-        state.resumeScheduled = false;
-        stream.emit("resume");
-        flow(stream);
-        if (state.flowing && !state.reading) stream.read(0);
-      }
-      Readable2.prototype.pause = function() {
-        debug("call pause flowing=%j", this._readableState.flowing);
-        if (this._readableState.flowing !== false) {
-          debug("pause");
-          this._readableState.flowing = false;
-          this.emit("pause");
-        }
-        this._readableState[kPaused] = true;
-        return this;
-      };
-      function flow(stream) {
-        const state = stream._readableState;
-        debug("flow", state.flowing);
-        while (state.flowing && stream.read() !== null) ;
-      }
-      Readable2.prototype.wrap = function(stream) {
-        let paused = false;
-        stream.on("data", (chunk) => {
-          if (!this.push(chunk) && stream.pause) {
-            paused = true;
-            stream.pause();
-          }
-        });
-        stream.on("end", () => {
-          this.push(null);
-        });
-        stream.on("error", (err) => {
-          errorOrDestroy(this, err);
-        });
-        stream.on("close", () => {
-          this.destroy();
-        });
-        stream.on("destroy", () => {
-          this.destroy();
-        });
-        this._read = () => {
-          if (paused && stream.resume) {
-            paused = false;
-            stream.resume();
-          }
-        };
-        const streamKeys = ObjectKeys(stream);
-        for (let j = 1; j < streamKeys.length; j++) {
-          const i = streamKeys[j];
-          if (this[i] === void 0 && typeof stream[i] === "function") {
-            this[i] = stream[i].bind(stream);
-          }
-        }
-        return this;
-      };
-      Readable2.prototype[SymbolAsyncIterator] = function() {
-        return streamToAsyncIterator(this);
-      };
-      Readable2.prototype.iterator = function(options) {
-        if (options !== void 0) {
-          validateObject(options, "options");
-        }
-        return streamToAsyncIterator(this, options);
-      };
-      function streamToAsyncIterator(stream, options) {
-        if (typeof stream.read !== "function") {
-          stream = Readable2.wrap(stream, {
-            objectMode: true
-          });
-        }
-        const iter = createAsyncIterator(stream, options);
-        iter.stream = stream;
-        return iter;
-      }
-      async function* createAsyncIterator(stream, options) {
-        let callback = nop;
-        function next(resolve) {
-          if (this === stream) {
-            callback();
-            callback = nop;
-          } else {
-            callback = resolve;
-          }
-        }
-        stream.on("readable", next);
-        let error;
-        const cleanup = eos(
-          stream,
-          {
-            writable: false
-          },
-          (err) => {
-            error = err ? aggregateTwoErrors(error, err) : null;
-            callback();
-            callback = nop;
-          }
-        );
-        try {
-          while (true) {
-            const chunk = stream.destroyed ? null : stream.read();
-            if (chunk !== null) {
-              yield chunk;
-            } else if (error) {
-              throw error;
-            } else if (error === null) {
-              return;
-            } else {
-              await new Promise2(next);
-            }
-          }
-        } catch (err) {
-          error = aggregateTwoErrors(error, err);
-          throw error;
-        } finally {
-          if ((error || (options === null || options === void 0 ? void 0 : options.destroyOnReturn) !== false) && (error === void 0 || stream._readableState.autoDestroy)) {
-            destroyImpl.destroyer(stream, null);
-          } else {
-            stream.off("readable", next);
-            cleanup();
-          }
-        }
-      }
-      ObjectDefineProperties(Readable2.prototype, {
-        readable: {
-          __proto__: null,
-          get() {
-            const r = this._readableState;
-            return !!r && r.readable !== false && !r.destroyed && !r.errorEmitted && !r.endEmitted;
-          },
-          set(val) {
-            if (this._readableState) {
-              this._readableState.readable = !!val;
-            }
-          }
-        },
-        readableDidRead: {
-          __proto__: null,
-          enumerable: false,
-          get: function() {
-            return this._readableState.dataEmitted;
-          }
-        },
-        readableAborted: {
-          __proto__: null,
-          enumerable: false,
-          get: function() {
-            return !!(this._readableState.readable !== false && (this._readableState.destroyed || this._readableState.errored) && !this._readableState.endEmitted);
-          }
-        },
-        readableHighWaterMark: {
-          __proto__: null,
-          enumerable: false,
-          get: function() {
-            return this._readableState.highWaterMark;
-          }
-        },
-        readableBuffer: {
-          __proto__: null,
-          enumerable: false,
-          get: function() {
-            return this._readableState && this._readableState.buffer;
-          }
-        },
-        readableFlowing: {
-          __proto__: null,
-          enumerable: false,
-          get: function() {
-            return this._readableState.flowing;
-          },
-          set: function(state) {
-            if (this._readableState) {
-              this._readableState.flowing = state;
-            }
-          }
-        },
-        readableLength: {
-          __proto__: null,
-          enumerable: false,
-          get() {
-            return this._readableState.length;
-          }
-        },
-        readableObjectMode: {
-          __proto__: null,
-          enumerable: false,
-          get() {
-            return this._readableState ? this._readableState.objectMode : false;
-          }
-        },
-        readableEncoding: {
-          __proto__: null,
-          enumerable: false,
-          get() {
-            return this._readableState ? this._readableState.encoding : null;
-          }
-        },
-        errored: {
-          __proto__: null,
-          enumerable: false,
-          get() {
-            return this._readableState ? this._readableState.errored : null;
-          }
-        },
-        closed: {
-          __proto__: null,
-          get() {
-            return this._readableState ? this._readableState.closed : false;
-          }
-        },
-        destroyed: {
-          __proto__: null,
-          enumerable: false,
-          get() {
-            return this._readableState ? this._readableState.destroyed : false;
-          },
-          set(value) {
-            if (!this._readableState) {
-              return;
-            }
-            this._readableState.destroyed = value;
-          }
-        },
-        readableEnded: {
-          __proto__: null,
-          enumerable: false,
-          get() {
-            return this._readableState ? this._readableState.endEmitted : false;
-          }
-        }
-      });
-      ObjectDefineProperties(ReadableState.prototype, {
-        // Legacy getter for `pipesCount`.
-        pipesCount: {
-          __proto__: null,
-          get() {
-            return this.pipes.length;
-          }
-        },
-        // Legacy property for `paused`.
-        paused: {
-          __proto__: null,
-          get() {
-            return this[kPaused] !== false;
-          },
-          set(value) {
-            this[kPaused] = !!value;
-          }
-        }
-      });
-      Readable2._fromList = fromList;
-      function fromList(n, state) {
-        if (state.length === 0) return null;
-        let ret;
-        if (state.objectMode) ret = state.buffer.shift();
-        else if (!n || n >= state.length) {
-          if (state.decoder) ret = state.buffer.join("");
-          else if (state.buffer.length === 1) ret = state.buffer.first();
-          else ret = state.buffer.concat(state.length);
-          state.buffer.clear();
-        } else {
-          ret = state.buffer.consume(n, state.decoder);
-        }
-        return ret;
-      }
-      function endReadable(stream) {
-        const state = stream._readableState;
-        debug("endReadable", state.endEmitted);
-        if (!state.endEmitted) {
-          state.ended = true;
-          process.nextTick(endReadableNT, state, stream);
-        }
-      }
-      function endReadableNT(state, stream) {
-        debug("endReadableNT", state.endEmitted, state.length);
-        if (!state.errored && !state.closeEmitted && !state.endEmitted && state.length === 0) {
-          state.endEmitted = true;
-          stream.emit("end");
-          if (stream.writable && stream.allowHalfOpen === false) {
-            process.nextTick(endWritableNT, stream);
-          } else if (state.autoDestroy) {
-            const wState = stream._writableState;
-            const autoDestroy = !wState || wState.autoDestroy && // We don't expect the writable to ever 'finish'
-            // if writable is explicitly set to false.
-            (wState.finished || wState.writable === false);
-            if (autoDestroy) {
-              stream.destroy();
-            }
-          }
-        }
-      }
-      function endWritableNT(stream) {
-        const writable = stream.writable && !stream.writableEnded && !stream.destroyed;
-        if (writable) {
-          stream.end();
-        }
-      }
-      Readable2.from = function(iterable, opts) {
-        return from(Readable2, iterable, opts);
-      };
-      var webStreamsAdapters;
-      function lazyWebStreams() {
-        if (webStreamsAdapters === void 0) webStreamsAdapters = {};
-        return webStreamsAdapters;
-      }
-      Readable2.fromWeb = function(readableStream, options) {
-        return lazyWebStreams().newStreamReadableFromReadableStream(readableStream, options);
-      };
-      Readable2.toWeb = function(streamReadable, options) {
-        return lazyWebStreams().newReadableStreamFromStreamReadable(streamReadable, options);
-      };
-      Readable2.wrap = function(src, options) {
-        var _ref, _src$readableObjectMo;
-        return new Readable2({
-          objectMode: (_ref = (_src$readableObjectMo = src.readableObjectMode) !== null && _src$readableObjectMo !== void 0 ? _src$readableObjectMo : src.objectMode) !== null && _ref !== void 0 ? _ref : true,
-          ...options,
-          destroy(err, callback) {
-            destroyImpl.destroyer(src, err);
-            callback(err);
-          }
-        }).wrap(src);
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/writable.js
-  var require_writable = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/writable.js"(exports, module) {
-      "use strict";
-      var process = require_browser2();
-      var {
-        ArrayPrototypeSlice,
-        Error: Error2,
-        FunctionPrototypeSymbolHasInstance,
-        ObjectDefineProperty,
-        ObjectDefineProperties,
-        ObjectSetPrototypeOf,
-        StringPrototypeToLowerCase,
-        Symbol: Symbol2,
-        SymbolHasInstance
-      } = require_primordials();
-      module.exports = Writable;
-      Writable.WritableState = WritableState;
-      var { EventEmitter: EE } = require_events();
-      var Stream = require_legacy().Stream;
-      var { Buffer: Buffer3 } = require_buffer();
-      var destroyImpl = require_destroy();
-      var { addAbortSignal } = require_add_abort_signal();
-      var { getHighWaterMark, getDefaultHighWaterMark } = require_state();
-      var {
-        ERR_INVALID_ARG_TYPE,
-        ERR_METHOD_NOT_IMPLEMENTED,
-        ERR_MULTIPLE_CALLBACK,
-        ERR_STREAM_CANNOT_PIPE,
-        ERR_STREAM_DESTROYED,
-        ERR_STREAM_ALREADY_FINISHED,
-        ERR_STREAM_NULL_VALUES,
-        ERR_STREAM_WRITE_AFTER_END,
-        ERR_UNKNOWN_ENCODING
-      } = require_errors().codes;
-      var { errorOrDestroy } = destroyImpl;
-      ObjectSetPrototypeOf(Writable.prototype, Stream.prototype);
-      ObjectSetPrototypeOf(Writable, Stream);
-      function nop() {
-      }
-      var kOnFinished = Symbol2("kOnFinished");
-      function WritableState(options, stream, isDuplex) {
-        if (typeof isDuplex !== "boolean") isDuplex = stream instanceof require_duplex();
-        this.objectMode = !!(options && options.objectMode);
-        if (isDuplex) this.objectMode = this.objectMode || !!(options && options.writableObjectMode);
-        this.highWaterMark = options ? getHighWaterMark(this, options, "writableHighWaterMark", isDuplex) : getDefaultHighWaterMark(false);
-        this.finalCalled = false;
-        this.needDrain = false;
-        this.ending = false;
-        this.ended = false;
-        this.finished = false;
-        this.destroyed = false;
-        const noDecode = !!(options && options.decodeStrings === false);
-        this.decodeStrings = !noDecode;
-        this.defaultEncoding = options && options.defaultEncoding || "utf8";
-        this.length = 0;
-        this.writing = false;
-        this.corked = 0;
-        this.sync = true;
-        this.bufferProcessing = false;
-        this.onwrite = onwrite.bind(void 0, stream);
-        this.writecb = null;
-        this.writelen = 0;
-        this.afterWriteTickInfo = null;
-        resetBuffer(this);
-        this.pendingcb = 0;
-        this.constructed = true;
-        this.prefinished = false;
-        this.errorEmitted = false;
-        this.emitClose = !options || options.emitClose !== false;
-        this.autoDestroy = !options || options.autoDestroy !== false;
-        this.errored = null;
-        this.closed = false;
-        this.closeEmitted = false;
-        this[kOnFinished] = [];
-      }
-      function resetBuffer(state) {
-        state.buffered = [];
-        state.bufferedIndex = 0;
-        state.allBuffers = true;
-        state.allNoop = true;
-      }
-      WritableState.prototype.getBuffer = function getBuffer() {
-        return ArrayPrototypeSlice(this.buffered, this.bufferedIndex);
-      };
-      ObjectDefineProperty(WritableState.prototype, "bufferedRequestCount", {
-        __proto__: null,
-        get() {
-          return this.buffered.length - this.bufferedIndex;
-        }
-      });
-      function Writable(options) {
-        const isDuplex = this instanceof require_duplex();
-        if (!isDuplex && !FunctionPrototypeSymbolHasInstance(Writable, this)) return new Writable(options);
-        this._writableState = new WritableState(options, this, isDuplex);
-        if (options) {
-          if (typeof options.write === "function") this._write = options.write;
-          if (typeof options.writev === "function") this._writev = options.writev;
-          if (typeof options.destroy === "function") this._destroy = options.destroy;
-          if (typeof options.final === "function") this._final = options.final;
-          if (typeof options.construct === "function") this._construct = options.construct;
-          if (options.signal) addAbortSignal(options.signal, this);
-        }
-        Stream.call(this, options);
-        destroyImpl.construct(this, () => {
-          const state = this._writableState;
-          if (!state.writing) {
-            clearBuffer(this, state);
-          }
-          finishMaybe(this, state);
-        });
-      }
-      ObjectDefineProperty(Writable, SymbolHasInstance, {
-        __proto__: null,
-        value: function(object) {
-          if (FunctionPrototypeSymbolHasInstance(this, object)) return true;
-          if (this !== Writable) return false;
-          return object && object._writableState instanceof WritableState;
-        }
-      });
-      Writable.prototype.pipe = function() {
-        errorOrDestroy(this, new ERR_STREAM_CANNOT_PIPE());
-      };
-      function _write(stream, chunk, encoding, cb) {
-        const state = stream._writableState;
-        if (typeof encoding === "function") {
-          cb = encoding;
-          encoding = state.defaultEncoding;
-        } else {
-          if (!encoding) encoding = state.defaultEncoding;
-          else if (encoding !== "buffer" && !Buffer3.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding);
-          if (typeof cb !== "function") cb = nop;
-        }
-        if (chunk === null) {
-          throw new ERR_STREAM_NULL_VALUES();
-        } else if (!state.objectMode) {
-          if (typeof chunk === "string") {
-            if (state.decodeStrings !== false) {
-              chunk = Buffer3.from(chunk, encoding);
-              encoding = "buffer";
-            }
-          } else if (chunk instanceof Buffer3) {
-            encoding = "buffer";
-          } else if (Stream._isUint8Array(chunk)) {
-            chunk = Stream._uint8ArrayToBuffer(chunk);
-            encoding = "buffer";
-          } else {
-            throw new ERR_INVALID_ARG_TYPE("chunk", ["string", "Buffer", "Uint8Array"], chunk);
-          }
-        }
-        let err;
-        if (state.ending) {
-          err = new ERR_STREAM_WRITE_AFTER_END();
-        } else if (state.destroyed) {
-          err = new ERR_STREAM_DESTROYED("write");
-        }
-        if (err) {
-          process.nextTick(cb, err);
-          errorOrDestroy(stream, err, true);
-          return err;
-        }
-        state.pendingcb++;
-        return writeOrBuffer(stream, state, chunk, encoding, cb);
-      }
-      Writable.prototype.write = function(chunk, encoding, cb) {
-        return _write(this, chunk, encoding, cb) === true;
-      };
-      Writable.prototype.cork = function() {
-        this._writableState.corked++;
-      };
-      Writable.prototype.uncork = function() {
-        const state = this._writableState;
-        if (state.corked) {
-          state.corked--;
-          if (!state.writing) clearBuffer(this, state);
-        }
-      };
-      Writable.prototype.setDefaultEncoding = function setDefaultEncoding(encoding) {
-        if (typeof encoding === "string") encoding = StringPrototypeToLowerCase(encoding);
-        if (!Buffer3.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding);
-        this._writableState.defaultEncoding = encoding;
-        return this;
-      };
-      function writeOrBuffer(stream, state, chunk, encoding, callback) {
-        const len = state.objectMode ? 1 : chunk.length;
-        state.length += len;
-        const ret = state.length < state.highWaterMark;
-        if (!ret) state.needDrain = true;
-        if (state.writing || state.corked || state.errored || !state.constructed) {
-          state.buffered.push({
-            chunk,
-            encoding,
-            callback
-          });
-          if (state.allBuffers && encoding !== "buffer") {
-            state.allBuffers = false;
-          }
-          if (state.allNoop && callback !== nop) {
-            state.allNoop = false;
-          }
-        } else {
-          state.writelen = len;
-          state.writecb = callback;
-          state.writing = true;
-          state.sync = true;
-          stream._write(chunk, encoding, state.onwrite);
-          state.sync = false;
-        }
-        return ret && !state.errored && !state.destroyed;
-      }
-      function doWrite(stream, state, writev, len, chunk, encoding, cb) {
-        state.writelen = len;
-        state.writecb = cb;
-        state.writing = true;
-        state.sync = true;
-        if (state.destroyed) state.onwrite(new ERR_STREAM_DESTROYED("write"));
-        else if (writev) stream._writev(chunk, state.onwrite);
-        else stream._write(chunk, encoding, state.onwrite);
-        state.sync = false;
-      }
-      function onwriteError(stream, state, er, cb) {
-        --state.pendingcb;
-        cb(er);
-        errorBuffer(state);
-        errorOrDestroy(stream, er);
-      }
-      function onwrite(stream, er) {
-        const state = stream._writableState;
-        const sync = state.sync;
-        const cb = state.writecb;
-        if (typeof cb !== "function") {
-          errorOrDestroy(stream, new ERR_MULTIPLE_CALLBACK());
-          return;
-        }
-        state.writing = false;
-        state.writecb = null;
-        state.length -= state.writelen;
-        state.writelen = 0;
-        if (er) {
-          er.stack;
-          if (!state.errored) {
-            state.errored = er;
-          }
-          if (stream._readableState && !stream._readableState.errored) {
-            stream._readableState.errored = er;
-          }
-          if (sync) {
-            process.nextTick(onwriteError, stream, state, er, cb);
-          } else {
-            onwriteError(stream, state, er, cb);
-          }
-        } else {
-          if (state.buffered.length > state.bufferedIndex) {
-            clearBuffer(stream, state);
-          }
-          if (sync) {
-            if (state.afterWriteTickInfo !== null && state.afterWriteTickInfo.cb === cb) {
-              state.afterWriteTickInfo.count++;
-            } else {
-              state.afterWriteTickInfo = {
-                count: 1,
-                cb,
-                stream,
-                state
-              };
-              process.nextTick(afterWriteTick, state.afterWriteTickInfo);
-            }
-          } else {
-            afterWrite(stream, state, 1, cb);
-          }
-        }
-      }
-      function afterWriteTick({ stream, state, count, cb }) {
-        state.afterWriteTickInfo = null;
-        return afterWrite(stream, state, count, cb);
-      }
-      function afterWrite(stream, state, count, cb) {
-        const needDrain = !state.ending && !stream.destroyed && state.length === 0 && state.needDrain;
-        if (needDrain) {
-          state.needDrain = false;
-          stream.emit("drain");
-        }
-        while (count-- > 0) {
-          state.pendingcb--;
-          cb();
-        }
-        if (state.destroyed) {
-          errorBuffer(state);
-        }
-        finishMaybe(stream, state);
-      }
-      function errorBuffer(state) {
-        if (state.writing) {
-          return;
-        }
-        for (let n = state.bufferedIndex; n < state.buffered.length; ++n) {
-          var _state$errored;
-          const { chunk, callback } = state.buffered[n];
-          const len = state.objectMode ? 1 : chunk.length;
-          state.length -= len;
-          callback(
-            (_state$errored = state.errored) !== null && _state$errored !== void 0 ? _state$errored : new ERR_STREAM_DESTROYED("write")
-          );
-        }
-        const onfinishCallbacks = state[kOnFinished].splice(0);
-        for (let i = 0; i < onfinishCallbacks.length; i++) {
-          var _state$errored2;
-          onfinishCallbacks[i](
-            (_state$errored2 = state.errored) !== null && _state$errored2 !== void 0 ? _state$errored2 : new ERR_STREAM_DESTROYED("end")
-          );
-        }
-        resetBuffer(state);
-      }
-      function clearBuffer(stream, state) {
-        if (state.corked || state.bufferProcessing || state.destroyed || !state.constructed) {
-          return;
-        }
-        const { buffered, bufferedIndex, objectMode } = state;
-        const bufferedLength = buffered.length - bufferedIndex;
-        if (!bufferedLength) {
-          return;
-        }
-        let i = bufferedIndex;
-        state.bufferProcessing = true;
-        if (bufferedLength > 1 && stream._writev) {
-          state.pendingcb -= bufferedLength - 1;
-          const callback = state.allNoop ? nop : (err) => {
-            for (let n = i; n < buffered.length; ++n) {
-              buffered[n].callback(err);
-            }
-          };
-          const chunks = state.allNoop && i === 0 ? buffered : ArrayPrototypeSlice(buffered, i);
-          chunks.allBuffers = state.allBuffers;
-          doWrite(stream, state, true, state.length, chunks, "", callback);
-          resetBuffer(state);
-        } else {
-          do {
-            const { chunk, encoding, callback } = buffered[i];
-            buffered[i++] = null;
-            const len = objectMode ? 1 : chunk.length;
-            doWrite(stream, state, false, len, chunk, encoding, callback);
-          } while (i < buffered.length && !state.writing);
-          if (i === buffered.length) {
-            resetBuffer(state);
-          } else if (i > 256) {
-            buffered.splice(0, i);
-            state.bufferedIndex = 0;
-          } else {
-            state.bufferedIndex = i;
-          }
-        }
-        state.bufferProcessing = false;
-      }
-      Writable.prototype._write = function(chunk, encoding, cb) {
-        if (this._writev) {
-          this._writev(
-            [
-              {
-                chunk,
-                encoding
-              }
-            ],
-            cb
-          );
-        } else {
-          throw new ERR_METHOD_NOT_IMPLEMENTED("_write()");
-        }
-      };
-      Writable.prototype._writev = null;
-      Writable.prototype.end = function(chunk, encoding, cb) {
-        const state = this._writableState;
-        if (typeof chunk === "function") {
-          cb = chunk;
-          chunk = null;
-          encoding = null;
-        } else if (typeof encoding === "function") {
-          cb = encoding;
-          encoding = null;
-        }
-        let err;
-        if (chunk !== null && chunk !== void 0) {
-          const ret = _write(this, chunk, encoding);
-          if (ret instanceof Error2) {
-            err = ret;
-          }
-        }
-        if (state.corked) {
-          state.corked = 1;
-          this.uncork();
-        }
-        if (err) {
-        } else if (!state.errored && !state.ending) {
-          state.ending = true;
-          finishMaybe(this, state, true);
-          state.ended = true;
-        } else if (state.finished) {
-          err = new ERR_STREAM_ALREADY_FINISHED("end");
-        } else if (state.destroyed) {
-          err = new ERR_STREAM_DESTROYED("end");
-        }
-        if (typeof cb === "function") {
-          if (err || state.finished) {
-            process.nextTick(cb, err);
-          } else {
-            state[kOnFinished].push(cb);
-          }
-        }
-        return this;
-      };
-      function needFinish(state) {
-        return state.ending && !state.destroyed && state.constructed && state.length === 0 && !state.errored && state.buffered.length === 0 && !state.finished && !state.writing && !state.errorEmitted && !state.closeEmitted;
-      }
-      function callFinal(stream, state) {
-        let called = false;
-        function onFinish(err) {
-          if (called) {
-            errorOrDestroy(stream, err !== null && err !== void 0 ? err : ERR_MULTIPLE_CALLBACK());
-            return;
-          }
-          called = true;
-          state.pendingcb--;
-          if (err) {
-            const onfinishCallbacks = state[kOnFinished].splice(0);
-            for (let i = 0; i < onfinishCallbacks.length; i++) {
-              onfinishCallbacks[i](err);
-            }
-            errorOrDestroy(stream, err, state.sync);
-          } else if (needFinish(state)) {
-            state.prefinished = true;
-            stream.emit("prefinish");
-            state.pendingcb++;
-            process.nextTick(finish, stream, state);
-          }
-        }
-        state.sync = true;
-        state.pendingcb++;
-        try {
-          stream._final(onFinish);
-        } catch (err) {
-          onFinish(err);
-        }
-        state.sync = false;
-      }
-      function prefinish(stream, state) {
-        if (!state.prefinished && !state.finalCalled) {
-          if (typeof stream._final === "function" && !state.destroyed) {
-            state.finalCalled = true;
-            callFinal(stream, state);
-          } else {
-            state.prefinished = true;
-            stream.emit("prefinish");
-          }
-        }
-      }
-      function finishMaybe(stream, state, sync) {
-        if (needFinish(state)) {
-          prefinish(stream, state);
-          if (state.pendingcb === 0) {
-            if (sync) {
-              state.pendingcb++;
-              process.nextTick(
-                (stream2, state2) => {
-                  if (needFinish(state2)) {
-                    finish(stream2, state2);
-                  } else {
-                    state2.pendingcb--;
-                  }
-                },
-                stream,
-                state
-              );
-            } else if (needFinish(state)) {
-              state.pendingcb++;
-              finish(stream, state);
-            }
-          }
-        }
-      }
-      function finish(stream, state) {
-        state.pendingcb--;
-        state.finished = true;
-        const onfinishCallbacks = state[kOnFinished].splice(0);
-        for (let i = 0; i < onfinishCallbacks.length; i++) {
-          onfinishCallbacks[i]();
-        }
-        stream.emit("finish");
-        if (state.autoDestroy) {
-          const rState = stream._readableState;
-          const autoDestroy = !rState || rState.autoDestroy && // We don't expect the readable to ever 'end'
-          // if readable is explicitly set to false.
-          (rState.endEmitted || rState.readable === false);
-          if (autoDestroy) {
-            stream.destroy();
-          }
-        }
-      }
-      ObjectDefineProperties(Writable.prototype, {
-        closed: {
-          __proto__: null,
-          get() {
-            return this._writableState ? this._writableState.closed : false;
-          }
-        },
-        destroyed: {
-          __proto__: null,
-          get() {
-            return this._writableState ? this._writableState.destroyed : false;
-          },
-          set(value) {
-            if (this._writableState) {
-              this._writableState.destroyed = value;
-            }
-          }
-        },
-        writable: {
-          __proto__: null,
-          get() {
-            const w = this._writableState;
-            return !!w && w.writable !== false && !w.destroyed && !w.errored && !w.ending && !w.ended;
-          },
-          set(val) {
-            if (this._writableState) {
-              this._writableState.writable = !!val;
-            }
-          }
-        },
-        writableFinished: {
-          __proto__: null,
-          get() {
-            return this._writableState ? this._writableState.finished : false;
-          }
-        },
-        writableObjectMode: {
-          __proto__: null,
-          get() {
-            return this._writableState ? this._writableState.objectMode : false;
-          }
-        },
-        writableBuffer: {
-          __proto__: null,
-          get() {
-            return this._writableState && this._writableState.getBuffer();
-          }
-        },
-        writableEnded: {
-          __proto__: null,
-          get() {
-            return this._writableState ? this._writableState.ending : false;
-          }
-        },
-        writableNeedDrain: {
-          __proto__: null,
-          get() {
-            const wState = this._writableState;
-            if (!wState) return false;
-            return !wState.destroyed && !wState.ending && wState.needDrain;
-          }
-        },
-        writableHighWaterMark: {
-          __proto__: null,
-          get() {
-            return this._writableState && this._writableState.highWaterMark;
-          }
-        },
-        writableCorked: {
-          __proto__: null,
-          get() {
-            return this._writableState ? this._writableState.corked : 0;
-          }
-        },
-        writableLength: {
-          __proto__: null,
-          get() {
-            return this._writableState && this._writableState.length;
-          }
-        },
-        errored: {
-          __proto__: null,
-          enumerable: false,
-          get() {
-            return this._writableState ? this._writableState.errored : null;
-          }
-        },
-        writableAborted: {
-          __proto__: null,
-          enumerable: false,
-          get: function() {
-            return !!(this._writableState.writable !== false && (this._writableState.destroyed || this._writableState.errored) && !this._writableState.finished);
-          }
-        }
-      });
-      var destroy = destroyImpl.destroy;
-      Writable.prototype.destroy = function(err, cb) {
-        const state = this._writableState;
-        if (!state.destroyed && (state.bufferedIndex < state.buffered.length || state[kOnFinished].length)) {
-          process.nextTick(errorBuffer, state);
-        }
-        destroy.call(this, err, cb);
-        return this;
-      };
-      Writable.prototype._undestroy = destroyImpl.undestroy;
-      Writable.prototype._destroy = function(err, cb) {
-        cb(err);
-      };
-      Writable.prototype[EE.captureRejectionSymbol] = function(err) {
-        this.destroy(err);
-      };
-      var webStreamsAdapters;
-      function lazyWebStreams() {
-        if (webStreamsAdapters === void 0) webStreamsAdapters = {};
-        return webStreamsAdapters;
-      }
-      Writable.fromWeb = function(writableStream, options) {
-        return lazyWebStreams().newStreamWritableFromWritableStream(writableStream, options);
-      };
-      Writable.toWeb = function(streamWritable) {
-        return lazyWebStreams().newWritableStreamFromStreamWritable(streamWritable);
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/duplexify.js
-  var require_duplexify = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/duplexify.js"(exports, module) {
-      var process = require_browser2();
-      var bufferModule = require_buffer();
-      var {
-        isReadable,
-        isWritable,
-        isIterable,
-        isNodeStream,
-        isReadableNodeStream,
-        isWritableNodeStream,
-        isDuplexNodeStream,
-        isReadableStream,
-        isWritableStream
-      } = require_utils();
-      var eos = require_end_of_stream();
-      var {
-        AbortError,
-        codes: { ERR_INVALID_ARG_TYPE, ERR_INVALID_RETURN_VALUE }
-      } = require_errors();
-      var { destroyer } = require_destroy();
-      var Duplex = require_duplex();
-      var Readable2 = require_readable();
-      var Writable = require_writable();
-      var { createDeferredPromise } = require_util();
-      var from = require_from();
-      var Blob = globalThis.Blob || bufferModule.Blob;
-      var isBlob = typeof Blob !== "undefined" ? function isBlob2(b) {
-        return b instanceof Blob;
-      } : function isBlob2(b) {
-        return false;
-      };
-      var AbortController = globalThis.AbortController || require_browser().AbortController;
-      var { FunctionPrototypeCall } = require_primordials();
-      var Duplexify = class extends Duplex {
-        constructor(options) {
-          super(options);
-          if ((options === null || options === void 0 ? void 0 : options.readable) === false) {
-            this._readableState.readable = false;
-            this._readableState.ended = true;
-            this._readableState.endEmitted = true;
-          }
-          if ((options === null || options === void 0 ? void 0 : options.writable) === false) {
-            this._writableState.writable = false;
-            this._writableState.ending = true;
-            this._writableState.ended = true;
-            this._writableState.finished = true;
-          }
-        }
-      };
-      module.exports = function duplexify(body, name) {
-        if (isDuplexNodeStream(body)) {
-          return body;
-        }
-        if (isReadableNodeStream(body)) {
-          return _duplexify({
-            readable: body
-          });
-        }
-        if (isWritableNodeStream(body)) {
-          return _duplexify({
-            writable: body
-          });
-        }
-        if (isNodeStream(body)) {
-          return _duplexify({
-            writable: false,
-            readable: false
-          });
-        }
-        if (isReadableStream(body)) {
-          return _duplexify({
-            readable: Readable2.fromWeb(body)
-          });
-        }
-        if (isWritableStream(body)) {
-          return _duplexify({
-            writable: Writable.fromWeb(body)
-          });
-        }
-        if (typeof body === "function") {
-          const { value, write, final, destroy } = fromAsyncGen(body);
-          if (isIterable(value)) {
-            return from(Duplexify, value, {
-              // TODO (ronag): highWaterMark?
-              objectMode: true,
-              write,
-              final,
-              destroy
-            });
-          }
-          const then2 = value === null || value === void 0 ? void 0 : value.then;
-          if (typeof then2 === "function") {
-            let d;
-            const promise = FunctionPrototypeCall(
-              then2,
-              value,
-              (val) => {
-                if (val != null) {
-                  throw new ERR_INVALID_RETURN_VALUE("nully", "body", val);
-                }
-              },
-              (err) => {
-                destroyer(d, err);
-              }
-            );
-            return d = new Duplexify({
-              // TODO (ronag): highWaterMark?
-              objectMode: true,
-              readable: false,
-              write,
-              final(cb) {
-                final(async () => {
-                  try {
-                    await promise;
-                    process.nextTick(cb, null);
-                  } catch (err) {
-                    process.nextTick(cb, err);
-                  }
-                });
-              },
-              destroy
-            });
-          }
-          throw new ERR_INVALID_RETURN_VALUE("Iterable, AsyncIterable or AsyncFunction", name, value);
-        }
-        if (isBlob(body)) {
-          return duplexify(body.arrayBuffer());
-        }
-        if (isIterable(body)) {
-          return from(Duplexify, body, {
-            // TODO (ronag): highWaterMark?
-            objectMode: true,
-            writable: false
-          });
-        }
-        if (isReadableStream(body === null || body === void 0 ? void 0 : body.readable) && isWritableStream(body === null || body === void 0 ? void 0 : body.writable)) {
-          return Duplexify.fromWeb(body);
-        }
-        if (typeof (body === null || body === void 0 ? void 0 : body.writable) === "object" || typeof (body === null || body === void 0 ? void 0 : body.readable) === "object") {
-          const readable = body !== null && body !== void 0 && body.readable ? isReadableNodeStream(body === null || body === void 0 ? void 0 : body.readable) ? body === null || body === void 0 ? void 0 : body.readable : duplexify(body.readable) : void 0;
-          const writable = body !== null && body !== void 0 && body.writable ? isWritableNodeStream(body === null || body === void 0 ? void 0 : body.writable) ? body === null || body === void 0 ? void 0 : body.writable : duplexify(body.writable) : void 0;
-          return _duplexify({
-            readable,
-            writable
-          });
-        }
-        const then = body === null || body === void 0 ? void 0 : body.then;
-        if (typeof then === "function") {
-          let d;
-          FunctionPrototypeCall(
-            then,
-            body,
-            (val) => {
-              if (val != null) {
-                d.push(val);
-              }
-              d.push(null);
-            },
-            (err) => {
-              destroyer(d, err);
-            }
-          );
-          return d = new Duplexify({
-            objectMode: true,
-            writable: false,
-            read() {
-            }
-          });
-        }
-        throw new ERR_INVALID_ARG_TYPE(
-          name,
-          [
-            "Blob",
-            "ReadableStream",
-            "WritableStream",
-            "Stream",
-            "Iterable",
-            "AsyncIterable",
-            "Function",
-            "{ readable, writable } pair",
-            "Promise"
-          ],
-          body
-        );
-      };
-      function fromAsyncGen(fn) {
-        let { promise, resolve } = createDeferredPromise();
-        const ac = new AbortController();
-        const signal = ac.signal;
-        const value = fn(
-          (async function* () {
-            while (true) {
-              const _promise = promise;
-              promise = null;
-              const { chunk, done, cb } = await _promise;
-              process.nextTick(cb);
-              if (done) return;
-              if (signal.aborted)
-                throw new AbortError(void 0, {
-                  cause: signal.reason
-                });
-              ({ promise, resolve } = createDeferredPromise());
-              yield chunk;
-            }
-          })(),
-          {
-            signal
-          }
-        );
-        return {
-          value,
-          write(chunk, encoding, cb) {
-            const _resolve = resolve;
-            resolve = null;
-            _resolve({
-              chunk,
-              done: false,
-              cb
-            });
-          },
-          final(cb) {
-            const _resolve = resolve;
-            resolve = null;
-            _resolve({
-              done: true,
-              cb
-            });
-          },
-          destroy(err, cb) {
-            ac.abort();
-            cb(err);
-          }
-        };
-      }
-      function _duplexify(pair) {
-        const r = pair.readable && typeof pair.readable.read !== "function" ? Readable2.wrap(pair.readable) : pair.readable;
-        const w = pair.writable;
-        let readable = !!isReadable(r);
-        let writable = !!isWritable(w);
-        let ondrain;
-        let onfinish;
-        let onreadable;
-        let onclose;
-        let d;
-        function onfinished(err) {
-          const cb = onclose;
-          onclose = null;
-          if (cb) {
-            cb(err);
-          } else if (err) {
-            d.destroy(err);
-          }
-        }
-        d = new Duplexify({
-          // TODO (ronag): highWaterMark?
-          readableObjectMode: !!(r !== null && r !== void 0 && r.readableObjectMode),
-          writableObjectMode: !!(w !== null && w !== void 0 && w.writableObjectMode),
-          readable,
-          writable
-        });
-        if (writable) {
-          eos(w, (err) => {
-            writable = false;
-            if (err) {
-              destroyer(r, err);
-            }
-            onfinished(err);
-          });
-          d._write = function(chunk, encoding, callback) {
-            if (w.write(chunk, encoding)) {
-              callback();
-            } else {
-              ondrain = callback;
-            }
-          };
-          d._final = function(callback) {
-            w.end();
-            onfinish = callback;
-          };
-          w.on("drain", function() {
-            if (ondrain) {
-              const cb = ondrain;
-              ondrain = null;
-              cb();
-            }
-          });
-          w.on("finish", function() {
-            if (onfinish) {
-              const cb = onfinish;
-              onfinish = null;
-              cb();
-            }
-          });
-        }
-        if (readable) {
-          eos(r, (err) => {
-            readable = false;
-            if (err) {
-              destroyer(r, err);
-            }
-            onfinished(err);
-          });
-          r.on("readable", function() {
-            if (onreadable) {
-              const cb = onreadable;
-              onreadable = null;
-              cb();
-            }
-          });
-          r.on("end", function() {
-            d.push(null);
-          });
-          d._read = function() {
-            while (true) {
-              const buf = r.read();
-              if (buf === null) {
-                onreadable = d._read;
-                return;
-              }
-              if (!d.push(buf)) {
-                return;
-              }
-            }
-          };
-        }
-        d._destroy = function(err, callback) {
-          if (!err && onclose !== null) {
-            err = new AbortError();
-          }
-          onreadable = null;
-          ondrain = null;
-          onfinish = null;
-          if (onclose === null) {
-            callback(err);
-          } else {
-            onclose = callback;
-            destroyer(w, err);
-            destroyer(r, err);
-          }
-        };
-        return d;
-      }
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/duplex.js
-  var require_duplex = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/duplex.js"(exports, module) {
-      "use strict";
-      var {
-        ObjectDefineProperties,
-        ObjectGetOwnPropertyDescriptor,
-        ObjectKeys,
-        ObjectSetPrototypeOf
-      } = require_primordials();
-      module.exports = Duplex;
-      var Readable2 = require_readable();
-      var Writable = require_writable();
-      ObjectSetPrototypeOf(Duplex.prototype, Readable2.prototype);
-      ObjectSetPrototypeOf(Duplex, Readable2);
-      {
-        const keys = ObjectKeys(Writable.prototype);
-        for (let i = 0; i < keys.length; i++) {
-          const method = keys[i];
-          if (!Duplex.prototype[method]) Duplex.prototype[method] = Writable.prototype[method];
-        }
-      }
-      function Duplex(options) {
-        if (!(this instanceof Duplex)) return new Duplex(options);
-        Readable2.call(this, options);
-        Writable.call(this, options);
-        if (options) {
-          this.allowHalfOpen = options.allowHalfOpen !== false;
-          if (options.readable === false) {
-            this._readableState.readable = false;
-            this._readableState.ended = true;
-            this._readableState.endEmitted = true;
-          }
-          if (options.writable === false) {
-            this._writableState.writable = false;
-            this._writableState.ending = true;
-            this._writableState.ended = true;
-            this._writableState.finished = true;
-          }
-        } else {
-          this.allowHalfOpen = true;
-        }
-      }
-      ObjectDefineProperties(Duplex.prototype, {
-        writable: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writable")
-        },
-        writableHighWaterMark: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableHighWaterMark")
-        },
-        writableObjectMode: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableObjectMode")
-        },
-        writableBuffer: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableBuffer")
-        },
-        writableLength: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableLength")
-        },
-        writableFinished: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableFinished")
-        },
-        writableCorked: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableCorked")
-        },
-        writableEnded: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableEnded")
-        },
-        writableNeedDrain: {
-          __proto__: null,
-          ...ObjectGetOwnPropertyDescriptor(Writable.prototype, "writableNeedDrain")
-        },
-        destroyed: {
-          __proto__: null,
-          get() {
-            if (this._readableState === void 0 || this._writableState === void 0) {
-              return false;
-            }
-            return this._readableState.destroyed && this._writableState.destroyed;
-          },
-          set(value) {
-            if (this._readableState && this._writableState) {
-              this._readableState.destroyed = value;
-              this._writableState.destroyed = value;
-            }
-          }
-        }
-      });
-      var webStreamsAdapters;
-      function lazyWebStreams() {
-        if (webStreamsAdapters === void 0) webStreamsAdapters = {};
-        return webStreamsAdapters;
-      }
-      Duplex.fromWeb = function(pair, options) {
-        return lazyWebStreams().newStreamDuplexFromReadableWritablePair(pair, options);
-      };
-      Duplex.toWeb = function(duplex) {
-        return lazyWebStreams().newReadableWritablePairFromDuplex(duplex);
-      };
-      var duplexify;
-      Duplex.from = function(body) {
-        if (!duplexify) {
-          duplexify = require_duplexify();
-        }
-        return duplexify(body, "body");
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/transform.js
-  var require_transform = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/transform.js"(exports, module) {
-      "use strict";
-      var { ObjectSetPrototypeOf, Symbol: Symbol2 } = require_primordials();
-      module.exports = Transform3;
-      var { ERR_METHOD_NOT_IMPLEMENTED } = require_errors().codes;
-      var Duplex = require_duplex();
-      var { getHighWaterMark } = require_state();
-      ObjectSetPrototypeOf(Transform3.prototype, Duplex.prototype);
-      ObjectSetPrototypeOf(Transform3, Duplex);
-      var kCallback = Symbol2("kCallback");
-      function Transform3(options) {
-        if (!(this instanceof Transform3)) return new Transform3(options);
-        const readableHighWaterMark = options ? getHighWaterMark(this, options, "readableHighWaterMark", true) : null;
-        if (readableHighWaterMark === 0) {
-          options = {
-            ...options,
-            highWaterMark: null,
-            readableHighWaterMark,
-            // TODO (ronag): 0 is not optimal since we have
-            // a "bug" where we check needDrain before calling _write and not after.
-            // Refs: https://github.com/nodejs/node/pull/32887
-            // Refs: https://github.com/nodejs/node/pull/35941
-            writableHighWaterMark: options.writableHighWaterMark || 0
-          };
-        }
-        Duplex.call(this, options);
-        this._readableState.sync = false;
-        this[kCallback] = null;
-        if (options) {
-          if (typeof options.transform === "function") this._transform = options.transform;
-          if (typeof options.flush === "function") this._flush = options.flush;
-        }
-        this.on("prefinish", prefinish);
-      }
-      function final(cb) {
-        if (typeof this._flush === "function" && !this.destroyed) {
-          this._flush((er, data) => {
-            if (er) {
-              if (cb) {
-                cb(er);
-              } else {
-                this.destroy(er);
-              }
-              return;
-            }
-            if (data != null) {
-              this.push(data);
-            }
-            this.push(null);
-            if (cb) {
-              cb();
-            }
-          });
-        } else {
-          this.push(null);
-          if (cb) {
-            cb();
-          }
-        }
-      }
-      function prefinish() {
-        if (this._final !== final) {
-          final.call(this);
-        }
-      }
-      Transform3.prototype._final = final;
-      Transform3.prototype._transform = function(chunk, encoding, callback) {
-        throw new ERR_METHOD_NOT_IMPLEMENTED("_transform()");
-      };
-      Transform3.prototype._write = function(chunk, encoding, callback) {
-        const rState = this._readableState;
-        const wState = this._writableState;
-        const length = rState.length;
-        this._transform(chunk, encoding, (err, val) => {
-          if (err) {
-            callback(err);
-            return;
-          }
-          if (val != null) {
-            this.push(val);
-          }
-          if (wState.ended || // Backwards compat.
-          length === rState.length || // Backwards compat.
-          rState.length < rState.highWaterMark) {
-            callback();
-          } else {
-            this[kCallback] = callback;
-          }
-        });
-      };
-      Transform3.prototype._read = function() {
-        if (this[kCallback]) {
-          const callback = this[kCallback];
-          this[kCallback] = null;
-          callback();
-        }
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/passthrough.js
-  var require_passthrough = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/passthrough.js"(exports, module) {
-      "use strict";
-      var { ObjectSetPrototypeOf } = require_primordials();
-      module.exports = PassThrough;
-      var Transform3 = require_transform();
-      ObjectSetPrototypeOf(PassThrough.prototype, Transform3.prototype);
-      ObjectSetPrototypeOf(PassThrough, Transform3);
-      function PassThrough(options) {
-        if (!(this instanceof PassThrough)) return new PassThrough(options);
-        Transform3.call(this, options);
-      }
-      PassThrough.prototype._transform = function(chunk, encoding, cb) {
-        cb(null, chunk);
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/pipeline.js
-  var require_pipeline = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/pipeline.js"(exports, module) {
-      var process = require_browser2();
-      var { ArrayIsArray, Promise: Promise2, SymbolAsyncIterator, SymbolDispose } = require_primordials();
-      var eos = require_end_of_stream();
-      var { once } = require_util();
-      var destroyImpl = require_destroy();
-      var Duplex = require_duplex();
-      var {
-        aggregateTwoErrors,
-        codes: {
-          ERR_INVALID_ARG_TYPE,
-          ERR_INVALID_RETURN_VALUE,
-          ERR_MISSING_ARGS,
-          ERR_STREAM_DESTROYED,
-          ERR_STREAM_PREMATURE_CLOSE
-        },
-        AbortError
-      } = require_errors();
-      var { validateFunction, validateAbortSignal } = require_validators();
-      var {
-        isIterable,
-        isReadable,
-        isReadableNodeStream,
-        isNodeStream,
-        isTransformStream,
-        isWebStream,
-        isReadableStream,
-        isReadableFinished
-      } = require_utils();
-      var AbortController = globalThis.AbortController || require_browser().AbortController;
-      var PassThrough;
-      var Readable2;
-      var addAbortListener;
-      function destroyer(stream, reading, writing) {
-        let finished = false;
-        stream.on("close", () => {
-          finished = true;
-        });
-        const cleanup = eos(
-          stream,
-          {
-            readable: reading,
-            writable: writing
-          },
-          (err) => {
-            finished = !err;
-          }
-        );
-        return {
-          destroy: (err) => {
-            if (finished) return;
-            finished = true;
-            destroyImpl.destroyer(stream, err || new ERR_STREAM_DESTROYED("pipe"));
-          },
-          cleanup
-        };
-      }
-      function popCallback(streams) {
-        validateFunction(streams[streams.length - 1], "streams[stream.length - 1]");
-        return streams.pop();
-      }
-      function makeAsyncIterable(val) {
-        if (isIterable(val)) {
-          return val;
-        } else if (isReadableNodeStream(val)) {
-          return fromReadable(val);
-        }
-        throw new ERR_INVALID_ARG_TYPE("val", ["Readable", "Iterable", "AsyncIterable"], val);
-      }
-      async function* fromReadable(val) {
-        if (!Readable2) {
-          Readable2 = require_readable();
-        }
-        yield* Readable2.prototype[SymbolAsyncIterator].call(val);
-      }
-      async function pumpToNode(iterable, writable, finish, { end }) {
-        let error;
-        let onresolve = null;
-        const resume = (err) => {
-          if (err) {
-            error = err;
-          }
-          if (onresolve) {
-            const callback = onresolve;
-            onresolve = null;
-            callback();
-          }
-        };
-        const wait = () => new Promise2((resolve, reject) => {
-          if (error) {
-            reject(error);
-          } else {
-            onresolve = () => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve();
-              }
-            };
-          }
-        });
-        writable.on("drain", resume);
-        const cleanup = eos(
-          writable,
-          {
-            readable: false
-          },
-          resume
-        );
-        try {
-          if (writable.writableNeedDrain) {
-            await wait();
-          }
-          for await (const chunk of iterable) {
-            if (!writable.write(chunk)) {
-              await wait();
-            }
-          }
-          if (end) {
-            writable.end();
-            await wait();
-          }
-          finish();
-        } catch (err) {
-          finish(error !== err ? aggregateTwoErrors(error, err) : err);
-        } finally {
-          cleanup();
-          writable.off("drain", resume);
-        }
-      }
-      async function pumpToWeb(readable, writable, finish, { end }) {
-        if (isTransformStream(writable)) {
-          writable = writable.writable;
-        }
-        const writer = writable.getWriter();
-        try {
-          for await (const chunk of readable) {
-            await writer.ready;
-            writer.write(chunk).catch(() => {
-            });
-          }
-          await writer.ready;
-          if (end) {
-            await writer.close();
-          }
-          finish();
-        } catch (err) {
-          try {
-            await writer.abort(err);
-            finish(err);
-          } catch (err2) {
-            finish(err2);
-          }
-        }
-      }
-      function pipeline(...streams) {
-        return pipelineImpl(streams, once(popCallback(streams)));
-      }
-      function pipelineImpl(streams, callback, opts) {
-        if (streams.length === 1 && ArrayIsArray(streams[0])) {
-          streams = streams[0];
-        }
-        if (streams.length < 2) {
-          throw new ERR_MISSING_ARGS("streams");
-        }
-        const ac = new AbortController();
-        const signal = ac.signal;
-        const outerSignal = opts === null || opts === void 0 ? void 0 : opts.signal;
-        const lastStreamCleanup = [];
-        validateAbortSignal(outerSignal, "options.signal");
-        function abort() {
-          finishImpl(new AbortError());
-        }
-        addAbortListener = addAbortListener || require_util().addAbortListener;
-        let disposable;
-        if (outerSignal) {
-          disposable = addAbortListener(outerSignal, abort);
-        }
-        let error;
-        let value;
-        const destroys = [];
-        let finishCount = 0;
-        function finish(err) {
-          finishImpl(err, --finishCount === 0);
-        }
-        function finishImpl(err, final) {
-          var _disposable;
-          if (err && (!error || error.code === "ERR_STREAM_PREMATURE_CLOSE")) {
-            error = err;
-          }
-          if (!error && !final) {
-            return;
-          }
-          while (destroys.length) {
-            destroys.shift()(error);
-          }
-          ;
-          (_disposable = disposable) === null || _disposable === void 0 ? void 0 : _disposable[SymbolDispose]();
-          ac.abort();
-          if (final) {
-            if (!error) {
-              lastStreamCleanup.forEach((fn) => fn());
-            }
-            process.nextTick(callback, error, value);
-          }
-        }
-        let ret;
-        for (let i = 0; i < streams.length; i++) {
-          const stream = streams[i];
-          const reading = i < streams.length - 1;
-          const writing = i > 0;
-          const end = reading || (opts === null || opts === void 0 ? void 0 : opts.end) !== false;
-          const isLastStream = i === streams.length - 1;
-          if (isNodeStream(stream)) {
-            let onError2 = function(err) {
-              if (err && err.name !== "AbortError" && err.code !== "ERR_STREAM_PREMATURE_CLOSE") {
-                finish(err);
-              }
-            };
-            var onError = onError2;
-            if (end) {
-              const { destroy, cleanup } = destroyer(stream, reading, writing);
-              destroys.push(destroy);
-              if (isReadable(stream) && isLastStream) {
-                lastStreamCleanup.push(cleanup);
-              }
-            }
-            stream.on("error", onError2);
-            if (isReadable(stream) && isLastStream) {
-              lastStreamCleanup.push(() => {
-                stream.removeListener("error", onError2);
-              });
-            }
-          }
-          if (i === 0) {
-            if (typeof stream === "function") {
-              ret = stream({
-                signal
-              });
-              if (!isIterable(ret)) {
-                throw new ERR_INVALID_RETURN_VALUE("Iterable, AsyncIterable or Stream", "source", ret);
-              }
-            } else if (isIterable(stream) || isReadableNodeStream(stream) || isTransformStream(stream)) {
-              ret = stream;
-            } else {
-              ret = Duplex.from(stream);
-            }
-          } else if (typeof stream === "function") {
-            if (isTransformStream(ret)) {
-              var _ret;
-              ret = makeAsyncIterable((_ret = ret) === null || _ret === void 0 ? void 0 : _ret.readable);
-            } else {
-              ret = makeAsyncIterable(ret);
-            }
-            ret = stream(ret, {
-              signal
-            });
-            if (reading) {
-              if (!isIterable(ret, true)) {
-                throw new ERR_INVALID_RETURN_VALUE("AsyncIterable", `transform[${i - 1}]`, ret);
-              }
-            } else {
-              var _ret2;
-              if (!PassThrough) {
-                PassThrough = require_passthrough();
-              }
-              const pt = new PassThrough({
-                objectMode: true
-              });
-              const then = (_ret2 = ret) === null || _ret2 === void 0 ? void 0 : _ret2.then;
-              if (typeof then === "function") {
-                finishCount++;
-                then.call(
-                  ret,
-                  (val) => {
-                    value = val;
-                    if (val != null) {
-                      pt.write(val);
-                    }
-                    if (end) {
-                      pt.end();
-                    }
-                    process.nextTick(finish);
-                  },
-                  (err) => {
-                    pt.destroy(err);
-                    process.nextTick(finish, err);
-                  }
-                );
-              } else if (isIterable(ret, true)) {
-                finishCount++;
-                pumpToNode(ret, pt, finish, {
-                  end
-                });
-              } else if (isReadableStream(ret) || isTransformStream(ret)) {
-                const toRead = ret.readable || ret;
-                finishCount++;
-                pumpToNode(toRead, pt, finish, {
-                  end
-                });
-              } else {
-                throw new ERR_INVALID_RETURN_VALUE("AsyncIterable or Promise", "destination", ret);
-              }
-              ret = pt;
-              const { destroy, cleanup } = destroyer(ret, false, true);
-              destroys.push(destroy);
-              if (isLastStream) {
-                lastStreamCleanup.push(cleanup);
-              }
-            }
-          } else if (isNodeStream(stream)) {
-            if (isReadableNodeStream(ret)) {
-              finishCount += 2;
-              const cleanup = pipe(ret, stream, finish, {
-                end
-              });
-              if (isReadable(stream) && isLastStream) {
-                lastStreamCleanup.push(cleanup);
-              }
-            } else if (isTransformStream(ret) || isReadableStream(ret)) {
-              const toRead = ret.readable || ret;
-              finishCount++;
-              pumpToNode(toRead, stream, finish, {
-                end
-              });
-            } else if (isIterable(ret)) {
-              finishCount++;
-              pumpToNode(ret, stream, finish, {
-                end
-              });
-            } else {
-              throw new ERR_INVALID_ARG_TYPE(
-                "val",
-                ["Readable", "Iterable", "AsyncIterable", "ReadableStream", "TransformStream"],
-                ret
-              );
-            }
-            ret = stream;
-          } else if (isWebStream(stream)) {
-            if (isReadableNodeStream(ret)) {
-              finishCount++;
-              pumpToWeb(makeAsyncIterable(ret), stream, finish, {
-                end
-              });
-            } else if (isReadableStream(ret) || isIterable(ret)) {
-              finishCount++;
-              pumpToWeb(ret, stream, finish, {
-                end
-              });
-            } else if (isTransformStream(ret)) {
-              finishCount++;
-              pumpToWeb(ret.readable, stream, finish, {
-                end
-              });
-            } else {
-              throw new ERR_INVALID_ARG_TYPE(
-                "val",
-                ["Readable", "Iterable", "AsyncIterable", "ReadableStream", "TransformStream"],
-                ret
-              );
-            }
-            ret = stream;
-          } else {
-            ret = Duplex.from(stream);
-          }
-        }
-        if (signal !== null && signal !== void 0 && signal.aborted || outerSignal !== null && outerSignal !== void 0 && outerSignal.aborted) {
-          process.nextTick(abort);
-        }
-        return ret;
-      }
-      function pipe(src, dst, finish, { end }) {
-        let ended = false;
-        dst.on("close", () => {
-          if (!ended) {
-            finish(new ERR_STREAM_PREMATURE_CLOSE());
-          }
-        });
-        src.pipe(dst, {
-          end: false
-        });
-        if (end) {
-          let endFn2 = function() {
-            ended = true;
-            dst.end();
-          };
-          var endFn = endFn2;
-          if (isReadableFinished(src)) {
-            process.nextTick(endFn2);
-          } else {
-            src.once("end", endFn2);
-          }
-        } else {
-          finish();
-        }
-        eos(
-          src,
-          {
-            readable: true,
-            writable: false
-          },
-          (err) => {
-            const rState = src._readableState;
-            if (err && err.code === "ERR_STREAM_PREMATURE_CLOSE" && rState && rState.ended && !rState.errored && !rState.errorEmitted) {
-              src.once("end", finish).once("error", finish);
-            } else {
-              finish(err);
-            }
-          }
-        );
-        return eos(
-          dst,
-          {
-            readable: false,
-            writable: true
-          },
-          finish
-        );
-      }
-      module.exports = {
-        pipelineImpl,
-        pipeline
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/compose.js
-  var require_compose = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/compose.js"(exports, module) {
-      "use strict";
-      var { pipeline } = require_pipeline();
-      var Duplex = require_duplex();
-      var { destroyer } = require_destroy();
-      var {
-        isNodeStream,
-        isReadable,
-        isWritable,
-        isWebStream,
-        isTransformStream,
-        isWritableStream,
-        isReadableStream
-      } = require_utils();
-      var {
-        AbortError,
-        codes: { ERR_INVALID_ARG_VALUE, ERR_MISSING_ARGS }
-      } = require_errors();
-      var eos = require_end_of_stream();
-      module.exports = function compose(...streams) {
-        if (streams.length === 0) {
-          throw new ERR_MISSING_ARGS("streams");
-        }
-        if (streams.length === 1) {
-          return Duplex.from(streams[0]);
-        }
-        const orgStreams = [...streams];
-        if (typeof streams[0] === "function") {
-          streams[0] = Duplex.from(streams[0]);
-        }
-        if (typeof streams[streams.length - 1] === "function") {
-          const idx = streams.length - 1;
-          streams[idx] = Duplex.from(streams[idx]);
-        }
-        for (let n = 0; n < streams.length; ++n) {
-          if (!isNodeStream(streams[n]) && !isWebStream(streams[n])) {
-            continue;
-          }
-          if (n < streams.length - 1 && !(isReadable(streams[n]) || isReadableStream(streams[n]) || isTransformStream(streams[n]))) {
-            throw new ERR_INVALID_ARG_VALUE(`streams[${n}]`, orgStreams[n], "must be readable");
-          }
-          if (n > 0 && !(isWritable(streams[n]) || isWritableStream(streams[n]) || isTransformStream(streams[n]))) {
-            throw new ERR_INVALID_ARG_VALUE(`streams[${n}]`, orgStreams[n], "must be writable");
-          }
-        }
-        let ondrain;
-        let onfinish;
-        let onreadable;
-        let onclose;
-        let d;
-        function onfinished(err) {
-          const cb = onclose;
-          onclose = null;
-          if (cb) {
-            cb(err);
-          } else if (err) {
-            d.destroy(err);
-          } else if (!readable && !writable) {
-            d.destroy();
-          }
-        }
-        const head = streams[0];
-        const tail = pipeline(streams, onfinished);
-        const writable = !!(isWritable(head) || isWritableStream(head) || isTransformStream(head));
-        const readable = !!(isReadable(tail) || isReadableStream(tail) || isTransformStream(tail));
-        d = new Duplex({
-          // TODO (ronag): highWaterMark?
-          writableObjectMode: !!(head !== null && head !== void 0 && head.writableObjectMode),
-          readableObjectMode: !!(tail !== null && tail !== void 0 && tail.readableObjectMode),
-          writable,
-          readable
-        });
-        if (writable) {
-          if (isNodeStream(head)) {
-            d._write = function(chunk, encoding, callback) {
-              if (head.write(chunk, encoding)) {
-                callback();
-              } else {
-                ondrain = callback;
-              }
-            };
-            d._final = function(callback) {
-              head.end();
-              onfinish = callback;
-            };
-            head.on("drain", function() {
-              if (ondrain) {
-                const cb = ondrain;
-                ondrain = null;
-                cb();
-              }
-            });
-          } else if (isWebStream(head)) {
-            const writable2 = isTransformStream(head) ? head.writable : head;
-            const writer = writable2.getWriter();
-            d._write = async function(chunk, encoding, callback) {
-              try {
-                await writer.ready;
-                writer.write(chunk).catch(() => {
-                });
-                callback();
-              } catch (err) {
-                callback(err);
-              }
-            };
-            d._final = async function(callback) {
-              try {
-                await writer.ready;
-                writer.close().catch(() => {
-                });
-                onfinish = callback;
-              } catch (err) {
-                callback(err);
-              }
-            };
-          }
-          const toRead = isTransformStream(tail) ? tail.readable : tail;
-          eos(toRead, () => {
-            if (onfinish) {
-              const cb = onfinish;
-              onfinish = null;
-              cb();
-            }
-          });
-        }
-        if (readable) {
-          if (isNodeStream(tail)) {
-            tail.on("readable", function() {
-              if (onreadable) {
-                const cb = onreadable;
-                onreadable = null;
-                cb();
-              }
-            });
-            tail.on("end", function() {
-              d.push(null);
-            });
-            d._read = function() {
-              while (true) {
-                const buf = tail.read();
-                if (buf === null) {
-                  onreadable = d._read;
-                  return;
-                }
-                if (!d.push(buf)) {
-                  return;
-                }
-              }
-            };
-          } else if (isWebStream(tail)) {
-            const readable2 = isTransformStream(tail) ? tail.readable : tail;
-            const reader = readable2.getReader();
-            d._read = async function() {
-              while (true) {
-                try {
-                  const { value, done } = await reader.read();
-                  if (!d.push(value)) {
-                    return;
-                  }
-                  if (done) {
-                    d.push(null);
-                    return;
-                  }
-                } catch {
-                  return;
-                }
-              }
-            };
-          }
-        }
-        d._destroy = function(err, callback) {
-          if (!err && onclose !== null) {
-            err = new AbortError();
-          }
-          onreadable = null;
-          ondrain = null;
-          onfinish = null;
-          if (onclose === null) {
-            callback(err);
-          } else {
-            onclose = callback;
-            if (isNodeStream(tail)) {
-              destroyer(tail, err);
-            }
-          }
-        };
-        return d;
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/internal/streams/operators.js
-  var require_operators = __commonJS({
-    "node_modules/readable-stream/lib/internal/streams/operators.js"(exports, module) {
-      "use strict";
-      var AbortController = globalThis.AbortController || require_browser().AbortController;
-      var {
-        codes: { ERR_INVALID_ARG_VALUE, ERR_INVALID_ARG_TYPE, ERR_MISSING_ARGS, ERR_OUT_OF_RANGE },
-        AbortError
-      } = require_errors();
-      var { validateAbortSignal, validateInteger, validateObject } = require_validators();
-      var kWeakHandler = require_primordials().Symbol("kWeak");
-      var kResistStopPropagation = require_primordials().Symbol("kResistStopPropagation");
-      var { finished } = require_end_of_stream();
-      var staticCompose = require_compose();
-      var { addAbortSignalNoValidate } = require_add_abort_signal();
-      var { isWritable, isNodeStream } = require_utils();
-      var { deprecate } = require_util();
-      var {
-        ArrayPrototypePush,
-        Boolean: Boolean2,
-        MathFloor,
-        Number: Number2,
-        NumberIsNaN,
-        Promise: Promise2,
-        PromiseReject,
-        PromiseResolve,
-        PromisePrototypeThen,
-        Symbol: Symbol2
-      } = require_primordials();
-      var kEmpty = Symbol2("kEmpty");
-      var kEof = Symbol2("kEof");
-      function compose(stream, options) {
-        if (options != null) {
-          validateObject(options, "options");
-        }
-        if ((options === null || options === void 0 ? void 0 : options.signal) != null) {
-          validateAbortSignal(options.signal, "options.signal");
-        }
-        if (isNodeStream(stream) && !isWritable(stream)) {
-          throw new ERR_INVALID_ARG_VALUE("stream", stream, "must be writable");
-        }
-        const composedStream = staticCompose(this, stream);
-        if (options !== null && options !== void 0 && options.signal) {
-          addAbortSignalNoValidate(options.signal, composedStream);
-        }
-        return composedStream;
-      }
-      function map(fn, options) {
-        if (typeof fn !== "function") {
-          throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
-        }
-        if (options != null) {
-          validateObject(options, "options");
-        }
-        if ((options === null || options === void 0 ? void 0 : options.signal) != null) {
-          validateAbortSignal(options.signal, "options.signal");
-        }
-        let concurrency = 1;
-        if ((options === null || options === void 0 ? void 0 : options.concurrency) != null) {
-          concurrency = MathFloor(options.concurrency);
-        }
-        let highWaterMark = concurrency - 1;
-        if ((options === null || options === void 0 ? void 0 : options.highWaterMark) != null) {
-          highWaterMark = MathFloor(options.highWaterMark);
-        }
-        validateInteger(concurrency, "options.concurrency", 1);
-        validateInteger(highWaterMark, "options.highWaterMark", 0);
-        highWaterMark += concurrency;
-        return async function* map2() {
-          const signal = require_util().AbortSignalAny(
-            [options === null || options === void 0 ? void 0 : options.signal].filter(Boolean2)
-          );
-          const stream = this;
-          const queue = [];
-          const signalOpt = {
-            signal
-          };
-          let next;
-          let resume;
-          let done = false;
-          let cnt = 0;
-          function onCatch() {
-            done = true;
-            afterItemProcessed();
-          }
-          function afterItemProcessed() {
-            cnt -= 1;
-            maybeResume();
-          }
-          function maybeResume() {
-            if (resume && !done && cnt < concurrency && queue.length < highWaterMark) {
-              resume();
-              resume = null;
-            }
-          }
-          async function pump() {
-            try {
-              for await (let val of stream) {
-                if (done) {
-                  return;
-                }
-                if (signal.aborted) {
-                  throw new AbortError();
-                }
-                try {
-                  val = fn(val, signalOpt);
-                  if (val === kEmpty) {
-                    continue;
-                  }
-                  val = PromiseResolve(val);
-                } catch (err) {
-                  val = PromiseReject(err);
-                }
-                cnt += 1;
-                PromisePrototypeThen(val, afterItemProcessed, onCatch);
-                queue.push(val);
-                if (next) {
-                  next();
-                  next = null;
-                }
-                if (!done && (queue.length >= highWaterMark || cnt >= concurrency)) {
-                  await new Promise2((resolve) => {
-                    resume = resolve;
-                  });
-                }
-              }
-              queue.push(kEof);
-            } catch (err) {
-              const val = PromiseReject(err);
-              PromisePrototypeThen(val, afterItemProcessed, onCatch);
-              queue.push(val);
-            } finally {
-              done = true;
-              if (next) {
-                next();
-                next = null;
-              }
-            }
-          }
-          pump();
-          try {
-            while (true) {
-              while (queue.length > 0) {
-                const val = await queue[0];
-                if (val === kEof) {
-                  return;
-                }
-                if (signal.aborted) {
-                  throw new AbortError();
-                }
-                if (val !== kEmpty) {
-                  yield val;
-                }
-                queue.shift();
-                maybeResume();
-              }
-              await new Promise2((resolve) => {
-                next = resolve;
-              });
-            }
-          } finally {
-            done = true;
-            if (resume) {
-              resume();
-              resume = null;
-            }
-          }
-        }.call(this);
-      }
-      function asIndexedPairs(options = void 0) {
-        if (options != null) {
-          validateObject(options, "options");
-        }
-        if ((options === null || options === void 0 ? void 0 : options.signal) != null) {
-          validateAbortSignal(options.signal, "options.signal");
-        }
-        return async function* asIndexedPairs2() {
-          let index = 0;
-          for await (const val of this) {
-            var _options$signal;
-            if (options !== null && options !== void 0 && (_options$signal = options.signal) !== null && _options$signal !== void 0 && _options$signal.aborted) {
-              throw new AbortError({
-                cause: options.signal.reason
-              });
-            }
-            yield [index++, val];
-          }
-        }.call(this);
-      }
-      async function some(fn, options = void 0) {
-        for await (const unused of filter.call(this, fn, options)) {
-          return true;
-        }
-        return false;
-      }
-      async function every(fn, options = void 0) {
-        if (typeof fn !== "function") {
-          throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
-        }
-        return !await some.call(
-          this,
-          async (...args) => {
-            return !await fn(...args);
-          },
-          options
-        );
-      }
-      async function find(fn, options) {
-        for await (const result2 of filter.call(this, fn, options)) {
-          return result2;
-        }
-        return void 0;
-      }
-      async function forEach(fn, options) {
-        if (typeof fn !== "function") {
-          throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
-        }
-        async function forEachFn(value, options2) {
-          await fn(value, options2);
-          return kEmpty;
-        }
-        for await (const unused of map.call(this, forEachFn, options)) ;
-      }
-      function filter(fn, options) {
-        if (typeof fn !== "function") {
-          throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
-        }
-        async function filterFn(value, options2) {
-          if (await fn(value, options2)) {
-            return value;
-          }
-          return kEmpty;
-        }
-        return map.call(this, filterFn, options);
-      }
-      var ReduceAwareErrMissingArgs = class extends ERR_MISSING_ARGS {
-        constructor() {
-          super("reduce");
-          this.message = "Reduce of an empty stream requires an initial value";
-        }
-      };
-      async function reduce(reducer, initialValue, options) {
-        var _options$signal2;
-        if (typeof reducer !== "function") {
-          throw new ERR_INVALID_ARG_TYPE("reducer", ["Function", "AsyncFunction"], reducer);
-        }
-        if (options != null) {
-          validateObject(options, "options");
-        }
-        if ((options === null || options === void 0 ? void 0 : options.signal) != null) {
-          validateAbortSignal(options.signal, "options.signal");
-        }
-        let hasInitialValue = arguments.length > 1;
-        if (options !== null && options !== void 0 && (_options$signal2 = options.signal) !== null && _options$signal2 !== void 0 && _options$signal2.aborted) {
-          const err = new AbortError(void 0, {
-            cause: options.signal.reason
-          });
-          this.once("error", () => {
-          });
-          await finished(this.destroy(err));
-          throw err;
-        }
-        const ac = new AbortController();
-        const signal = ac.signal;
-        if (options !== null && options !== void 0 && options.signal) {
-          const opts = {
-            once: true,
-            [kWeakHandler]: this,
-            [kResistStopPropagation]: true
-          };
-          options.signal.addEventListener("abort", () => ac.abort(), opts);
-        }
-        let gotAnyItemFromStream = false;
-        try {
-          for await (const value of this) {
-            var _options$signal3;
-            gotAnyItemFromStream = true;
-            if (options !== null && options !== void 0 && (_options$signal3 = options.signal) !== null && _options$signal3 !== void 0 && _options$signal3.aborted) {
-              throw new AbortError();
-            }
-            if (!hasInitialValue) {
-              initialValue = value;
-              hasInitialValue = true;
-            } else {
-              initialValue = await reducer(initialValue, value, {
-                signal
-              });
-            }
-          }
-          if (!gotAnyItemFromStream && !hasInitialValue) {
-            throw new ReduceAwareErrMissingArgs();
-          }
-        } finally {
-          ac.abort();
-        }
-        return initialValue;
-      }
-      async function toArray(options) {
-        if (options != null) {
-          validateObject(options, "options");
-        }
-        if ((options === null || options === void 0 ? void 0 : options.signal) != null) {
-          validateAbortSignal(options.signal, "options.signal");
-        }
-        const result2 = [];
-        for await (const val of this) {
-          var _options$signal4;
-          if (options !== null && options !== void 0 && (_options$signal4 = options.signal) !== null && _options$signal4 !== void 0 && _options$signal4.aborted) {
-            throw new AbortError(void 0, {
-              cause: options.signal.reason
-            });
-          }
-          ArrayPrototypePush(result2, val);
-        }
-        return result2;
-      }
-      function flatMap(fn, options) {
-        const values = map.call(this, fn, options);
-        return async function* flatMap2() {
-          for await (const val of values) {
-            yield* val;
-          }
-        }.call(this);
-      }
-      function toIntegerOrInfinity(number) {
-        number = Number2(number);
-        if (NumberIsNaN(number)) {
-          return 0;
-        }
-        if (number < 0) {
-          throw new ERR_OUT_OF_RANGE("number", ">= 0", number);
-        }
-        return number;
-      }
-      function drop(number, options = void 0) {
-        if (options != null) {
-          validateObject(options, "options");
-        }
-        if ((options === null || options === void 0 ? void 0 : options.signal) != null) {
-          validateAbortSignal(options.signal, "options.signal");
-        }
-        number = toIntegerOrInfinity(number);
-        return async function* drop2() {
-          var _options$signal5;
-          if (options !== null && options !== void 0 && (_options$signal5 = options.signal) !== null && _options$signal5 !== void 0 && _options$signal5.aborted) {
-            throw new AbortError();
-          }
-          for await (const val of this) {
-            var _options$signal6;
-            if (options !== null && options !== void 0 && (_options$signal6 = options.signal) !== null && _options$signal6 !== void 0 && _options$signal6.aborted) {
-              throw new AbortError();
-            }
-            if (number-- <= 0) {
-              yield val;
-            }
-          }
-        }.call(this);
-      }
-      function take(number, options = void 0) {
-        if (options != null) {
-          validateObject(options, "options");
-        }
-        if ((options === null || options === void 0 ? void 0 : options.signal) != null) {
-          validateAbortSignal(options.signal, "options.signal");
-        }
-        number = toIntegerOrInfinity(number);
-        return async function* take2() {
-          var _options$signal7;
-          if (options !== null && options !== void 0 && (_options$signal7 = options.signal) !== null && _options$signal7 !== void 0 && _options$signal7.aborted) {
-            throw new AbortError();
-          }
-          for await (const val of this) {
-            var _options$signal8;
-            if (options !== null && options !== void 0 && (_options$signal8 = options.signal) !== null && _options$signal8 !== void 0 && _options$signal8.aborted) {
-              throw new AbortError();
-            }
-            if (number-- > 0) {
-              yield val;
-            }
-            if (number <= 0) {
-              return;
-            }
-          }
-        }.call(this);
-      }
-      module.exports.streamReturningOperators = {
-        asIndexedPairs: deprecate(asIndexedPairs, "readable.asIndexedPairs will be removed in a future version."),
-        drop,
-        filter,
-        flatMap,
-        map,
-        take,
-        compose
-      };
-      module.exports.promiseReturningOperators = {
-        every,
-        forEach,
-        reduce,
-        toArray,
-        some,
-        find
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/stream/promises.js
-  var require_promises = __commonJS({
-    "node_modules/readable-stream/lib/stream/promises.js"(exports, module) {
-      "use strict";
-      var { ArrayPrototypePop, Promise: Promise2 } = require_primordials();
-      var { isIterable, isNodeStream, isWebStream } = require_utils();
-      var { pipelineImpl: pl } = require_pipeline();
-      var { finished } = require_end_of_stream();
-      require_stream();
-      function pipeline(...streams) {
-        return new Promise2((resolve, reject) => {
-          let signal;
-          let end;
-          const lastArg = streams[streams.length - 1];
-          if (lastArg && typeof lastArg === "object" && !isNodeStream(lastArg) && !isIterable(lastArg) && !isWebStream(lastArg)) {
-            const options = ArrayPrototypePop(streams);
-            signal = options.signal;
-            end = options.end;
-          }
-          pl(
-            streams,
-            (err, value) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(value);
-              }
-            },
-            {
-              signal,
-              end
-            }
-          );
-        });
-      }
-      module.exports = {
-        finished,
-        pipeline
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/stream.js
-  var require_stream = __commonJS({
-    "node_modules/readable-stream/lib/stream.js"(exports, module) {
-      "use strict";
-      var { Buffer: Buffer3 } = require_buffer();
-      var { ObjectDefineProperty, ObjectKeys, ReflectApply } = require_primordials();
-      var {
-        promisify: { custom: customPromisify }
-      } = require_util();
-      var { streamReturningOperators, promiseReturningOperators } = require_operators();
-      var {
-        codes: { ERR_ILLEGAL_CONSTRUCTOR }
-      } = require_errors();
-      var compose = require_compose();
-      var { setDefaultHighWaterMark, getDefaultHighWaterMark } = require_state();
-      var { pipeline } = require_pipeline();
-      var { destroyer } = require_destroy();
-      var eos = require_end_of_stream();
-      var promises = require_promises();
-      var utils = require_utils();
-      var Stream = module.exports = require_legacy().Stream;
-      Stream.isDestroyed = utils.isDestroyed;
-      Stream.isDisturbed = utils.isDisturbed;
-      Stream.isErrored = utils.isErrored;
-      Stream.isReadable = utils.isReadable;
-      Stream.isWritable = utils.isWritable;
-      Stream.Readable = require_readable();
-      for (const key of ObjectKeys(streamReturningOperators)) {
-        let fn = function(...args) {
-          if (new.target) {
-            throw ERR_ILLEGAL_CONSTRUCTOR();
-          }
-          return Stream.Readable.from(ReflectApply(op, this, args));
-        };
-        const op = streamReturningOperators[key];
-        ObjectDefineProperty(fn, "name", {
-          __proto__: null,
-          value: op.name
-        });
-        ObjectDefineProperty(fn, "length", {
-          __proto__: null,
-          value: op.length
-        });
-        ObjectDefineProperty(Stream.Readable.prototype, key, {
-          __proto__: null,
-          value: fn,
-          enumerable: false,
-          configurable: true,
-          writable: true
-        });
-      }
-      for (const key of ObjectKeys(promiseReturningOperators)) {
-        let fn = function(...args) {
-          if (new.target) {
-            throw ERR_ILLEGAL_CONSTRUCTOR();
-          }
-          return ReflectApply(op, this, args);
-        };
-        const op = promiseReturningOperators[key];
-        ObjectDefineProperty(fn, "name", {
-          __proto__: null,
-          value: op.name
-        });
-        ObjectDefineProperty(fn, "length", {
-          __proto__: null,
-          value: op.length
-        });
-        ObjectDefineProperty(Stream.Readable.prototype, key, {
-          __proto__: null,
-          value: fn,
-          enumerable: false,
-          configurable: true,
-          writable: true
-        });
-      }
-      Stream.Writable = require_writable();
-      Stream.Duplex = require_duplex();
-      Stream.Transform = require_transform();
-      Stream.PassThrough = require_passthrough();
-      Stream.pipeline = pipeline;
-      var { addAbortSignal } = require_add_abort_signal();
-      Stream.addAbortSignal = addAbortSignal;
-      Stream.finished = eos;
-      Stream.destroy = destroyer;
-      Stream.compose = compose;
-      Stream.setDefaultHighWaterMark = setDefaultHighWaterMark;
-      Stream.getDefaultHighWaterMark = getDefaultHighWaterMark;
-      ObjectDefineProperty(Stream, "promises", {
-        __proto__: null,
-        configurable: true,
-        enumerable: true,
-        get() {
-          return promises;
-        }
-      });
-      ObjectDefineProperty(pipeline, customPromisify, {
-        __proto__: null,
-        enumerable: true,
-        get() {
-          return promises.pipeline;
-        }
-      });
-      ObjectDefineProperty(eos, customPromisify, {
-        __proto__: null,
-        enumerable: true,
-        get() {
-          return promises.finished;
-        }
-      });
-      Stream.Stream = Stream;
-      Stream._isUint8Array = function isUint8Array(value) {
-        return value instanceof Uint8Array;
-      };
-      Stream._uint8ArrayToBuffer = function _uint8ArrayToBuffer(chunk) {
-        return Buffer3.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
-      };
-    }
-  });
-
-  // node_modules/readable-stream/lib/ours/browser.js
-  var require_browser3 = __commonJS({
-    "node_modules/readable-stream/lib/ours/browser.js"(exports, module) {
-      "use strict";
-      var CustomStream = require_stream();
-      var promises = require_promises();
-      var originalDestroy = CustomStream.Readable.destroy;
-      module.exports = CustomStream.Readable;
-      module.exports._uint8ArrayToBuffer = CustomStream._uint8ArrayToBuffer;
-      module.exports._isUint8Array = CustomStream._isUint8Array;
-      module.exports.isDisturbed = CustomStream.isDisturbed;
-      module.exports.isErrored = CustomStream.isErrored;
-      module.exports.isReadable = CustomStream.isReadable;
-      module.exports.Readable = CustomStream.Readable;
-      module.exports.Writable = CustomStream.Writable;
-      module.exports.Duplex = CustomStream.Duplex;
-      module.exports.Transform = CustomStream.Transform;
-      module.exports.PassThrough = CustomStream.PassThrough;
-      module.exports.addAbortSignal = CustomStream.addAbortSignal;
-      module.exports.finished = CustomStream.finished;
-      module.exports.destroy = CustomStream.destroy;
-      module.exports.destroy = originalDestroy;
-      module.exports.pipeline = CustomStream.pipeline;
-      module.exports.compose = CustomStream.compose;
-      Object.defineProperty(CustomStream, "promises", {
-        configurable: true,
-        enumerable: true,
-        get() {
-          return promises;
-        }
-      });
-      module.exports.Stream = CustomStream.Stream;
-      module.exports.default = module.exports;
-    }
-  });
-
-  // node_modules/@muze-nl/oldm/src/oldm.mjs
+  // ../../node_modules/@muze-nl/oldm-core/src/oldm.mjs
   var oldm_exports = {};
   __export(oldm_exports, {
     BlankNode: () => BlankNode,
@@ -8120,68 +1848,405 @@
     vcard: "http://www.w3.org/2006/vcard/ns#",
     xsd: "http://www.w3.org/2001/XMLSchema#"
   };
-  function one(values, whichOne = "last") {
-    let result2 = values;
-    if (Array.isArray(values)) {
+  function one(values2, whichOne = "last") {
+    let result = values2;
+    if (Array.isArray(values2)) {
       if (whichOne == "last") {
-        result2 = values[values.length - 1];
+        result = values2[values2.length - 1];
       } else if (whichOne == "first") {
-        result2 = values[0];
+        result = values2[0];
       } else if (typeof whichOne == "function") {
-        result2 = whichOne(values);
+        result = whichOne(values2);
       } else {
         throw new Error("Unknown value for whichOne parameter");
       }
     }
-    return result2;
+    return result;
   }
-  function many(values) {
-    if (Array.isArray(values)) {
-      return values;
+  function many(values2) {
+    if (Array.isArray(values2)) {
+      return values2;
     }
-    if (values == null) {
+    if (values2 == null) {
       return [];
     }
-    return [values];
+    return [values2];
   }
-  function first(...values) {
-    for (const value of values) {
+  function first(...values2) {
+    for (const value of values2) {
       if (value !== null && value !== void 0) {
         return value;
       }
     }
     return null;
   }
+  function values(value) {
+    if (Array.isArray(value) && !(value instanceof Collection)) {
+      return value;
+    }
+    if (value === void 0) {
+      return [];
+    }
+    return [value];
+  }
+  function mergeValue(existing, value) {
+    const result = values(existing);
+    for (const item of values(value)) {
+      if (!result.some((existingItem) => sameValue(existingItem, item))) {
+        result.push(item);
+      }
+    }
+    if (result.length == 0) {
+      return void 0;
+    }
+    if (result.length == 1) {
+      return result[0];
+    }
+    return result;
+  }
+  function sameValue(left, right) {
+    if (left === right) {
+      return true;
+    }
+    if (left instanceof NamedNode && right instanceof NamedNode) {
+      return left.id == right.id;
+    }
+    if (left instanceof NamedNode && typeof right == "string") {
+      return left.id == right;
+    }
+    if (typeof left == "string" && right instanceof NamedNode) {
+      return left == right.id;
+    }
+    if (left instanceof Collection && right instanceof Collection) {
+      return left.length == right.length && left.every((item, index) => sameValue(item, right[index]));
+    }
+    if (isLiteral(left) && isLiteral(right)) {
+      return String(left) == String(right) && left?.type == right?.type && left?.language == right?.language;
+    }
+    return false;
+  }
+  function sameSourceValue(left, right) {
+    if (left === right) {
+      return true;
+    }
+    if (left instanceof NamedNode && right instanceof NamedNode) {
+      return left.id == right.id;
+    }
+    if (left instanceof NamedNode && typeof right == "string") {
+      return left.id == right;
+    }
+    if (typeof left == "string" && right instanceof NamedNode) {
+      return left == right.id;
+    }
+    if (left instanceof Collection && right instanceof Collection) {
+      return left.length == right.length && left.every((item, index) => sameSourceValue(item, right[index]));
+    }
+    if (isLiteral(left) && isLiteral(right)) {
+      const leftType = left?.type;
+      const rightType = right?.type;
+      const leftLanguage = left?.language;
+      const rightLanguage = right?.language;
+      return String(left) == String(right) && (!leftType || !rightType || leftType == rightType) && (!leftLanguage || !rightLanguage || leftLanguage == rightLanguage);
+    }
+    return false;
+  }
+  function resolveValue(value, subjects, context) {
+    if (value instanceof Collection) {
+      const collection = new Collection(context);
+      for (const item of value) {
+        collection.push(resolveValue(item, subjects, context));
+      }
+      return collection;
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => resolveValue(item, subjects, context));
+    }
+    if (value instanceof NamedNode && subjects[value.id]) {
+      return subjects[value.id];
+    }
+    return value;
+  }
+  function isLiteral(value) {
+    return value instanceof String || value instanceof Number || typeof value == "boolean" || typeof value == "string" || typeof value == "number";
+  }
   var Context = class {
+    #buildingSubjects = false;
     constructor(options) {
-      this.prefixes = { ...prefixes, ...options?.prefixes };
+      const clientPrefixes = options?.prefixes ?? {};
+      this.prefixes = { ...prefixes, ...clientPrefixes };
+      this.prefixOrder = [
+        ...Object.keys(clientPrefixes),
+        ...Object.keys(prefixes).filter((prefix) => !(prefix in clientPrefixes))
+      ];
       if (!this.prefixes["xsd"]) {
         this.prefixes["xsd"] = "http://www.w3.org/2001/XMLSchema#";
+        this.prefixOrder.push("xsd");
       }
       this.parser = options?.parser;
       this.writer = options?.writer;
-      this.sources = /* @__PURE__ */ Object.create(null);
+      this.graphs = [];
+      this.graphsByUrl = /* @__PURE__ */ Object.create(null);
+      this.defaultGraph = options?.defaultGraph ?? null;
       this.separator = options?.separator ?? "$";
+      Object.defineProperty(this, "subjects", {
+        get() {
+          return this.getSubjects();
+        }
+      });
+      Object.defineProperty(this, "data", {
+        get() {
+          return Object.values(this.subjects);
+        }
+      });
     }
     parse(input, url, type) {
-      const { quads, prefixes: prefixes3 } = this.parser(input, url, type);
-      if (prefixes3) {
-        for (let prefix2 in prefixes3) {
-          let prefixURL = prefixes3[prefix2];
+      const { quads, prefixes: prefixes2 } = this.parser(input, url, type);
+      if (prefixes2) {
+        for (let prefix in prefixes2) {
+          let prefixURL = prefixes2[prefix];
           if (prefixURL.match(/^http(s?):\/\/$/i)) {
             prefixURL += url.substring(prefixURL.length);
           } else try {
-            prefixURL = new URL(prefixes3[prefix2], url).href;
+            prefixURL = new URL(prefixes2[prefix], url).href;
           } catch (err) {
-            console.error("Could not parse prefix", prefixes3[prefix2], err.message);
+            console.error("Could not parse prefix", prefixes2[prefix], err.message);
           }
-          if (!this.prefixes[prefix2]) {
-            this.prefixes[prefix2] = prefixURL;
+          if (!this.prefixes[prefix]) {
+            this.prefixes[prefix] = prefixURL;
+            this.prefixOrder.push(prefix);
           }
         }
       }
-      this.sources[url] = new Graph(quads, url, type, prefixes3, this);
-      return this.sources[url];
+      return this.addGraph(new Graph(quads, url, type, prefixes2, this));
+    }
+    addGraph(graph) {
+      if (!graph?.url) {
+        throw new Error("Cannot add graph without a url");
+      }
+      const existing = this.graphsByUrl[graph.url];
+      if (existing) {
+        const index = this.graphs.indexOf(existing);
+        if (index >= 0) {
+          this.graphs[index] = graph;
+        }
+      } else {
+        this.graphs.push(graph);
+      }
+      this.graphsByUrl[graph.url] = graph;
+      return graph;
+    }
+    graph(url) {
+      return this.graphsByUrl[this.fullURI(url)];
+    }
+    set(subject, predicate, value, options = {}) {
+      return this.resolveGraph(subject, options).set(subject, predicate, value);
+    }
+    add(subject, predicate, value, options = {}) {
+      return this.resolveGraph(subject, options).add(subject, predicate, value);
+    }
+    delete(subject, predicate = null, value = void 0, options = {}) {
+      const graph = this.resolveGraph(subject, options);
+      if (arguments.length < 3) {
+        return graph.delete(subject, predicate);
+      }
+      return graph.delete(subject, predicate, value);
+    }
+    resolveGraph(subject, options = {}) {
+      if (options.graph) {
+        return this.getGraphOption(options.graph);
+      }
+      if (subject instanceof BlankNode && subject.graph instanceof Graph) {
+        return subject.graph;
+      }
+      const id = this.subjectID(subject);
+      if (id) {
+        const exactGraph = this.graphsByUrl[id];
+        if (exactGraph) {
+          return exactGraph;
+        }
+        const documentGraph = this.graphsByUrl[this.documentURL(id)];
+        if (documentGraph) {
+          return documentGraph;
+        }
+        const subjectSources = this.graphs.filter((graph) => graph.subjects[id]);
+        if (subjectSources.length == 1) {
+          return subjectSources[0];
+        }
+        if (subjectSources.length > 1) {
+          throw new Error(`Cannot choose a source graph for ${id}. Use context.set/add/delete(..., { graph }) or graph.set/add/delete(...) to choose one explicitly.`);
+        }
+      }
+      if (this.defaultGraph) {
+        return this.getGraphOption(this.defaultGraph);
+      }
+      if (this.graphs.length == 1) {
+        return this.graphs[0];
+      }
+      throw new Error("Cannot choose a source graph. Use context.set/add/delete(..., { graph }) or graph.set/add/delete(...) to choose one explicitly.");
+    }
+    getGraphOption(graph) {
+      if (graph instanceof Graph) {
+        if (!this.graphs.includes(graph)) {
+          throw new Error("The selected graph is not part of this context");
+        }
+        return graph;
+      }
+      const resolved = this.graph(graph);
+      if (!resolved) {
+        throw new Error(`Unknown graph: ${graph}`);
+      }
+      return resolved;
+    }
+    documentURL(id) {
+      try {
+        const url = new URL(id);
+        url.hash = "";
+        return url.href;
+      } catch (err) {
+        return id;
+      }
+    }
+    sources(subject, predicate = null, value = void 0) {
+      if (!subject) {
+        return [...this.graphs];
+      }
+      if (subject instanceof BlankNode && !(subject instanceof NamedNode)) {
+        return this.sourcesForBlankNode(subject, predicate, value, arguments.length >= 3);
+      }
+      const id = this.subjectID(subject);
+      if (!id) {
+        return [];
+      }
+      return this.graphs.filter((graph) => {
+        const graphSubject = graph.subjects[id];
+        return graphSubject && this.subjectHasSource(graphSubject, predicate, value, arguments.length >= 3);
+      });
+    }
+    sourcesForBlankNode(subject, predicate, value, hasValue) {
+      const graph = subject.graph;
+      if (!(graph instanceof Graph)) {
+        return [];
+      }
+      if (this.subjectHasSource(subject, predicate, value, hasValue)) {
+        return [graph];
+      }
+      return [];
+    }
+    subjectHasSource(subject, predicate, value, hasValue) {
+      if (!predicate) {
+        return true;
+      }
+      const property = this.propertyName(predicate);
+      if (!(property in subject)) {
+        return false;
+      }
+      if (!hasValue) {
+        return true;
+      }
+      return values(subject[property]).some((item) => sameSourceValue(item, value));
+    }
+    subjectID(subject) {
+      if (subject?.id) {
+        return this.fullURI(subject.id);
+      }
+      if (typeof subject == "string") {
+        return this.fullURI(subject);
+      }
+      return null;
+    }
+    propertyName(predicate) {
+      if (predicate?.id) {
+        predicate = predicate.id;
+      }
+      if (predicate == "a" || predicate == rdfType || this.fullURI(predicate) == rdfType) {
+        return "a";
+      }
+      return this.shortURI(this.fullURI(predicate));
+    }
+    get(shortID) {
+      return this.subjects[this.fullURI(shortID)];
+    }
+    getSubjects() {
+      const subjects = /* @__PURE__ */ Object.create(null);
+      this.#buildingSubjects = true;
+      try {
+        for (const graph of this.graphs) {
+          for (const id of Object.keys(graph.subjects)) {
+            if (!subjects[id]) {
+              subjects[id] = this.contextSubject(new NamedNode(id, this));
+            }
+          }
+        }
+        for (const graph of this.graphs) {
+          for (const [id, subject] of Object.entries(graph.subjects)) {
+            this.mergeSubject(subjects[id], subject, subjects);
+          }
+        }
+      } finally {
+        this.#buildingSubjects = false;
+      }
+      return subjects;
+    }
+    mergeSubject(target, source, subjects) {
+      for (const [predicate, value] of Object.entries(source)) {
+        if (predicate == "id") {
+          continue;
+        }
+        target[predicate] = mergeValue(
+          target[predicate],
+          resolveValue(value, subjects, this)
+        );
+      }
+    }
+    contextSubject(subject) {
+      const context = this;
+      return new Proxy(subject, {
+        set(target, property, value, receiver) {
+          if (context.#buildingSubjects || typeof property == "symbol" || property == "id" || property == "graph") {
+            return Reflect.set(target, property, value, receiver);
+          }
+          context.set(target.id, property, value);
+          context.updateContextProperty(target, property);
+          return true;
+        },
+        deleteProperty(target, property) {
+          if (context.#buildingSubjects || typeof property == "symbol" || property == "id" || property == "graph") {
+            return Reflect.deleteProperty(target, property);
+          }
+          context.delete(target.id, property);
+          context.updateContextProperty(target, property);
+          return true;
+        }
+      });
+    }
+    updateContextProperty(target, property) {
+      const updated = this.get(target.id);
+      if (updated && property in updated) {
+        target[property] = updated[property];
+      } else {
+        delete target[property];
+      }
+    }
+    fullURI(shortURI, separator = null) {
+      if (!separator) {
+        separator = this.separator;
+      }
+      const [prefix, path] = shortURI.split(separator);
+      if (path && this.prefixes[prefix]) {
+        return this.prefixes[prefix] + path;
+      }
+      return shortURI;
+    }
+    shortURI(fullURI, separator = null) {
+      if (!separator) {
+        separator = this.separator;
+      }
+      for (const prefix of this.prefixOrder) {
+        if (fullURI.startsWith(this.prefixes[prefix])) {
+          return prefix + separator + fullURI.substring(this.prefixes[prefix].length);
+        }
+      }
+      return fullURI;
     }
     setType(literal2, shortType) {
       if (!shortType) {
@@ -8189,7 +2254,7 @@
       }
       if (typeof literal2 == "string") {
         literal2 = new String(literal2);
-      } else if (typeof result == "number") {
+      } else if (typeof literal2 == "number") {
         literal2 = new Number(literal2);
       }
       if (typeof literal2 !== "object") {
@@ -8207,10 +2272,10 @@
   };
   var Graph = class {
     #blankNodes = /* @__PURE__ */ Object.create(null);
-    constructor(quads, url, mimetype, prefixes3, context) {
+    constructor(quads, url, mimetype, prefixes2, context) {
       this.mimetype = mimetype;
       this.url = url;
-      this.prefixes = prefixes3;
+      this.prefixes = prefixes2;
       this.context = context;
       this.subjects = /* @__PURE__ */ Object.create(null);
       for (let quad2 of quads) {
@@ -8221,7 +2286,7 @@
           switch (shortPred) {
             case "rdf:first":
               subject = this.addCollection(quad2.subject.id);
-              shortObj = this.shortURI(quad2.object.id, ":");
+              shortObj = quad2.object.id ? this.shortURI(quad2.object.id, ":") : null;
               if (shortObj != "rdf:nil") {
                 const value = this.getValue(quad2.object);
                 if (value) {
@@ -8277,13 +2342,140 @@
     get(shortID) {
       return this.subjects[this.fullURI(shortID)];
     }
+    set(subject, predicate, value) {
+      const node = this.ensureSubject(subject);
+      const property = this.context.propertyName(predicate);
+      if (property == "a") {
+        node.a = this.normalizeTypeValues(value);
+      } else {
+        node[property] = this.normalizeValues(value);
+      }
+      return node;
+    }
+    add(subject, predicate, value) {
+      const node = this.ensureSubject(subject);
+      const property = this.context.propertyName(predicate);
+      const newValue = property == "a" ? this.normalizeTypeValues(value) : this.normalizeValues(value);
+      node[property] = mergeValue(node[property], newValue);
+      return node;
+    }
+    delete(subject, predicate = null, value = void 0) {
+      const node = this.findSubject(subject);
+      if (!node) {
+        return false;
+      }
+      if (!predicate) {
+        if (node.id) {
+          delete this.subjects[node.id];
+          if (this.primary === node) {
+            this.primary = null;
+          }
+        }
+        return true;
+      }
+      const property = this.context.propertyName(predicate);
+      if (!(property in node)) {
+        return false;
+      }
+      if (arguments.length < 3) {
+        delete node[property];
+        return true;
+      }
+      const deleteValues = property == "a" ? values(this.normalizeTypeValues(value)) : values(this.normalizeValues(value));
+      const remaining = values(node[property]).filter((item) => !deleteValues.some((deleteValue) => sameValue(item, deleteValue)));
+      if (remaining.length == values(node[property]).length) {
+        return false;
+      }
+      if (remaining.length == 0) {
+        delete node[property];
+      } else if (remaining.length == 1) {
+        node[property] = remaining[0];
+      } else {
+        node[property] = remaining;
+      }
+      return true;
+    }
+    ensureSubject(subject) {
+      if (subject instanceof BlankNode && !(subject instanceof NamedNode)) {
+        if (subject.graph !== this) {
+          throw new Error("Cannot write a blank node into a different graph");
+        }
+        return subject;
+      }
+      if (subject instanceof NamedNode) {
+        return this.addNamedNode(subject.id);
+      }
+      return this.addNamedNode(this.fullURI(subject));
+    }
+    findSubject(subject) {
+      if (subject instanceof BlankNode && !(subject instanceof NamedNode)) {
+        return subject.graph === this ? subject : null;
+      }
+      const id = subject?.id ? subject.id : this.fullURI(subject);
+      return this.subjects[id];
+    }
+    normalizeValues(value) {
+      if (Array.isArray(value) && !(value instanceof Collection)) {
+        return value.map((item) => this.normalizeValue(item));
+      }
+      return this.normalizeValue(value);
+    }
+    normalizeValue(value) {
+      if (value instanceof Collection) {
+        const collection = new Collection(this);
+        for (const item of value) {
+          collection.push(this.normalizeValue(item));
+        }
+        return collection;
+      }
+      if (value instanceof NamedNode) {
+        return this.addNamedNode(value.id);
+      }
+      if (value instanceof BlankNode) {
+        if (value.graph !== this) {
+          throw new Error("Cannot write a blank node into a different graph");
+        }
+        return value;
+      }
+      if (this.looksLikeURI(value)) {
+        return this.addNamedNode(this.fullURI(value));
+      }
+      return value;
+    }
+    normalizeTypeValues(value) {
+      if (Array.isArray(value) && !(value instanceof Collection)) {
+        return value.map((item) => this.normalizeTypeValue(item));
+      }
+      return this.normalizeTypeValue(value);
+    }
+    normalizeTypeValue(value) {
+      if (value instanceof NamedNode) {
+        return this.shortURI(value.id);
+      }
+      return this.shortURI(this.fullURI(value));
+    }
+    looksLikeURI(value) {
+      if (typeof value != "string") {
+        return false;
+      }
+      if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
+        return true;
+      }
+      const [prefix, path] = value.split(this.context.separator);
+      return Boolean(path && this.context.prefixes[prefix]);
+    }
     fullURI(shortURI, separator = null) {
       if (!separator) {
         separator = this.context.separator;
       }
-      const [prefix2, path] = shortURI.split(separator);
+      const [prefix, path] = shortURI.split(separator);
       if (path) {
-        return this.prefixes[prefix2] + path;
+        if (this.context.prefixes[prefix]) {
+          return this.context.prefixes[prefix] + path;
+        }
+        if (this.prefixes[prefix]) {
+          return this.prefixes[prefix] + path;
+        }
       }
       return shortURI;
     }
@@ -8291,9 +2483,9 @@
       if (!separator) {
         separator = this.context.separator;
       }
-      for (let prefix2 in this.context.prefixes) {
-        if (fullURI.startsWith(this.context.prefixes[prefix2])) {
-          return prefix2 + separator + fullURI.substring(this.context.prefixes[prefix2].length);
+      for (const prefix of this.context.prefixOrder) {
+        if (fullURI.startsWith(this.context.prefixes[prefix])) {
+          return prefix + separator + fullURI.substring(this.context.prefixes[prefix].length);
         }
       }
       if (this.url && fullURI.startsWith(this.url)) {
@@ -8317,7 +2509,7 @@
     setLanguage(literal2, language) {
       if (typeof literal2 == "string") {
         literal2 = new String(literal2);
-      } else if (typeof result == "number") {
+      } else if (typeof literal2 == "number") {
         literal2 = new Number(literal2);
       }
       if (typeof literal2 !== "object") {
@@ -8327,23 +2519,23 @@
       return literal2;
     }
     getValue(object) {
-      let result2;
+      let result;
       if (object.termType == "Literal") {
-        result2 = object.value;
+        result = object.value;
         let datatype = object.datatype?.id;
         if (datatype) {
-          result2 = this.setType(result2, datatype);
+          result = this.setType(result, datatype);
         }
         let language = object.language;
         if (language) {
-          result2 = this.setLanguage(result2, language);
+          result = this.setLanguage(result, language);
         }
       } else if (object.termType == "BlankNode") {
-        result2 = this.addBlankNode(object.id);
+        result = this.addBlankNode(object.id);
       } else {
-        result2 = this.addNamedNode(object.id);
+        result = this.addNamedNode(object.id);
       }
-      return result2;
+      return result;
     }
   };
   var BlankNode = class {
@@ -8400,7 +2592,7 @@
     }
   };
   var Collection = class extends Array {
-    constructor(id, graph) {
+    constructor(graph) {
       super();
       Object.defineProperty(this, "graph", {
         value: graph,
@@ -8410,17 +2602,17 @@
     }
   };
 
-  // node_modules/@muze-nl/oldm/src/oldm-n3.mjs
+  // ../../node_modules/@muze-nl/oldm-n3/src/oldm-n3.mjs
   var oldm_n3_exports = {};
   __export(oldm_n3_exports, {
     n3Parser: () => n3Parser,
     n3Writer: () => n3Writer
   });
 
-  // node_modules/n3/src/N3Lexer.js
+  // ../../node_modules/n3/src/N3Lexer.js
   var import_buffer = __toESM(require_buffer());
 
-  // node_modules/n3/src/IRIs.js
+  // ../../node_modules/n3/src/IRIs.js
   var RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
   var XSD = "http://www.w3.org/2001/XMLSchema#";
   var SWAP = "http://www.w3.org/2000/10/swap/";
@@ -8454,7 +2646,7 @@
     }
   };
 
-  // node_modules/n3/src/N3Lexer.js
+  // ../../node_modules/n3/src/N3Lexer.js
   var { xsd } = IRIs_default;
   var escapeSequence = /\\u([a-fA-F0-9]{4})|\\U([a-fA-F0-9]{8})|\\([^])/g;
   var escapeReplacements = {
@@ -8487,6 +2679,9 @@
     "%": "%"
   };
   var illegalIriChars = /[\x00-\x20<>\\"\{\}\|\^\`]/;
+  function isSurrogateCodePoint(charCode) {
+    return charCode >= 55296 && charCode <= 57343;
+  }
   var lineModeRegExps = {
     _iri: true,
     _unescapedIri: true,
@@ -8561,7 +2756,7 @@
           return this._input = input;
         }
         const line = this._line, firstChar = input[0];
-        let type = "", value = "", prefix2 = "", match = null, matchLength = 0, inconclusive = false;
+        let type = "", value = "", prefix = "", match = null, matchLength = 0, inconclusive = false;
         switch (firstChar) {
           case "^":
             if (input.length < 3)
@@ -8605,7 +2800,7 @@
             break;
           case "_":
             if ((match = this._blank.exec(input)) || inputFinished && (match = this._blank.exec(`${input} `)))
-              type = "blank", prefix2 = "_", value = match[1];
+              type = "blank", prefix = "_", value = match[1];
             break;
           case '"':
             if (match = this._simpleQuotedString.exec(input))
@@ -8671,7 +2866,7 @@
             }
             if (match = this._number.exec(input) || inputFinished && (match = this._number.exec(`${input} `))) {
               type = "literal", value = match[0];
-              prefix2 = typeof match[1] === "string" ? xsd.double : typeof match[2] === "string" ? xsd.decimal : xsd.integer;
+              prefix = typeof match[1] === "string" ? xsd.double : typeof match[2] === "string" ? xsd.decimal : xsd.integer;
             }
             break;
           case "B":
@@ -8690,7 +2885,7 @@
           case "f":
           case "t":
             if (match = this._boolean.exec(input))
-              type = "literal", value = match[0], prefix2 = xsd.boolean;
+              type = "literal", value = match[0], prefix = xsd.boolean;
             else
               inconclusive = true;
             break;
@@ -8751,7 +2946,7 @@
           if ((this._previousMarker === "@prefix" || this._previousMarker === "PREFIX") && (match = this._prefix.exec(input)))
             type = "prefix", value = match[1] || "";
           else if ((match = this._prefixed.exec(input)) || inputFinished && (match = this._prefixed.exec(`${input} `)))
-            type = "prefixed", prefix2 = match[1] || "", value = this._unescape(match[2]);
+            type = "prefixed", prefix = match[1] || "", value = this._unescape(match[2]);
         }
         if (this._previousMarker === "^^") {
           switch (type) {
@@ -8772,30 +2967,40 @@
             return this._input = input;
         }
         const length = matchLength || match[0].length;
-        const token = emitToken(type, value, prefix2, line, length);
+        const token = emitToken(type, value, prefix, line, length);
         this.previousToken = token;
         this._previousMarker = type;
         input = input.substr(length, input.length);
       }
-      function emitToken(type, value, prefix2, line, length) {
+      function emitToken(type, value, prefix, line, length) {
         const start = input ? currentLineLength - input.length : currentLineLength;
         const end = start + length;
-        const token = { type, value, prefix: prefix2, line, start, end };
+        const token = { type, value, prefix, line, start, end };
         callback(null, token);
         return token;
       }
-      function reportSyntaxError(self2) {
-        callback(self2._syntaxError(/^\S*/.exec(input)[0]));
+      function reportSyntaxError(self) {
+        callback(self._syntaxError(/^\S*/.exec(input)[0]));
       }
     }
     // ### `_unescape` replaces N3 escape codes by their corresponding characters
     _unescape(item) {
       let invalid = false;
       const replaced = item.replace(escapeSequence, (sequence, unicode4, unicode8, escapedChar) => {
-        if (typeof unicode4 === "string")
-          return String.fromCharCode(Number.parseInt(unicode4, 16));
+        if (typeof unicode4 === "string") {
+          const charCode = Number.parseInt(unicode4, 16);
+          if (isSurrogateCodePoint(charCode)) {
+            invalid = true;
+            return "";
+          }
+          return String.fromCharCode(charCode);
+        }
         if (typeof unicode8 === "string") {
           let charCode = Number.parseInt(unicode8, 16);
+          if (isSurrogateCodePoint(charCode)) {
+            invalid = true;
+            return "";
+          }
           return charCode <= 65535 ? String.fromCharCode(Number.parseInt(unicode8, 16)) : String.fromCharCode(55296 + ((charCode -= 65536) >> 10), 56320 + (charCode & 1023));
         }
         if (escapedChar in escapeReplacements)
@@ -8891,7 +3096,7 @@
     }
   };
 
-  // node_modules/n3/src/N3DataFactory.js
+  // ../../node_modules/n3/src/N3DataFactory.js
   var { rdf, xsd: xsd2 } = IRIs_default;
   var DEFAULTGRAPH;
   var _blankNodeCounter = 0;
@@ -9033,85 +3238,6 @@
     }
   };
   DEFAULTGRAPH = new DefaultGraph();
-  function termFromId(id, factory, nested) {
-    factory = factory || DataFactory;
-    if (!id)
-      return factory.defaultGraph();
-    switch (id[0]) {
-      case "?":
-        return factory.variable(id.substr(1));
-      case "_":
-        return factory.blankNode(id.substr(2));
-      case '"':
-        if (factory === DataFactory)
-          return new Literal(id);
-        if (id[id.length - 1] === '"')
-          return factory.literal(id.substr(1, id.length - 2));
-        const endPos = id.lastIndexOf('"', id.length - 1);
-        let languageOrDatatype;
-        if (id[endPos + 1] === "@") {
-          languageOrDatatype = id.substr(endPos + 2);
-          const dashDashIndex = languageOrDatatype.lastIndexOf("--");
-          if (dashDashIndex > 0 && dashDashIndex < languageOrDatatype.length) {
-            languageOrDatatype = {
-              language: languageOrDatatype.substr(0, dashDashIndex),
-              direction: languageOrDatatype.substr(dashDashIndex + 2)
-            };
-          }
-        } else {
-          languageOrDatatype = factory.namedNode(id.substr(endPos + 3));
-        }
-        return factory.literal(
-          id.substr(1, endPos - 1),
-          languageOrDatatype
-        );
-      case "[":
-        id = JSON.parse(id);
-        break;
-      default:
-        if (!nested || !Array.isArray(id)) {
-          return factory.namedNode(id);
-        }
-    }
-    return factory.quad(
-      termFromId(id[0], factory, true),
-      termFromId(id[1], factory, true),
-      termFromId(id[2], factory, true),
-      id[3] && termFromId(id[3], factory, true)
-    );
-  }
-  function termToId(term, nested) {
-    if (typeof term === "string")
-      return term;
-    if (term instanceof Term && term.termType !== "Quad")
-      return term.id;
-    if (!term)
-      return DEFAULTGRAPH.id;
-    switch (term.termType) {
-      case "NamedNode":
-        return term.value;
-      case "BlankNode":
-        return `_:${term.value}`;
-      case "Variable":
-        return `?${term.value}`;
-      case "DefaultGraph":
-        return "";
-      case "Literal":
-        return `"${term.value}"${term.language ? `@${term.language}${term.direction ? `--${term.direction}` : ""}` : term.datatype && term.datatype.value !== xsd2.string ? `^^${term.datatype.value}` : ""}`;
-      case "Quad":
-        const res = [
-          termToId(term.subject, true),
-          termToId(term.predicate, true),
-          termToId(term.object, true)
-        ];
-        if (term.graph && term.graph.termType !== "DefaultGraph") {
-          res.push(termToId(term.graph, true));
-        }
-        return nested ? res : JSON.stringify(res);
-      default:
-        throw new Error(`Unexpected termType: ${term.termType}`);
-    }
-  }
   var Quad = class extends Term {
     constructor(subject, predicate, object, graph) {
       super("");
@@ -9216,7 +3342,7 @@
     return quad(fromTerm(inQuad.subject), fromTerm(inQuad.predicate), fromTerm(inQuad.object), fromTerm(inQuad.graph));
   }
 
-  // node_modules/n3/src/N3Parser.js
+  // ../../node_modules/n3/src/N3Parser.js
   var blankNodePrefix = 0;
   var N3Parser = class _N3Parser {
     constructor(options) {
@@ -9358,10 +3484,10 @@
         // Read a prefixed name
         case "type":
         case "prefixed":
-          const prefix2 = this._prefixes[token.prefix];
-          if (prefix2 === void 0)
+          const prefix = this._prefixes[token.prefix];
+          if (prefix === void 0)
             return this._error(`Undefined prefix "${token.prefix}:"`, token);
-          value = this._factory.namedNode(prefix2 + token.value);
+          value = this._factory.namedNode(prefix + token.value);
           break;
         // Read a blank node
         case "blank":
@@ -10172,7 +4298,7 @@
       if (!/(^|\/)\.\.?($|[/#?])/.test(iri))
         return iri;
       const length = iri.length;
-      let result2 = "", i = -1, pathStart = -1, segmentStart = 0, next = "/";
+      let result = "", i = -1, pathStart = -1, segmentStart = 0, next = "/";
       while (i < length) {
         switch (next) {
           // The path starts with the first slash after the authority
@@ -10195,23 +4321,23 @@
               switch (next) {
                 // Remove a '/.' segment
                 case "/":
-                  result2 += iri.substring(segmentStart, i - 1);
+                  result += iri.substring(segmentStart, i - 1);
                   segmentStart = i + 1;
                   break;
                 // Remove a trailing '/.' segment
                 case void 0:
                 case "?":
                 case "#":
-                  return result2 + iri.substring(segmentStart, i) + iri.substr(i + 1);
+                  return result + iri.substring(segmentStart, i) + iri.substr(i + 1);
                 // Remove a '/..' segment
                 case ".":
                   next = iri[++i + 1];
                   if (next === void 0 || next === "/" || next === "?" || next === "#") {
-                    result2 += iri.substring(segmentStart, i - 2);
-                    if ((segmentStart = result2.lastIndexOf("/")) >= pathStart)
-                      result2 = result2.substr(0, segmentStart);
+                    result += iri.substring(segmentStart, i - 2);
+                    if ((segmentStart = result.lastIndexOf("/")) >= pathStart)
+                      result = result.substr(0, segmentStart);
                     if (next !== "/")
-                      return `${result2}/${iri.substr(i + 1)}`;
+                      return `${result}/${iri.substr(i + 1)}`;
                     segmentStart = i + 1;
                   }
               }
@@ -10219,7 +4345,7 @@
         }
         next = iri[++i];
       }
-      return result2 + iri.substring(segmentStart);
+      return result + iri.substring(segmentStart);
     }
     // ## Public methods
     // ### `parse` parses the N3 input and emits each parsed quad through the onQuad callback.
@@ -10304,68 +4430,17 @@
   ];
   initDataFactory(N3Parser.prototype, N3DataFactory_default);
 
-  // node_modules/n3/src/N3Util.js
-  var N3Util_exports = {};
-  __export(N3Util_exports, {
-    inDefaultGraph: () => inDefaultGraph,
-    isBlankNode: () => isBlankNode,
-    isDefaultGraph: () => isDefaultGraph,
-    isLiteral: () => isLiteral,
-    isNamedNode: () => isNamedNode,
-    isQuad: () => isQuad,
-    isVariable: () => isVariable,
-    prefix: () => prefix,
-    prefixes: () => prefixes2
-  });
-  function isNamedNode(term) {
-    return !!term && term.termType === "NamedNode";
-  }
-  function isBlankNode(term) {
-    return !!term && term.termType === "BlankNode";
-  }
-  function isLiteral(term) {
-    return !!term && term.termType === "Literal";
-  }
-  function isVariable(term) {
-    return !!term && term.termType === "Variable";
-  }
-  function isQuad(term) {
-    return !!term && term.termType === "Quad";
-  }
+  // ../../node_modules/n3/src/N3Util.js
   function isDefaultGraph(term) {
     return !!term && term.termType === "DefaultGraph";
   }
-  function inDefaultGraph(quad2) {
-    return isDefaultGraph(quad2.graph);
-  }
-  function prefix(iri, factory) {
-    return prefixes2({ "": iri.value || iri }, factory)("");
-  }
-  function prefixes2(defaultPrefixes, factory) {
-    const prefixes3 = /* @__PURE__ */ Object.create(null);
-    for (const prefix2 in defaultPrefixes)
-      processPrefix(prefix2, defaultPrefixes[prefix2]);
-    factory = factory || N3DataFactory_default;
-    function processPrefix(prefix2, iri) {
-      if (typeof iri === "string") {
-        const cache = /* @__PURE__ */ Object.create(null);
-        prefixes3[prefix2] = (local) => {
-          return cache[local] || (cache[local] = factory.namedNode(iri + local));
-        };
-      } else if (!(prefix2 in prefixes3)) {
-        throw new Error(`Unknown prefix: ${prefix2}`);
-      }
-      return prefixes3[prefix2];
-    }
-    return processPrefix;
-  }
 
-  // node_modules/n3/src/Util.js
+  // ../../node_modules/n3/src/Util.js
   function escapeRegex(regex) {
     return regex.replace(/[\]\/\(\)\*\+\?\.\\\$]/g, "\\$&");
   }
 
-  // node_modules/n3/src/BaseIRI.js
+  // ../../node_modules/n3/src/BaseIRI.js
   var BASE_UNSUPPORTED = /^:?[^:?#]*(?:[?#]|$)|^file:|^[^:]*:\/*[^?#]+?\/(?:\.\.?(?:\/|$)|\/)/i;
   var SUFFIX_SUPPORTED = /^(?:(?:[^/?#]{3,}|\.?[^/?#.]\.?)(?:\/[^/?#]{3,}|\.?[^/?#.]\.?)*\/?)?(?:[?#]|$)/;
   var CURRENT = "./";
@@ -10437,7 +4512,7 @@
     }
   };
 
-  // node_modules/n3/src/N3Writer.js
+  // ../../node_modules/n3/src/N3Writer.js
   var DEFAULTGRAPH2 = N3DataFactory_default.defaultGraph();
   var { rdf: rdf2, xsd: xsd3 } = IRIs_default;
   var escape = /["\\\t\n\r\b\f\u0000-\u0019\ud800-\udbff]/;
@@ -10635,18 +4710,18 @@
         this.addQuad(quads[i]);
     }
     // ### `addPrefix` adds the prefix to the output stream
-    addPrefix(prefix2, iri, done) {
-      const prefixes3 = {};
-      prefixes3[prefix2] = iri;
-      this.addPrefixes(prefixes3, done);
+    addPrefix(prefix, iri, done) {
+      const prefixes2 = {};
+      prefixes2[prefix] = iri;
+      this.addPrefixes(prefixes2, done);
     }
     // ### `addPrefixes` adds the prefixes to the output stream
-    addPrefixes(prefixes3, done) {
+    addPrefixes(prefixes2, done) {
       if (!this._prefixIRIs)
         return done && done();
       let hasPrefixes = false;
-      for (let prefix2 in prefixes3) {
-        let iri = prefixes3[prefix2];
+      for (let prefix in prefixes2) {
+        let iri = prefixes2[prefix];
         if (typeof iri !== "string")
           iri = iri.value;
         hasPrefixes = true;
@@ -10654,8 +4729,8 @@
           this._write(this._inDefaultGraph ? ".\n" : "\n}\n");
           this._subject = null, this._graph = "";
         }
-        this._prefixIRIs[iri] = prefix2 += ":";
-        this._write(`@prefix ${prefix2} <${iri}>.
+        this._prefixIRIs[iri] = prefix += ":";
+        this._write(`@prefix ${prefix} <${iri}>.
 `);
       }
       if (hasPrefixes) {
@@ -10717,8 +4792,8 @@
         this._subject = null;
       }
       this._write = this._blockedWrite;
-      let singleDone = done && ((error, result2) => {
-        singleDone = null, done(error, result2);
+      let singleDone = done && ((error, result) => {
+        singleDone = null, done(error, result);
       });
       if (this._endStream) {
         try {
@@ -10730,1349 +4805,45 @@
     }
   };
   function characterReplacer(character) {
-    let result2 = escapedCharacters[character];
-    if (result2 === void 0) {
+    let result = escapedCharacters[character];
+    if (result === void 0) {
       if (character.length === 1) {
-        result2 = character.charCodeAt(0).toString(16);
-        result2 = "\\u0000".substr(0, 6 - result2.length) + result2;
+        result = character.charCodeAt(0).toString(16);
+        result = "\\u0000".substr(0, 6 - result.length) + result;
       } else {
-        result2 = ((character.charCodeAt(0) - 55296) * 1024 + character.charCodeAt(1) + 9216).toString(16);
-        result2 = "\\U00000000".substr(0, 10 - result2.length) + result2;
+        result = ((character.charCodeAt(0) - 55296) * 1024 + character.charCodeAt(1) + 9216).toString(16);
+        result = "\\U00000000".substr(0, 10 - result.length) + result;
       }
     }
-    return result2;
+    return result;
   }
 
-  // node_modules/n3/src/N3Store.js
-  var import_readable_stream = __toESM(require_browser3());
-  var ITERATOR = /* @__PURE__ */ Symbol("iter");
-  function merge(target, source, depth = 4) {
-    if (depth === 0)
-      return Object.assign(target, source);
-    for (const key in source)
-      target[key] = merge(target[key] || /* @__PURE__ */ Object.create(null), source[key], depth - 1);
-    return target;
-  }
-  function intersect(s1, s2, depth = 4) {
-    let target = false;
-    for (const key in s1) {
-      if (key in s2) {
-        const intersection = depth === 0 ? null : intersect(s1[key], s2[key], depth - 1);
-        if (intersection !== false) {
-          target = target || /* @__PURE__ */ Object.create(null);
-          target[key] = intersection;
-        } else if (depth === 3) {
-          return false;
-        }
-      }
-    }
-    return target;
-  }
-  function difference(s1, s2, depth = 4) {
-    let target = false;
-    for (const key in s1) {
-      if (!(key in s2)) {
-        target = target || /* @__PURE__ */ Object.create(null);
-        target[key] = depth === 0 ? null : merge({}, s1[key], depth - 1);
-      } else if (depth !== 0) {
-        const diff = difference(s1[key], s2[key], depth - 1);
-        if (diff !== false) {
-          target = target || /* @__PURE__ */ Object.create(null);
-          target[key] = diff;
-        } else if (depth === 3) {
-          return false;
-        }
-      }
-    }
-    return target;
-  }
-  var N3EntityIndex = class {
-    constructor(options = {}) {
-      this._id = 1;
-      this._ids = /* @__PURE__ */ Object.create(null);
-      this._ids[""] = 1;
-      this._entities = /* @__PURE__ */ Object.create(null);
-      this._entities[1] = "";
-      this._blankNodeIndex = 0;
-      this._factory = options.factory || N3DataFactory_default;
-    }
-    _termFromId(id) {
-      if (id[0] === ".") {
-        const entities = this._entities;
-        const terms = id.split(".");
-        const q = this._factory.quad(
-          this._termFromId(entities[terms[1]]),
-          this._termFromId(entities[terms[2]]),
-          this._termFromId(entities[terms[3]]),
-          terms[4] && this._termFromId(entities[terms[4]])
-        );
-        return q;
-      }
-      return termFromId(id, this._factory);
-    }
-    _termToNumericId(term) {
-      if (term.termType === "Quad") {
-        const s = this._termToNumericId(term.subject), p = this._termToNumericId(term.predicate), o = this._termToNumericId(term.object);
-        let g;
-        return s && p && o && (isDefaultGraph(term.graph) || (g = this._termToNumericId(term.graph))) && this._ids[g ? `.${s}.${p}.${o}.${g}` : `.${s}.${p}.${o}`];
-      }
-      return this._ids[termToId(term)];
-    }
-    _termToNewNumericId(term) {
-      const str = term && term.termType === "Quad" ? `.${this._termToNewNumericId(term.subject)}.${this._termToNewNumericId(term.predicate)}.${this._termToNewNumericId(term.object)}${isDefaultGraph(term.graph) ? "" : `.${this._termToNewNumericId(term.graph)}`}` : termToId(term);
-      return this._ids[str] || (this._ids[this._entities[++this._id] = str] = this._id);
-    }
-    createBlankNode(suggestedName) {
-      let name, index;
-      if (suggestedName) {
-        name = suggestedName = `_:${suggestedName}`, index = 1;
-        while (this._ids[name])
-          name = suggestedName + index++;
-      } else {
-        do {
-          name = `_:b${this._blankNodeIndex++}`;
-        } while (this._ids[name]);
-      }
-      this._ids[name] = ++this._id;
-      this._entities[this._id] = name;
-      return this._factory.blankNode(name.substr(2));
-    }
-  };
-  var N3Store = class _N3Store {
-    constructor(quads, options) {
-      this._size = 0;
-      this._graphs = /* @__PURE__ */ Object.create(null);
-      if (!options && quads && !quads[0] && !(typeof quads.match === "function"))
-        options = quads, quads = null;
-      options = options || {};
-      this._factory = options.factory || N3DataFactory_default;
-      this._entityIndex = options.entityIndex || new N3EntityIndex({ factory: this._factory });
-      this._entities = this._entityIndex._entities;
-      this._termFromId = this._entityIndex._termFromId.bind(this._entityIndex);
-      this._termToNumericId = this._entityIndex._termToNumericId.bind(this._entityIndex);
-      this._termToNewNumericId = this._entityIndex._termToNewNumericId.bind(this._entityIndex);
-      if (quads)
-        this.addAll(quads);
-    }
-    // ## Public properties
-    // ### `size` returns the number of quads in the store
-    get size() {
-      let size = this._size;
-      if (size !== null)
-        return size;
-      size = 0;
-      const graphs = this._graphs;
-      let subjects, subject;
-      for (const graphKey in graphs)
-        for (const subjectKey in subjects = graphs[graphKey].subjects)
-          for (const predicateKey in subject = subjects[subjectKey])
-            size += Object.keys(subject[predicateKey]).length;
-      return this._size = size;
-    }
-    // ## Private methods
-    // ### `_addToIndex` adds a quad to a three-layered index.
-    // Returns if the index has changed, if the entry did not already exist.
-    _addToIndex(index0, key0, key1, key2) {
-      const index1 = index0[key0] || (index0[key0] = {});
-      const index2 = index1[key1] || (index1[key1] = {});
-      const existed = key2 in index2;
-      if (!existed)
-        index2[key2] = null;
-      return !existed;
-    }
-    // ### `_removeFromIndex` removes a quad from a three-layered index
-    _removeFromIndex(index0, key0, key1, key2) {
-      const index1 = index0[key0], index2 = index1[key1];
-      delete index2[key2];
-      for (const key in index2) return;
-      delete index1[key1];
-      for (const key in index1) return;
-      delete index0[key0];
-    }
-    // ### `_findInIndex` finds a set of quads in a three-layered index.
-    // The index base is `index0` and the keys at each level are `key0`, `key1`, and `key2`.
-    // Any of these keys can be undefined, which is interpreted as a wildcard.
-    // `name0`, `name1`, and `name2` are the names of the keys at each level,
-    // used when reconstructing the resulting quad
-    // (for instance: _subject_, _predicate_, and _object_).
-    // Finally, `graphId` will be the graph of the created quads.
-    *_findInIndex(index0, key0, key1, key2, name0, name1, name2, graphId) {
-      let tmp, index1, index2;
-      const entityKeys = this._entities;
-      const graph = this._termFromId(entityKeys[graphId]);
-      const parts = { subject: null, predicate: null, object: null };
-      if (key0) (tmp = index0, index0 = {})[key0] = tmp[key0];
-      for (const value0 in index0) {
-        if (index1 = index0[value0]) {
-          parts[name0] = this._termFromId(entityKeys[value0]);
-          if (key1) (tmp = index1, index1 = {})[key1] = tmp[key1];
-          for (const value1 in index1) {
-            if (index2 = index1[value1]) {
-              parts[name1] = this._termFromId(entityKeys[value1]);
-              const values = key2 ? key2 in index2 ? [key2] : [] : Object.keys(index2);
-              for (let l = 0; l < values.length; l++) {
-                parts[name2] = this._termFromId(entityKeys[values[l]]);
-                yield this._factory.quad(parts.subject, parts.predicate, parts.object, graph);
-              }
-            }
-          }
-        }
-      }
-    }
-    // ### `_loop` executes the callback on all keys of index 0
-    _loop(index0, callback) {
-      for (const key0 in index0)
-        callback(key0);
-    }
-    // ### `_loopByKey0` executes the callback on all keys of a certain entry in index 0
-    _loopByKey0(index0, key0, callback) {
-      let index1, key1;
-      if (index1 = index0[key0]) {
-        for (key1 in index1)
-          callback(key1);
-      }
-    }
-    // ### `_loopByKey1` executes the callback on given keys of all entries in index 0
-    _loopByKey1(index0, key1, callback) {
-      let key0, index1;
-      for (key0 in index0) {
-        index1 = index0[key0];
-        if (index1[key1])
-          callback(key0);
-      }
-    }
-    // ### `_loopBy2Keys` executes the callback on given keys of certain entries in index 2
-    _loopBy2Keys(index0, key0, key1, callback) {
-      let index1, index2, key2;
-      if ((index1 = index0[key0]) && (index2 = index1[key1])) {
-        for (key2 in index2)
-          callback(key2);
-      }
-    }
-    // ### `_countInIndex` counts matching quads in a three-layered index.
-    // The index base is `index0` and the keys at each level are `key0`, `key1`, and `key2`.
-    // Any of these keys can be undefined, which is interpreted as a wildcard.
-    _countInIndex(index0, key0, key1, key2) {
-      let count = 0, tmp, index1, index2;
-      if (key0) (tmp = index0, index0 = {})[key0] = tmp[key0];
-      for (const value0 in index0) {
-        if (index1 = index0[value0]) {
-          if (key1) (tmp = index1, index1 = {})[key1] = tmp[key1];
-          for (const value1 in index1) {
-            if (index2 = index1[value1]) {
-              if (key2) key2 in index2 && count++;
-              else count += Object.keys(index2).length;
-            }
-          }
-        }
-      }
-      return count;
-    }
-    // ### `_getGraphs` returns an array with the given graph,
-    // or all graphs if the argument is null or undefined.
-    _getGraphs(graph) {
-      graph = graph === "" ? 1 : graph && (this._termToNumericId(graph) || -1);
-      return typeof graph !== "number" ? this._graphs : { [graph]: this._graphs[graph] };
-    }
-    // ### `_uniqueEntities` returns a function that accepts an entity ID
-    // and passes the corresponding entity to callback if it hasn't occurred before.
-    _uniqueEntities(callback) {
-      const uniqueIds = /* @__PURE__ */ Object.create(null);
-      return (id) => {
-        if (!(id in uniqueIds)) {
-          uniqueIds[id] = true;
-          callback(this._termFromId(this._entities[id], this._factory));
-        }
-      };
-    }
-    // ## Public methods
-    // ### `add` adds the specified quad to the dataset.
-    // Returns the dataset instance it was called on.
-    // Existing quads, as defined in Quad.equals, will be ignored.
-    add(quad2) {
-      this.addQuad(quad2);
-      return this;
-    }
-    // ### `addQuad` adds a new quad to the store.
-    // Returns if the quad index has changed, if the quad did not already exist.
-    addQuad(subject, predicate, object, graph) {
-      if (!predicate)
-        graph = subject.graph, object = subject.object, predicate = subject.predicate, subject = subject.subject;
-      graph = graph ? this._termToNewNumericId(graph) : 1;
-      let graphItem = this._graphs[graph];
-      if (!graphItem) {
-        graphItem = this._graphs[graph] = { subjects: {}, predicates: {}, objects: {} };
-        Object.freeze(graphItem);
-      }
-      subject = this._termToNewNumericId(subject);
-      predicate = this._termToNewNumericId(predicate);
-      object = this._termToNewNumericId(object);
-      if (!this._addToIndex(graphItem.subjects, subject, predicate, object))
-        return false;
-      this._addToIndex(graphItem.predicates, predicate, object, subject);
-      this._addToIndex(graphItem.objects, object, subject, predicate);
-      this._size = null;
-      return true;
-    }
-    // ### `addQuads` adds multiple quads to the store
-    addQuads(quads) {
-      for (let i = 0; i < quads.length; i++)
-        this.addQuad(quads[i]);
-    }
-    // ### `delete` removes the specified quad from the dataset.
-    // Returns the dataset instance it was called on.
-    delete(quad2) {
-      this.removeQuad(quad2);
-      return this;
-    }
-    // ### `has` determines whether a dataset includes a certain quad or quad pattern.
-    has(subjectOrQuad, predicate, object, graph) {
-      if (subjectOrQuad && subjectOrQuad.subject)
-        ({ subject: subjectOrQuad, predicate, object, graph } = subjectOrQuad);
-      return !this.readQuads(subjectOrQuad, predicate, object, graph).next().done;
-    }
-    // ### `import` adds a stream of quads to the store
-    import(stream) {
-      stream.on("data", (quad2) => {
-        this.addQuad(quad2);
-      });
-      return stream;
-    }
-    // ### `removeQuad` removes a quad from the store if it exists
-    removeQuad(subject, predicate, object, graph) {
-      if (!predicate)
-        ({ subject, predicate, object, graph } = subject);
-      graph = graph ? this._termToNumericId(graph) : 1;
-      const graphs = this._graphs;
-      let graphItem, subjects, predicates;
-      if (!(subject = subject && this._termToNumericId(subject)) || !(predicate = predicate && this._termToNumericId(predicate)) || !(object = object && this._termToNumericId(object)) || !(graphItem = graphs[graph]) || !(subjects = graphItem.subjects[subject]) || !(predicates = subjects[predicate]) || !(object in predicates))
-        return false;
-      this._removeFromIndex(graphItem.subjects, subject, predicate, object);
-      this._removeFromIndex(graphItem.predicates, predicate, object, subject);
-      this._removeFromIndex(graphItem.objects, object, subject, predicate);
-      if (this._size !== null) this._size--;
-      for (subject in graphItem.subjects) return true;
-      delete graphs[graph];
-      return true;
-    }
-    // ### `removeQuads` removes multiple quads from the store
-    removeQuads(quads) {
-      for (let i = 0; i < quads.length; i++)
-        this.removeQuad(quads[i]);
-    }
-    // ### `remove` removes a stream of quads from the store
-    remove(stream) {
-      stream.on("data", (quad2) => {
-        this.removeQuad(quad2);
-      });
-      return stream;
-    }
-    // ### `removeMatches` removes all matching quads from the store
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    removeMatches(subject, predicate, object, graph) {
-      const stream = new import_readable_stream.Readable({ objectMode: true });
-      const iterable = this.readQuads(subject, predicate, object, graph);
-      stream._read = (size) => {
-        while (--size >= 0) {
-          const { done, value } = iterable.next();
-          if (done) {
-            stream.push(null);
-            return;
-          }
-          stream.push(value);
-        }
-      };
-      return this.remove(stream);
-    }
-    // ### `deleteGraph` removes all triples with the given graph from the store
-    deleteGraph(graph) {
-      return this.removeMatches(null, null, null, graph);
-    }
-    // ### `getQuads` returns an array of quads matching a pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    getQuads(subject, predicate, object, graph) {
-      return [...this.readQuads(subject, predicate, object, graph)];
-    }
-    /**
-     * `readQuads` returns a generator of quads matching a pattern.
-     * Setting any field to `undefined` or `null` indicates a wildcard.
-     * @deprecated Use `match` instead.
-     */
-    *readQuads(subject, predicate, object, graph) {
-      const graphs = this._getGraphs(graph);
-      let content, subjectId, predicateId, objectId;
-      if (subject && !(subjectId = this._termToNumericId(subject)) || predicate && !(predicateId = this._termToNumericId(predicate)) || object && !(objectId = this._termToNumericId(object)))
-        return;
-      for (const graphId in graphs) {
-        if (content = graphs[graphId]) {
-          if (subjectId) {
-            if (objectId)
-              yield* this._findInIndex(
-                content.objects,
-                objectId,
-                subjectId,
-                predicateId,
-                "object",
-                "subject",
-                "predicate",
-                graphId
-              );
-            else
-              yield* this._findInIndex(
-                content.subjects,
-                subjectId,
-                predicateId,
-                null,
-                "subject",
-                "predicate",
-                "object",
-                graphId
-              );
-          } else if (predicateId)
-            yield* this._findInIndex(
-              content.predicates,
-              predicateId,
-              objectId,
-              null,
-              "predicate",
-              "object",
-              "subject",
-              graphId
-            );
-          else if (objectId)
-            yield* this._findInIndex(
-              content.objects,
-              objectId,
-              null,
-              null,
-              "object",
-              "subject",
-              "predicate",
-              graphId
-            );
-          else
-            yield* this._findInIndex(
-              content.subjects,
-              null,
-              null,
-              null,
-              "subject",
-              "predicate",
-              "object",
-              graphId
-            );
-        }
-      }
-    }
-    // ### `match` returns a new dataset that is comprised of all quads in the current instance matching the given arguments.
-    // The logic described in Quad Matching is applied for each quad in this dataset to check if it should be included in the output dataset.
-    // Note: This method always returns a new DatasetCore, even if that dataset contains no quads.
-    // Note: Since a DatasetCore is an unordered set, the order of the quads within the returned sequence is arbitrary.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    // For backwards compatibility, the object return also implements the Readable stream interface.
-    match(subject, predicate, object, graph) {
-      return new DatasetCoreAndReadableStream(this, subject, predicate, object, graph, { entityIndex: this._entityIndex });
-    }
-    // ### `countQuads` returns the number of quads matching a pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    countQuads(subject, predicate, object, graph) {
-      const graphs = this._getGraphs(graph);
-      let count = 0, content, subjectId, predicateId, objectId;
-      if (subject && !(subjectId = this._termToNumericId(subject)) || predicate && !(predicateId = this._termToNumericId(predicate)) || object && !(objectId = this._termToNumericId(object)))
-        return 0;
-      for (const graphId in graphs) {
-        if (content = graphs[graphId]) {
-          if (subject) {
-            if (object)
-              count += this._countInIndex(content.objects, objectId, subjectId, predicateId);
-            else
-              count += this._countInIndex(content.subjects, subjectId, predicateId, objectId);
-          } else if (predicate) {
-            count += this._countInIndex(content.predicates, predicateId, objectId, subjectId);
-          } else {
-            count += this._countInIndex(content.objects, objectId, subjectId, predicateId);
-          }
-        }
-      }
-      return count;
-    }
-    // ### `forEach` executes the callback on all quads.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    forEach(callback, subject, predicate, object, graph) {
-      this.some((quad2) => {
-        callback(quad2, this);
-        return false;
-      }, subject, predicate, object, graph);
-    }
-    // ### `every` executes the callback on all quads,
-    // and returns `true` if it returns truthy for all them.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    every(callback, subject, predicate, object, graph) {
-      return !this.some((quad2) => !callback(quad2, this), subject, predicate, object, graph);
-    }
-    // ### `some` executes the callback on all quads,
-    // and returns `true` if it returns truthy for any of them.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    some(callback, subject, predicate, object, graph) {
-      for (const quad2 of this.readQuads(subject, predicate, object, graph))
-        if (callback(quad2, this))
-          return true;
-      return false;
-    }
-    // ### `getSubjects` returns all subjects that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    getSubjects(predicate, object, graph) {
-      const results = [];
-      this.forSubjects((s) => {
-        results.push(s);
-      }, predicate, object, graph);
-      return results;
-    }
-    // ### `forSubjects` executes the callback on all subjects that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    forSubjects(callback, predicate, object, graph) {
-      const graphs = this._getGraphs(graph);
-      let content, predicateId, objectId;
-      callback = this._uniqueEntities(callback);
-      if (predicate && !(predicateId = this._termToNumericId(predicate)) || object && !(objectId = this._termToNumericId(object)))
-        return;
-      for (graph in graphs) {
-        if (content = graphs[graph]) {
-          if (predicateId) {
-            if (objectId)
-              this._loopBy2Keys(content.predicates, predicateId, objectId, callback);
-            else
-              this._loopByKey1(content.subjects, predicateId, callback);
-          } else if (objectId)
-            this._loopByKey0(content.objects, objectId, callback);
-          else
-            this._loop(content.subjects, callback);
-        }
-      }
-    }
-    // ### `getPredicates` returns all predicates that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    getPredicates(subject, object, graph) {
-      const results = [];
-      this.forPredicates((p) => {
-        results.push(p);
-      }, subject, object, graph);
-      return results;
-    }
-    // ### `forPredicates` executes the callback on all predicates that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    forPredicates(callback, subject, object, graph) {
-      const graphs = this._getGraphs(graph);
-      let content, subjectId, objectId;
-      callback = this._uniqueEntities(callback);
-      if (subject && !(subjectId = this._termToNumericId(subject)) || object && !(objectId = this._termToNumericId(object)))
-        return;
-      for (graph in graphs) {
-        if (content = graphs[graph]) {
-          if (subjectId) {
-            if (objectId)
-              this._loopBy2Keys(content.objects, objectId, subjectId, callback);
-            else
-              this._loopByKey0(content.subjects, subjectId, callback);
-          } else if (objectId)
-            this._loopByKey1(content.predicates, objectId, callback);
-          else
-            this._loop(content.predicates, callback);
-        }
-      }
-    }
-    // ### `getObjects` returns all objects that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    getObjects(subject, predicate, graph) {
-      const results = [];
-      this.forObjects((o) => {
-        results.push(o);
-      }, subject, predicate, graph);
-      return results;
-    }
-    // ### `forObjects` executes the callback on all objects that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    forObjects(callback, subject, predicate, graph) {
-      const graphs = this._getGraphs(graph);
-      let content, subjectId, predicateId;
-      callback = this._uniqueEntities(callback);
-      if (subject && !(subjectId = this._termToNumericId(subject)) || predicate && !(predicateId = this._termToNumericId(predicate)))
-        return;
-      for (graph in graphs) {
-        if (content = graphs[graph]) {
-          if (subjectId) {
-            if (predicateId)
-              this._loopBy2Keys(content.subjects, subjectId, predicateId, callback);
-            else
-              this._loopByKey1(content.objects, subjectId, callback);
-          } else if (predicateId)
-            this._loopByKey0(content.predicates, predicateId, callback);
-          else
-            this._loop(content.objects, callback);
-        }
-      }
-    }
-    // ### `getGraphs` returns all graphs that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    getGraphs(subject, predicate, object) {
-      const results = [];
-      this.forGraphs((g) => {
-        results.push(g);
-      }, subject, predicate, object);
-      return results;
-    }
-    // ### `forGraphs` executes the callback on all graphs that match the pattern.
-    // Setting any field to `undefined` or `null` indicates a wildcard.
-    forGraphs(callback, subject, predicate, object) {
-      for (const graph in this._graphs) {
-        this.some((quad2) => {
-          callback(quad2.graph);
-          return true;
-        }, subject, predicate, object, this._termFromId(this._entities[graph]));
-      }
-    }
-    // ### `createBlankNode` creates a new blank node, returning its name
-    createBlankNode(suggestedName) {
-      return this._entityIndex.createBlankNode(suggestedName);
-    }
-    // ### `extractLists` finds and removes all list triples
-    // and returns the items per list.
-    extractLists({ remove = false, ignoreErrors = false } = {}) {
-      const lists = {};
-      const onError = ignoreErrors ? (() => true) : ((node, message) => {
-        throw new Error(`${node.value} ${message}`);
-      });
-      const tails = this.getQuads(null, IRIs_default.rdf.rest, IRIs_default.rdf.nil, null);
-      const toRemove = remove ? [...tails] : [];
-      tails.forEach((tailQuad) => {
-        const items = [];
-        let malformed = false;
-        let head;
-        let headPos;
-        const graph = tailQuad.graph;
-        let current = tailQuad.subject;
-        while (current && !malformed) {
-          const objectQuads = this.getQuads(null, null, current, null);
-          const subjectQuads = this.getQuads(current, null, null, null);
-          let quad2, first2 = null, rest = null, parent = null;
-          for (let i = 0; i < subjectQuads.length && !malformed; i++) {
-            quad2 = subjectQuads[i];
-            if (!quad2.graph.equals(graph))
-              malformed = onError(current, "not confined to single graph");
-            else if (head)
-              malformed = onError(current, "has non-list arcs out");
-            else if (quad2.predicate.value === IRIs_default.rdf.first) {
-              if (first2)
-                malformed = onError(current, "has multiple rdf:first arcs");
-              else
-                toRemove.push(first2 = quad2);
-            } else if (quad2.predicate.value === IRIs_default.rdf.rest) {
-              if (rest)
-                malformed = onError(current, "has multiple rdf:rest arcs");
-              else
-                toRemove.push(rest = quad2);
-            } else if (objectQuads.length)
-              malformed = onError(current, "can't be subject and object");
-            else {
-              head = quad2;
-              headPos = "subject";
-            }
-          }
-          for (let i = 0; i < objectQuads.length && !malformed; ++i) {
-            quad2 = objectQuads[i];
-            if (head)
-              malformed = onError(current, "can't have coreferences");
-            else if (quad2.predicate.value === IRIs_default.rdf.rest) {
-              if (parent)
-                malformed = onError(current, "has incoming rdf:rest arcs");
-              else
-                parent = quad2;
-            } else {
-              head = quad2;
-              headPos = "object";
-            }
-          }
-          if (!first2)
-            malformed = onError(current, "has no list head");
-          else
-            items.unshift(first2.object);
-          current = parent && parent.subject;
-        }
-        if (malformed)
-          remove = false;
-        else if (head)
-          lists[head[headPos].value] = items;
-      });
-      if (remove)
-        this.removeQuads(toRemove);
-      return lists;
-    }
-    /**
-     * Returns `true` if the current dataset is a superset of the given dataset; in other words, returns `true` if
-     * the given dataset is a subset of, i.e., is contained within, the current dataset.
-     *
-     * Blank Nodes will be normalized.
-     */
-    addAll(quads) {
-      if (quads instanceof DatasetCoreAndReadableStream)
-        quads = quads.filtered;
-      if (Array.isArray(quads))
-        this.addQuads(quads);
-      else if (quads instanceof _N3Store && quads._entityIndex === this._entityIndex) {
-        if (quads._size !== 0) {
-          this._graphs = merge(this._graphs, quads._graphs);
-          this._size = null;
-        }
-      } else {
-        for (const quad2 of quads)
-          this.add(quad2);
-      }
-      return this;
-    }
-    /**
-     * Returns `true` if the current dataset is a superset of the given dataset; in other words, returns `true` if
-     * the given dataset is a subset of, i.e., is contained within, the current dataset.
-     *
-     * Blank Nodes will be normalized.
-     */
-    contains(other) {
-      if (other instanceof DatasetCoreAndReadableStream)
-        other = other.filtered;
-      if (other === this)
-        return true;
-      if (!(other instanceof _N3Store) || this._entityIndex !== other._entityIndex)
-        return other.every((quad2) => this.has(quad2));
-      const g1 = this._graphs, g2 = other._graphs;
-      let s1, s2, p1, p2, o1;
-      for (const graph in g2) {
-        if (!(s1 = g1[graph])) return false;
-        s1 = s1.subjects;
-        for (const subject in s2 = g2[graph].subjects) {
-          if (!(p1 = s1[subject])) return false;
-          for (const predicate in p2 = s2[subject]) {
-            if (!(o1 = p1[predicate])) return false;
-            for (const object in p2[predicate])
-              if (!(object in o1)) return false;
-          }
-        }
-      }
-      return true;
-    }
-    /**
-     * This method removes the quads in the current dataset that match the given arguments.
-     *
-     * The logic described in {@link https://rdf.js.org/dataset-spec/#quad-matching|Quad Matching} is applied for each
-     * quad in this dataset, to select the quads which will be deleted.
-     *
-     * @param subject   The optional exact subject to match.
-     * @param predicate The optional exact predicate to match.
-     * @param object    The optional exact object to match.
-     * @param graph     The optional exact graph to match.
-     */
-    deleteMatches(subject, predicate, object, graph) {
-      for (const quad2 of this.match(subject, predicate, object, graph))
-        this.removeQuad(quad2);
-      return this;
-    }
-    /**
-     * Returns a new dataset that contains all quads from the current dataset that are not included in the given dataset.
-     */
-    difference(other) {
-      if (other && other instanceof DatasetCoreAndReadableStream)
-        other = other.filtered;
-      if (other === this)
-        return new _N3Store({ entityIndex: this._entityIndex });
-      if (other instanceof _N3Store && other._entityIndex === this._entityIndex) {
-        const store = new _N3Store({ entityIndex: this._entityIndex });
-        const graphs = difference(this._graphs, other._graphs);
-        if (graphs) {
-          store._graphs = graphs;
-          store._size = null;
-        }
-        return store;
-      }
-      return this.filter((quad2) => !other.has(quad2));
-    }
-    /**
-     * Returns true if the current dataset contains the same graph structure as the given dataset.
-     *
-     * Blank Nodes will be normalized.
-     */
-    equals(other) {
-      if (other instanceof DatasetCoreAndReadableStream)
-        other = other.filtered;
-      return other === this || this.size === other.size && this.contains(other);
-    }
-    /**
-     * Creates a new dataset with all the quads that pass the test implemented by the provided `iteratee`.
-     *
-     * This method is aligned with Array.prototype.filter() in ECMAScript-262.
-     */
-    filter(iteratee) {
-      const store = new _N3Store({ entityIndex: this._entityIndex });
-      for (const quad2 of this)
-        if (iteratee(quad2, this))
-          store.add(quad2);
-      return store;
-    }
-    /**
-     * Returns a new dataset containing all quads from the current dataset that are also included in the given dataset.
-     */
-    intersection(other) {
-      if (other instanceof DatasetCoreAndReadableStream)
-        other = other.filtered;
-      if (other === this) {
-        const store = new _N3Store({ entityIndex: this._entityIndex });
-        store._graphs = merge(/* @__PURE__ */ Object.create(null), this._graphs);
-        store._size = this._size;
-        return store;
-      } else if (other instanceof _N3Store && this._entityIndex === other._entityIndex) {
-        const store = new _N3Store({ entityIndex: this._entityIndex });
-        const graphs = intersect(other._graphs, this._graphs);
-        if (graphs) {
-          store._graphs = graphs;
-          store._size = null;
-        }
-        return store;
-      }
-      return this.filter((quad2) => other.has(quad2));
-    }
-    /**
-     * Returns a new dataset containing all quads returned by applying `iteratee` to each quad in the current dataset.
-     */
-    map(iteratee) {
-      const store = new _N3Store({ entityIndex: this._entityIndex });
-      for (const quad2 of this)
-        store.add(iteratee(quad2, this));
-      return store;
-    }
-    /**
-     * This method calls the `iteratee` method on each `quad` of the `Dataset`. The first time the `iteratee` method
-     * is called, the `accumulator` value is the `initialValue`, or, if not given, equals the first quad of the `Dataset`.
-     * The return value of each call to the `iteratee` method is used as the `accumulator` value for the next call.
-     *
-     * This method returns the return value of the last `iteratee` call.
-     *
-     * This method is aligned with `Array.prototype.reduce()` in ECMAScript-262.
-     */
-    reduce(callback, initialValue) {
-      const iter = this.readQuads();
-      let accumulator = initialValue === void 0 ? iter.next().value : initialValue;
-      for (const quad2 of iter)
-        accumulator = callback(accumulator, quad2, this);
-      return accumulator;
-    }
-    /**
-     * Returns the set of quads within the dataset as a host-language-native sequence, for example an `Array` in
-     * ECMAScript-262.
-     *
-     * Since a `Dataset` is an unordered set, the order of the quads within the returned sequence is arbitrary.
-     */
-    toArray() {
-      return this.getQuads();
-    }
-    /**
-     * Returns an N-Quads string representation of the dataset, preprocessed with the
-     * {@link https://json-ld.github.io/normalization/spec/|RDF Dataset Normalization} algorithm.
-     */
-    toCanonical() {
-      throw new Error("not implemented");
-    }
-    /**
-     * Returns a stream that contains all quads of the dataset.
-     */
-    toStream() {
-      return this.match();
-    }
-    /**
-     * Returns an N-Quads string representation of the dataset.
-     *
-     * No prior normalization is required, therefore the results for the same quads may vary depending on the `Dataset`
-     * implementation.
-     */
-    toString() {
-      return new N3Writer().quadsToString(this);
-    }
-    /**
-     * Returns a new `Dataset` that is a concatenation of this dataset and the quads given as an argument.
-     */
-    union(quads) {
-      const store = new _N3Store({ entityIndex: this._entityIndex });
-      store._graphs = merge(/* @__PURE__ */ Object.create(null), this._graphs);
-      store._size = this._size;
-      store.addAll(quads);
-      return store;
-    }
-    // ### Store is an iterable.
-    // Can be used where iterables are expected: for...of loops, array spread operator,
-    // `yield*`, and destructuring assignment (order is not guaranteed).
-    *[Symbol.iterator]() {
-      yield* this.readQuads();
-    }
-  };
-  function indexMatch(index, ids, depth = 0) {
-    const ind = ids[depth];
-    if (ind && !(ind in index))
-      return false;
-    let target = false;
-    for (const key in ind ? { [ind]: index[ind] } : index) {
-      const result2 = depth === 2 ? null : indexMatch(index[key], ids, depth + 1);
-      if (result2 !== false) {
-        target = target || /* @__PURE__ */ Object.create(null);
-        target[key] = result2;
-      }
-    }
-    return target;
-  }
-  var DatasetCoreAndReadableStream = class _DatasetCoreAndReadableStream extends import_readable_stream.Readable {
-    constructor(n3Store, subject, predicate, object, graph, options) {
-      super({ objectMode: true });
-      Object.assign(this, { n3Store, subject, predicate, object, graph, options });
-    }
-    get filtered() {
-      if (!this._filtered) {
-        const { n3Store, graph, object, predicate, subject } = this;
-        const newStore = this._filtered = new N3Store({ factory: n3Store._factory, entityIndex: this.options.entityIndex });
-        let subjectId, predicateId, objectId;
-        if (subject && !(subjectId = newStore._termToNumericId(subject)) || predicate && !(predicateId = newStore._termToNumericId(predicate)) || object && !(objectId = newStore._termToNumericId(object)))
-          return newStore;
-        const graphs = n3Store._getGraphs(graph);
-        for (const graphKey in graphs) {
-          let subjects, predicates, objects, content;
-          if (content = graphs[graphKey]) {
-            if (!subjectId && predicateId) {
-              if (predicates = indexMatch(content.predicates, [predicateId, objectId, subjectId])) {
-                subjects = indexMatch(content.subjects, [subjectId, predicateId, objectId]);
-                objects = indexMatch(content.objects, [objectId, subjectId, predicateId]);
-              }
-            } else if (objectId) {
-              if (objects = indexMatch(content.objects, [objectId, subjectId, predicateId])) {
-                subjects = indexMatch(content.subjects, [subjectId, predicateId, objectId]);
-                predicates = indexMatch(content.predicates, [predicateId, objectId, subjectId]);
-              }
-            } else if (subjects = indexMatch(content.subjects, [subjectId, predicateId, objectId])) {
-              predicates = indexMatch(content.predicates, [predicateId, objectId, subjectId]);
-              objects = indexMatch(content.objects, [objectId, subjectId, predicateId]);
-            }
-            if (subjects)
-              newStore._graphs[graphKey] = { subjects, predicates, objects };
-          }
-        }
-        newStore._size = null;
-      }
-      return this._filtered;
-    }
-    get size() {
-      return this.filtered.size;
-    }
-    _read(size) {
-      if (size > 0 && !this[ITERATOR])
-        this[ITERATOR] = this[Symbol.iterator]();
-      const iterable = this[ITERATOR];
-      while (--size >= 0) {
-        const { done, value } = iterable.next();
-        if (done) {
-          this.push(null);
-          return;
-        }
-        this.push(value);
-      }
-    }
-    addAll(quads) {
-      return this.filtered.addAll(quads);
-    }
-    contains(other) {
-      return this.filtered.contains(other);
-    }
-    deleteMatches(subject, predicate, object, graph) {
-      return this.filtered.deleteMatches(subject, predicate, object, graph);
-    }
-    difference(other) {
-      return this.filtered.difference(other);
-    }
-    equals(other) {
-      return this.filtered.equals(other);
-    }
-    every(callback, subject, predicate, object, graph) {
-      return this.filtered.every(callback, subject, predicate, object, graph);
-    }
-    filter(iteratee) {
-      return this.filtered.filter(iteratee);
-    }
-    forEach(callback, subject, predicate, object, graph) {
-      return this.filtered.forEach(callback, subject, predicate, object, graph);
-    }
-    import(stream) {
-      return this.filtered.import(stream);
-    }
-    intersection(other) {
-      return this.filtered.intersection(other);
-    }
-    map(iteratee) {
-      return this.filtered.map(iteratee);
-    }
-    some(callback, subject, predicate, object, graph) {
-      return this.filtered.some(callback, subject, predicate, object, graph);
-    }
-    toCanonical() {
-      return this.filtered.toCanonical();
-    }
-    toStream() {
-      return this._filtered ? this._filtered.toStream() : this.n3Store.match(this.subject, this.predicate, this.object, this.graph);
-    }
-    union(quads) {
-      return this._filtered ? this._filtered.union(quads) : this.n3Store.match(this.subject, this.predicate, this.object, this.graph).addAll(quads);
-    }
-    toArray() {
-      return this._filtered ? this._filtered.toArray() : this.n3Store.getQuads(this.subject, this.predicate, this.object, this.graph);
-    }
-    reduce(callback, initialValue) {
-      return this.filtered.reduce(callback, initialValue);
-    }
-    toString() {
-      return new N3Writer().quadsToString(this);
-    }
-    add(quad2) {
-      return this.filtered.add(quad2);
-    }
-    delete(quad2) {
-      return this.filtered.delete(quad2);
-    }
-    has(quad2) {
-      return this.filtered.has(quad2);
-    }
-    match(subject, predicate, object, graph) {
-      return new _DatasetCoreAndReadableStream(this.filtered, subject, predicate, object, graph, this.options);
-    }
-    *[Symbol.iterator]() {
-      yield* this._filtered || this.n3Store.readQuads(this.subject, this.predicate, this.object, this.graph);
-    }
-  };
-
-  // node_modules/n3/src/N3StoreFactory.js
-  var N3DatasetCoreFactory = class {
-    dataset(quads) {
-      return new N3Store(quads);
-    }
-  };
-
-  // node_modules/n3/src/N3Reasoner.js
-  function getRulesFromDataset(dataset) {
-    const rules = [];
-    for (const { subject, object } of dataset.match(null, N3DataFactory_default.namedNode("http://www.w3.org/2000/10/swap/log#implies"), null, N3DataFactory_default.defaultGraph())) {
-      const premise = [...dataset.match(null, null, null, subject)];
-      const conclusion = [...dataset.match(null, null, null, object)];
-      rules.push({ premise, conclusion });
-    }
-    return rules;
-  }
-  var N3Reasoner = class {
-    constructor(store) {
-      this._store = store;
-    }
-    _add(subject, predicate, object, graphItem, cb) {
-      if (!this._store._addToIndex(graphItem.subjects, subject, predicate, object)) return;
-      this._store._addToIndex(graphItem.predicates, predicate, object, subject);
-      this._store._addToIndex(graphItem.objects, object, subject, predicate);
-      cb();
-    }
-    // eslint-disable-next-line no-warning-comments
-    _evaluatePremise(rule, content, cb, i = 0) {
-      let v1, v2, value, index1, index2;
-      const [val0, val1, val2] = rule.premise[i].value, index = content[rule.premise[i].content];
-      const v0 = !(value = val0.value);
-      for (value in v0 ? index : { [value]: index[value] }) {
-        if (index1 = index[value]) {
-          if (v0) val0.value = Number(value);
-          v1 = !(value = val1.value);
-          for (value in v1 ? index1 : { [value]: index1[value] }) {
-            if (index2 = index1[value]) {
-              if (v1) val1.value = Number(value);
-              v2 = !(value = val2.value);
-              for (value in v2 ? index2 : { [value]: index2[value] }) {
-                if (v2) val2.value = Number(value);
-                if (i === rule.premise.length - 1)
-                  rule.conclusion.forEach((c) => {
-                    this._add(c.subject.value, c.predicate.value, c.object.value, content, () => {
-                      cb(c);
-                    });
-                  });
-                else
-                  this._evaluatePremise(rule, content, cb, i + 1);
-              }
-              if (v2) val2.value = null;
-            }
-          }
-          if (v1) val1.value = null;
-        }
-      }
-      if (v0) val0.value = null;
-    }
-    _evaluateRules(rules, content, cb) {
-      for (let i = 0; i < rules.length; i++) {
-        this._evaluatePremise(rules[i], content, cb);
-      }
-    }
-    // A naive reasoning algorithm where rules are just applied by repeatedly applying rules
-    // until no more evaluations are made
-    _reasonGraphNaive(rules, content) {
-      const newRules = [];
-      function addRule(conclusion) {
-        if (conclusion.next)
-          conclusion.next.forEach((rule) => {
-            newRules.push([conclusion.subject.value, conclusion.predicate.value, conclusion.object.value, rule]);
-          });
-      }
-      const addConclusions = (conclusion) => {
-        conclusion.forEach((c) => {
-          this._add(c.subject.value, c.predicate.value, c.object.value, content, () => {
-            addRule(c);
-          });
-        });
-      };
-      this._evaluateRules(rules, content, addRule);
-      let r;
-      while ((r = newRules.pop()) !== void 0) {
-        const [subject, predicate, object, rule] = r;
-        const v1 = rule.basePremise.subject.value;
-        if (!v1) rule.basePremise.subject.value = subject;
-        const v2 = rule.basePremise.predicate.value;
-        if (!v2) rule.basePremise.predicate.value = predicate;
-        const v3 = rule.basePremise.object.value;
-        if (!v3) rule.basePremise.object.value = object;
-        if (rule.premise.length === 0) {
-          addConclusions(rule.conclusion);
-        } else {
-          this._evaluatePremise(rule, content, addRule);
-        }
-        if (!v1) rule.basePremise.subject.value = null;
-        if (!v2) rule.basePremise.predicate.value = null;
-        if (!v3) rule.basePremise.object.value = null;
-      }
-    }
-    _createRule({ premise, conclusion }) {
-      const varMapping = {};
-      const toId = (value) => value.termType === "Variable" ? (
-        // If the term is a variable, then create an empty object that values can be placed into
-        varMapping[value.value] = varMapping[value.value] || {}
-      ) : (
-        // If the term is not a variable, then set the ID value
-        { value: this._store._termToNewNumericId(value) }
-      );
-      const t = (term) => ({ subject: toId(term.subject), predicate: toId(term.predicate), object: toId(term.object) });
-      return {
-        premise: premise.map((p) => t(p)),
-        conclusion: conclusion.map((p) => t(p)),
-        variables: Object.values(varMapping)
-      };
-    }
-    reason(rules) {
-      if (!Array.isArray(rules)) {
-        rules = getRulesFromDataset(rules);
-      }
-      rules = rules.map((rule) => this._createRule(rule));
-      for (const r1 of rules) {
-        for (const r2 of rules) {
-          for (let i = 0; i < r2.premise.length; i++) {
-            const p = r2.premise[i];
-            for (const c of r1.conclusion) {
-              if (termEq(p.subject, c.subject) && termEq(p.predicate, c.predicate) && termEq(p.object, c.object)) {
-                const set = /* @__PURE__ */ new Set();
-                const premise = [];
-                p.subject.value = p.subject.value || 1;
-                p.object.value = p.object.value || 1;
-                p.predicate.value = p.predicate.value || 1;
-                for (let j = 0; j < r2.premise.length; j++) {
-                  if (j !== i) {
-                    premise.push(getIndex(r2.premise[j], set));
-                  }
-                }
-                (c.next = c.next || []).push({
-                  premise,
-                  conclusion: r2.conclusion,
-                  // This is a single premise of the form { subject, predicate, object },
-                  // which we can use to instantiate the rule using the new data that was emitted
-                  basePremise: p
-                });
-              }
-              r2.variables.forEach((v) => {
-                v.value = null;
-              });
-            }
-          }
-        }
-      }
-      for (const rule of rules) {
-        const set = /* @__PURE__ */ new Set();
-        rule.premise = rule.premise.map((p) => getIndex(p, set));
-      }
-      const graphs = this._store._getGraphs();
-      for (const graphId in graphs) {
-        this._reasonGraphNaive(rules, graphs[graphId]);
-      }
-      this._store._size = null;
-    }
-  };
-  function getIndex({ subject, predicate, object }, set) {
-    const s = subject.value || set.has(subject) || (set.add(subject), false);
-    const p = predicate.value || set.has(predicate) || (set.add(predicate), false);
-    const o = object.value || set.has(object) || (set.add(object), false);
-    return !s && p ? { content: "predicates", value: [predicate, object, subject] } : o ? { content: "objects", value: [object, subject, predicate] } : { content: "subjects", value: [subject, predicate, object] };
-  }
-  function termEq(t1, t2) {
-    if (t1.value === null) {
-      t1.value = t2.value;
-    }
-    return t1.value === t2.value;
-  }
-
-  // node_modules/n3/src/N3StreamParser.js
-  var import_readable_stream2 = __toESM(require_browser3());
-  var N3StreamParser = class extends import_readable_stream2.Transform {
-    constructor(options) {
-      super({ decodeStrings: true });
-      this._readableState.objectMode = true;
-      const parser = new N3Parser(options);
-      let onData, onEnd;
-      const callbacks = {
-        // Handle quads by pushing them down the pipeline
-        onQuad: (error, quad2) => {
-          error && this.emit("error", error) || quad2 && this.push(quad2);
-        },
-        // Emit prefixes through the `prefix` event
-        onPrefix: (prefix2, uri) => {
-          this.emit("prefix", prefix2, uri);
-        }
-      };
-      if (options && options.comments)
-        callbacks.onComment = (comment) => {
-          this.emit("comment", comment);
-        };
-      parser.parse({
-        on: (event, callback) => {
-          switch (event) {
-            case "data":
-              onData = callback;
-              break;
-            case "end":
-              onEnd = callback;
-              break;
-          }
-        }
-      }, callbacks);
-      this._transform = (chunk, encoding, done) => {
-        onData(chunk);
-        done();
-      };
-      this._flush = (done) => {
-        onEnd();
-        done();
-      };
-    }
-    // ### Parses a stream of strings
-    import(stream) {
-      stream.on("data", (chunk) => {
-        this.write(chunk);
-      });
-      stream.on("end", () => {
-        this.end();
-      });
-      stream.on("error", (error) => {
-        this.emit("error", error);
-      });
-      return this;
-    }
-  };
-
-  // node_modules/n3/src/N3StreamWriter.js
-  var import_readable_stream3 = __toESM(require_browser3());
-  var N3StreamWriter = class extends import_readable_stream3.Transform {
-    constructor(options) {
-      super({ encoding: "utf8", writableObjectMode: true });
-      const writer = this._writer = new N3Writer({
-        write: (quad2, encoding, callback) => {
-          this.push(quad2);
-          callback && callback();
-        },
-        end: (callback) => {
-          this.push(null);
-          callback && callback();
-        }
-      }, options);
-      this._transform = (quad2, encoding, done) => {
-        writer.addQuad(quad2, done);
-      };
-      this._flush = (done) => {
-        writer.end(done);
-      };
-    }
-    // ### Serializes a stream of quads
-    import(stream) {
-      stream.on("data", (quad2) => {
-        this.write(quad2);
-      });
-      stream.on("end", () => {
-        this.end();
-      });
-      stream.on("error", (error) => {
-        this.emit("error", error);
-      });
-      stream.on("prefix", (prefix2, iri) => {
-        this._writer.addPrefix(prefix2, iri);
-      });
-      return this;
-    }
-  };
-
-  // node_modules/n3/src/index.js
-  var src_default = {
-    Lexer: N3Lexer,
-    Parser: N3Parser,
-    Writer: N3Writer,
-    Store: N3Store,
-    StoreFactory: N3DatasetCoreFactory,
-    EntityIndex: N3EntityIndex,
-    StreamParser: N3StreamParser,
-    StreamWriter: N3StreamWriter,
-    Util: N3Util_exports,
-    Reasoner: N3Reasoner,
-    BaseIRI,
-    DataFactory: N3DataFactory_default,
-    Term,
-    NamedNode: NamedNode2,
-    Literal,
-    BlankNode: BlankNode2,
-    Variable,
-    DefaultGraph,
-    Quad,
-    Triple: Quad,
-    termFromId,
-    termToId
-  };
-
-  // node_modules/@muze-nl/oldm/src/oldm-n3.mjs
+  // ../../node_modules/@muze-nl/oldm-n3/src/oldm-n3.mjs
   var n3Parser = (input, uri, type) => {
-    const parser = new src_default.Parser({
+    const parser = new N3Parser({
       baseIRI: uri,
       blankNodePrefix: "",
       format: type
     });
-    let prefixes3 = /* @__PURE__ */ Object.create(null);
-    const quads = parser.parse(input, null, (prefix2, url) => {
-      prefixes3[prefix2] = url.id;
+    let prefixes2 = /* @__PURE__ */ Object.create(null);
+    const quads = parser.parse(input, null, (prefix, url) => {
+      prefixes2[prefix] = url.id;
     });
-    return { quads, prefixes: prefixes3 };
+    return { quads, prefixes: prefixes2 };
   };
   var n3Writer = (source) => {
     return new Promise((resolve, reject) => {
-      const writer = new src_default.Writer({
-        format: source.type,
+      const writer = new N3Writer({
+        format: source.mimetype,
         prefixes: { ...source.prefixes }
       });
       const xsd4 = source.prefixes.xsd;
-      const { quad: quad2, namedNode: namedNode2, literal: literal2, blankNode: blankNode2 } = src_default.DataFactory;
+      const { quad: quad2, namedNode: namedNode2, literal: literal2, blankNode: blankNode2 } = N3DataFactory_default;
       const writeClassNames = (id, subject) => {
         let classNames = subject.a;
+        if (!classNames) {
+          return;
+        }
         if (!Array.isArray(classNames)) {
           classNames = [classNames];
         }
@@ -12175,7 +4946,7 @@
       const getBlankNode = (object) => {
         return writer.blank(getPredicates(object));
       };
-      const getArray = (id, object) => {
+      const getArray = (object) => {
         let list = [];
         for (const o of object) {
           if (isLiteral2(o)) {
@@ -12195,9 +4966,9 @@
         writeClassNames(id, subject);
         writeProperties(id, subject);
       });
-      writer.end((error, result2) => {
-        if (result2) {
-          resolve(result2);
+      writer.end((error, result) => {
+        if (result) {
+          resolve(result);
         } else {
           reject(error);
         }
@@ -12205,14 +4976,26 @@
     });
   };
 
-  // node_modules/@muze-nl/oldm/src/index.mjs
+  // ../../node_modules/@muze-nl/oldm/src/index.mjs
+  var { default: _coreDefault, ...core } = oldm_exports;
   var oldm2 = {
-    context: oldm,
-    ...oldm_exports,
+    context(options = {}) {
+      const {
+        parser = n3Parser,
+        writer = n3Writer,
+        ...contextOptions
+      } = options;
+      return oldm({
+        ...contextOptions,
+        parser,
+        writer
+      });
+    },
+    ...core,
     ...oldm_n3_exports
   };
   globalThis.oldm = oldm2;
-  var src_default2 = oldm2;
+  var src_default = oldm2;
 
   // src/oldmmw.mjs
   function oldmmw(options) {
@@ -12231,13 +5014,13 @@
         "vcard": "http://www.w3.org/2006/vcard/ns#",
         "foaf": "http://xmlns.com/foaf/0.1/"
       },
-      parser: src_default2.n3Parser,
-      writer: src_default2.n3Writer
+      parser: src_default.n3Parser,
+      writer: src_default.n3Writer
     }, options);
     if (!options.prefixes["ldp"]) {
       options.prefixes["ldp"] = "http://www.w3.org/ns/ldp#";
     }
-    const context = src_default2.context(options);
+    const context = src_default.context(options);
     return async function oldmmw2(req, next) {
       if (!req.headers.get("Accept")) {
         req = req.with({
@@ -12293,10 +5076,18 @@
     }
     return false;
   }
+  function isPlainText(contentType) {
+    return /^text\/plain\b/.exec(contentType);
+  }
 
   // src/index.mjs
-  globalThis.oldmmw = oldmmw;
   var index_default = oldmmw;
+
+  // src/browser.mjs
+  if (!globalThis.oldmmw) {
+    globalThis.oldmmw = index_default;
+  }
+  var browser_default = index_default;
 })();
 /*! Bundled license information:
 
@@ -12310,8 +5101,5 @@ buffer/index.js:
    * @author   Feross Aboukhadijeh <https://feross.org>
    * @license  MIT
    *)
-
-safe-buffer/index.js:
-  (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 */
 //# sourceMappingURL=browser.js.map
