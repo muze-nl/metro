@@ -1,0 +1,83 @@
+{
+  "name": "@muze-nl/metro-oauth2",
+  "version": "0.8.2",
+  "description": "oauth2 middleware for @muze-nl/metro",
+  "type": "module",
+  "main": "src/index.mjs",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tap --disable-coverage --jobs=1 test/*.mjs",
+    "build": "esbuild --bundle src/browser.mjs --outfile=dist/browser.min.js --sourcemap --minify",
+    "build-dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap",
+    "build:dev": "esbuild --bundle src/browser.mjs --outfile=dist/browser.js --sourcemap"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muze-nl/metro.git",
+    "directory": "packages/metro-oauth2"
+  },
+  "author": "auke@muze.nl",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/muze-nl/metro/issues"
+  },
+  "homepage": "https://github.com/muze-nl/metro/tree/main/packages/metro-oauth2#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.5.0",
+    "globals": "^17.7.0",
+    "tap": "^21.7.4"
+  },
+  "dependencies": {
+    "@muze-nl/assert": "^0.5.1",
+    "@muze-nl/metro-core": "0.7.1",
+    "dpop": "^2.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "/src",
+    "/dist",
+    "/LICENSE",
+    "/README.md",
+    "/docs"
+  ],
+  "source": [
+    "src/browser.mjs"
+  ],
+  "targets": {
+    "default": {
+      "distDir": "./dist",
+      "optimize": true
+    },
+    "main": false
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./browser": "./src/browser.mjs",
+    "./browser.mjs": "./src/browser.mjs",
+    "./oauth2": "./src/oauth2.mjs",
+    "./oauth2.mjs": "./src/oauth2.mjs",
+    "./dpop": "./src/oauth2.dpop.mjs",
+    "./dpop.mjs": "./src/oauth2.dpop.mjs",
+    "./discovery": "./src/oauth2.discovery.mjs",
+    "./discovery.mjs": "./src/oauth2.discovery.mjs",
+    "./popup": "./src/oauth2.popup.mjs",
+    "./popup.mjs": "./src/oauth2.popup.mjs",
+    "./tokenstore": "./src/tokenstore.mjs",
+    "./tokenstore.mjs": "./src/tokenstore.mjs",
+    "./keysstore": "./src/keysstore.mjs",
+    "./keysstore.mjs": "./src/keysstore.mjs",
+    "./testing": "./src/testing.mjs",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "./src/browser.mjs",
+    "./dist/browser.js",
+    "./dist/browser.min.js"
+  ]
+}

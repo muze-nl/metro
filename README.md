@@ -1,128 +1,100 @@
-[![GitHub License](https://img.shields.io/github/license/muze-nl/metro)](https://github.com/muze-nl/metro/blob/main/LICENSE)
-[![GitHub package.json version](https://img.shields.io/github/package-json/v/muze-nl/metro)]()
-[![NPM Version](https://img.shields.io/npm/v/@muze-nl/metro)](https://www.npmjs.com/package/@muze-nl/metro)
-[![npm bundle size](https://img.shields.io/bundlephobia/min/@muze-nl/metro)](https://www.npmjs.com/package/@muze-nl/metro)
-[![Project stage: Experimental][project-stage-badge: Experimental]][project-stage-page]
+# Metro
 
-# MetroJS: HTTPS Client with middleware
+Metro is a Fetch-compatible HTTP client with middleware. It keeps the browser's `Request`, `Response`, `URL`, and `FormData` model, then adds a small set of conveniences: reusable clients, immutable `.with()` helpers, middleware composition, API helpers, tracing, and optional packages for OAuth2, OpenID Connect, and Linked Data.
 
-```javascript
-import * as metro from '@muze-nl/metro'
+## Install
 
-const client = metro.client({
-  url: 'https://github.com/'
-}).with((req,next) => {
-  req = req.with({
-    headers: {
-      'Content-Type':'application/json',
-      'Accept':'application/json'
-    }
-  })
-  if (typeof req.body == 'object') {
-    req = req.with({
-      body: JSON.stringify(req.body)
-    })
-  }
-  let res = await next(req)
-  let body = await res.json()
-  return res.with({ body })
-})
-```
-## Table of Contents
-1. [Introduction](#introduction)
-2. [Quickstart](docs/quickstart.md)
-3. [Usage](#usage)
-4. [Middleware](#middleware)
-5. [Documentation](docs/) - See also [metro.muze.nl](https://metro.muze.nl/)
-6. [Contributions](CONTRIBUTING.md)
-7. [License](#license)
+Most applications should start with the combined package:
 
-<a name="introduction"></a>
-## Introduction
-
-MetroJS is an HTTPS client with support for middleware. Similar to [ExpressJS](https://expressjs.com/), but for the client.
-
-You add middleware with the `with()` function, as shown above.
-
-The signature for a middleware function is:
-
-```javascript
-async (request, next) => {
-   // alter request
-   let response = await next(request)
-   // alter response
-   return response
-}
-```
-
-However, both request and response are immutable. You can not change them. You can 
-however create a copy with some values different, using the `with()` function.
-
-Both metro.request() and metro.response() are compatible with the normal Request 
-and Response objects, used by the Fetch API. Any code that works with those, will work
-with the request and response objects in MetroJS.
-
-<a name="usage"></a>
-## Usage
-
-```bash
+```sh
 npm install @muze-nl/metro
 ```
 
-In the browser, using a cdn:
+```js
+import metro from '@muze-nl/metro'
+
+const client = metro.client('https://jsonplaceholder.typicode.com/')
+  .with(metro.mw.json())
+
+const response = await client.get('/posts/1')
+console.log(response.data.title)
+```
+
+For a browser page without a bundler, use the browser bundle. It creates `globalThis.metro`:
+
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.6.4/dist/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js"></script>
 <script>
-  async function main() {
-    const client = metro.client('https://example.com/')
-    const result = await client.get('folder/page.html')
-  }
-  main()
+  const client = metro.client('https://jsonplaceholder.typicode.com/')
+    .with(metro.mw.json())
+
+  client.get('/posts/1').then(response => {
+    console.log(response.data.title)
+  })
 </script>
 ```
 
-Using ES6 modules, in the browser or Node:
-```javascript
-import * as metro from '@muze-nl/metro'
+Advanced applications can install only the packages they need:
 
-async function main() {
-  const client = metro.client('https://example.com/')
-  const result = await client.get('folder/page.html')
-}
+```sh
+npm install @muze-nl/metro-core @muze-nl/metro-middleware
 ```
 
-<a name="middleware"></a>
-## Using middleware
-A middleware is a function with `(request, next)` as parameters, returning a `response`.
-Both request and response adhere to the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-[Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) and 
-[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) standard.
+```js
+import { client } from '@muze-nl/metro-core'
+import { json, retry, timeout } from '@muze-nl/metro-middleware'
 
-`next` is a function that takes a `request` and returns a `Promise<Response>`. This function is defined by MetroJS
-and automatically passed to your middleware function. The idea is that your middleware function can change the request
-and pass it on to the next middleware or the actual fetch() call, then intercept the response and change that and return it:
-
-```javascript
-async function myMiddleware(req,next) {
-  req = req.with('?foo=bar')
-  let res = await next(req)
-  if (res.ok) {
-    res = res.with({headers:{'X-Foo':'bar'}})
-  }
-  return res
-}
+const api = client('https://jsonplaceholder.typicode.com/')
+  .with(timeout(5000), retry({ attempts: 3 }), json())
 ```
 
-Both request and response have a `with` function. This allows you to create a new request or response, from 
-the existing one, with one or more options added or changed. The original request or response is not changed.
+## Documentation
 
-[Read more about middleware](docs/middleware/)
+General documentation that applies across packages lives in [`docs/`](docs/):
 
-<a name="license"></a>
-## License
+- [`docs/quickstart.md`](docs/quickstart.md) — install Metro and make the first request.
+- [`docs/tutorial.md`](docs/tutorial.md) — longer guided tutorial.
+- [`docs/packages.md`](docs/packages.md) — package map and import choices.
+- [`docs/debugging.md`](docs/debugging.md) — tracing and diagnostics across Metro clients.
+- [`docs/details/`](docs/details/) — error and diagnostic detail pages used by Metro error messages.
 
-This software is licensed under MIT open source license. See the [License](./LICENSE) file.
+Package-specific installation, usage, and reference documentation lives beside each package:
 
+| Package | Documentation | Purpose |
+| --- | --- | --- |
+| `@muze-nl/metro` | [`packages/metro/docs/`](packages/metro/docs/) | Beginner-friendly combined package and browser global. |
+| `@muze-nl/metro-core` | [`packages/metro-core/docs/`](packages/metro-core/docs/) | `client`, `Client`, `request`, `response`, `url`, `metroError`. |
+| `@muze-nl/metro-middleware` | [`packages/metro-middleware/docs/`](packages/metro-middleware/docs/) | Generic middleware such as JSON, retry, timeout, abort, backoff, and test mocks. |
+| `@muze-nl/metro-oauth2` | [`packages/metro-oauth2/docs/`](packages/metro-oauth2/docs/) | OAuth2 middleware, PKCE, token storage, popup flow, and DPoP support. |
+| `@muze-nl/metro-oidc` | [`packages/metro-oidc/docs/`](packages/metro-oidc/docs/) | OpenID Connect middleware built on Metro OAuth2. |
+| `@muze-nl/metro-oldm` | [`packages/metro-oldm/docs/`](packages/metro-oldm/docs/) | Linked Data middleware using OLDM. |
+| `@muze-nl/metro-api` | [`packages/metro-api/docs/`](packages/metro-api/docs/) | `api()`, `jsonApi()`, `API`, and `JsonAPI`. |
+| `@muze-nl/metro-trace` | [`packages/metro-trace/docs/`](packages/metro-trace/docs/) | Scoped and global tracing helpers plus console graph output. |
+| `@muze-nl/metro-hashparams` | [`packages/metro-hashparams/docs/`](packages/metro-hashparams/docs/) | Query parameters stored in the URL hash fragment. |
+| `@muze-nl/metro-formdata` | [`packages/metro-formdata/docs/`](packages/metro-formdata/docs/) | Small `formdata()` helper. |
 
-[project-stage-badge: Experimental]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
-[project-stage-page]: https://blog.pother.ca/project-stages/
+## Working in this repository
+
+```sh
+npm install
+npm test
+npm run build
+```
+
+Useful focused commands:
+
+```sh
+npm run test:core
+npm run test:oauth2
+```
+
+Mock OAuth2/OIDC servers are test helpers. Import them from explicit testing entries so they do not inflate production browser bundles:
+
+```js
+import oauth2mockserver from '@muze-nl/metro-oauth2/testing'
+import oidcmockserver from '@muze-nl/metro-oidc/testing'
+```
+
+## Package boundary rule
+
+`@muze-nl/metro-core` should stay small. Generic middleware belongs in `@muze-nl/metro-middleware`, tracing belongs in `@muze-nl/metro-trace`, beginner convenience belongs in `@muze-nl/metro`, and auth or Linked Data behaviour belongs in its own package.

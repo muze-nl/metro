@@ -1,0 +1,72 @@
+import * as metro from '@muze-nl/metro-core'
+import { assert, validURL, Required, Recommended, Optional, anyOf } from '@muze-nl/assert'
+
+/**
+ * This module allows for oauth2 discovery and returns an oauth2
+ * client with all required middleware and options configured
+ * 
+ * oauth2 discovery: https://datatracker.ietf.org/doc/html/rfc8414
+ */
+
+//FIXME: list valid algorithms per usecase, these are for JWK
+const validAlgorithms = [
+	'HS256','HS384','HS512','RS256','RS384','RS512','ES256','ES384','ES512'
+]
+//FIXME: other auth methods may be defined by extensions to openid connect discovery
+const validAuthMethods = [
+	'client_secret_post', 'client_secret_base','client_secret_jwt','private_key_jwt'
+]
+
+const oauth_authorization_server_metadata = {
+	authorization_endpoint: Required(validURL),
+	issuer: Required(validURL),
+	response_types_supported: Required(anyOf('code','token')),
+	token_endpoint: Required(validURL),
+
+	scopes_supported: Recommended([]),
+
+	code_challendge_methods_supported: Optional([]),
+	grant_types_supported: Optional([]),
+	introspection_endpoint: Optional(validURL),
+	introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
+	introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+	jwks_uri: Optional(validURL),
+	op_policy_uri: Optional(validURL),
+	op_tos_uri: Optional(validURL),
+	registration_endpoint: Optional(validURL),
+	response_modes_supported: Optional([]),
+	revocation_endpoint: Optional(validURL),
+	revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
+	revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+	service_documentation: Optional(validURL),
+	token_endpoint_auth_methods_supported: Optional([]),
+	token_endpoint_auth_signing_alg_values_supported: Optional([]),
+	ui_locales_supported: Optional([])
+}
+
+export default function makeClient(options={}) {
+	const defaultOptions = {
+		client: metro.client()
+	}
+	options = Object.assign({}, defaultOptions, options)
+	assert(options, {
+		issuer: Required(validURL)
+	})
+
+	// start discovery
+	const oauth_authorization_server_configuration = fetchWellknownOauthAuthorizationServer(options.issuer)
+	// TODO: pass configuration on to the client / oauth2 middleware
+	return options.client.with(options.issuer)
+}
+
+async function fetchWellknownOauthAuthorizationServer(issuer, client)
+{
+	let res = client.get(metro.url(issuer,'.wellknown/oauth_authorization_server'))
+	if (!res.ok) {
+		throw metro.metroError('metro.oidcmw: Error while fetching '+issuer+'.wellknown/oauth_authorization_server', res)
+	}
+	assert(res.headers.get('Content-Type'), /application\/json.*/)
+	let configuration = await res.json()
+	assert(configuration, oauth_authorization_server_metadata)
+	return configuration
+}

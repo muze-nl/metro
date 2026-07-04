@@ -4,47 +4,78 @@ weight: 1
 ---
 # Quickstart
 
-## Installation
-
-```shell
+```sh
 npm install @muze-nl/metro
 ```
 
-Or in the browser, using a cdn:
+```js
+import metro from '@muze-nl/metro'
 
-```html
-<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro/dist/browser.js"></script>
-<script>
-  async function main() {
-    const client = metro.client('https://example.com/')
-    const result = await client.get('folder/page.html')
-  }
-  main()
-</script>
+const client = metro.client('https://jsonplaceholder.typicode.com/')
+  .with(metro.mw.json())
+
+const response = await client.get('/posts/1')
+console.log(response.data)
 ```
 
-If you are using a cdn, and need the assert library or one of the default middleware plugins, use the `dist/everything.js` script instead:
+The combined package is the easiest way in. It includes the core client, middleware, API helpers, trace helpers, hash-parameter helpers, and `formdata()`.
+
+## Browser page
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro/dist/everything.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js"></script>
 <script>
-  const client = metro.client(metro.mw.json())
-</script>
-```
+  const client = metro.client('https://jsonplaceholder.typicode.com/')
+    .with(metro.mw.json())
 
-MetroJS is also available on Github as https://github.com/muze-nl/metro/.
-
-## Posting form data
-
-The metro client supports the post method using `client.post()`:
-
-```javascript
-const client = metro.client()
-let response = await client.post(url, {
-  body: metro.formdata({
-    name: value
+  client.get('/posts/1').then(response => {
+    console.log(response.data)
   })
-})
+</script>
 ```
 
-The `metro.formdata()` method is a wrapper for the [default FormData class](https://developer.mozilla.org/en-US/docs/Web/API/FormData), and accepts all of the parameters that the [FormData constructor method](https://developer.mozilla.org/en-US/docs/Web/API/FormData/FormData) accepts. In addition, you can also pass an object, as used in the example above.
+## Make a request
+
+```js
+const response = await client.get('/users/1')
+
+if (response.ok) {
+  console.log(response.data.name)
+}
+```
+
+Metro still returns Fetch-compatible responses. The JSON middleware only adds `response.data` when the response is JSON.
+
+## Send JSON
+
+```js
+const created = await client.post('/posts', {
+  body: {
+    title: 'Metro',
+    body: 'Fetch with compartments',
+    userId: 1
+  }
+})
+
+console.log(created.data)
+```
+
+## Add resilience
+
+```js
+const resilient = metro.client('https://jsonplaceholder.typicode.com/')
+  .with(
+    metro.mw.timeout(5000),
+    metro.mw.retry({ attempts: 3 }),
+    metro.mw.json(),
+    metro.mw.thrower()
+  )
+```
+
+`timeout()` aborts slow requests, `retry()` retries temporary failures, `json()` handles JSON bodies, and `thrower()` turns non-OK responses into thrown errors.
+
+## Next steps
+
+- Read the [tutorial](tutorial.md) for a guided path through the library.
+- See the [package map](packages.md) when you want smaller imports.
+- Use package-specific docs for reference material.
