@@ -12,7 +12,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@muze-nl/metro-core": "0.7.1"
+    "@muze-nl/metro-core": "^0.8.0"
   },
   "files": [
     "/src",
