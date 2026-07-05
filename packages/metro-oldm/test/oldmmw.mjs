@@ -44,7 +44,7 @@ tap.test('GET adds an Accept header and parses Turtle responses into OLDM data',
 	t.ok(res.ok)
 	t.equal(res.data.constructor.name, 'Graph')
 	t.ok(res.data.subjects['https://example.test/people.ttl#me'])
-	t.equal(res.data.subjects['https://example.test/people.ttl#me']['schem$name'].toString(), 'Ada')
+	t.equal(res.data.subjects['https://example.test/people.ttl#me']['schema$name'].toString(), 'Ada')
 })
 
 tap.test('GET leaves non-linked-data responses unchanged', async t => {
