@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@muze-nl/assert": "^0.5.1",
-    "@muze-nl/metro-core": "0.7.1",
+    "@muze-nl/metro-core": "^0.8.0",
     "dpop": "^2.1.1"
   },
   "engines": {

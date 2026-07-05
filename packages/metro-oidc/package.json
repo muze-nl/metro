@@ -53,9 +53,9 @@
   ],
   "dependencies": {
     "@muze-nl/assert": "^0.5.1",
-    "@muze-nl/metro-core": "0.7.1",
-    "@muze-nl/metro-middleware": "0.7.1",
-    "@muze-nl/metro-oauth2": "^0.8.1",
+    "@muze-nl/metro-core": "^0.8.0",
+    "@muze-nl/metro-middleware": "^0.8.0",
+    "@muze-nl/metro-oauth2": "^0.8.2",
     "jose": "^6.2.3"
   },
   "exports": {
