@@ -41,8 +41,7 @@ Advanced users can import the smaller packages directly. We will come back to th
 
 A Metro client is a reusable Fetch wrapper. Give it a base URL, then call HTTP methods on it. Here is the smallest complete program worth running: it loads Metro, asks JSONPlaceholder for one post, and prints the title.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -58,7 +57,6 @@ A Metro client is a reusable Fetch wrapper. Give it a base URL, then call HTTP m
   console.log(post.title)
 })()
 ```
-{{< /example >}}
 
 The object you get back behaves like a normal Fetch `Response`. You still have `ok`, `status`, `statusText`, `headers`, `text()`, `json()`, `blob()`, and the rest of the standard Fetch surface. Metro is not asking you to forget Fetch; it is giving Fetch somewhere to keep its tools.
 
@@ -88,8 +86,7 @@ const api = metro.client('https://jsonplaceholder.typicode.com/', {
 
 The defaults do not trap you. You can derive a new client with `with()`, leaving the old one untouched. In the next live example, the original client asks for posts and the derived client adds a harmless tutorial header before asking for comments. Public services normally ignore such a header, but it shows the idea without inventing a private API.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -115,7 +112,6 @@ The defaults do not trap you. You can derive a new client with `with()`, leaving
   console.log(`Post 1 has ${comments.length} comments.`)
 })()
 ```
-{{< /example >}}
 
 That little `with()` method is one of the central Metro ideas. It appears on clients, requests, responses, URLs, and form data. Rather than changing the thing you already have, Metro makes a new thing with the changes applied. This makes middleware much less spooky, because a middleware function can add a header or alter a body without secretly mutating an object that some other code still holds.
 
@@ -123,8 +119,7 @@ That little `with()` method is one of the central Metro ideas. It appears on cli
 
 JavaScript's standard `URL` object is useful, but its constructor can be awkward when you want to adjust one part and leave the rest alone. Metro's `url()` helper wraps a real `URL` and adds the same `with()` idea. Here it builds an Open-Meteo weather URL for Amsterdam, then turns the same base into a different query without string concatenation.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -150,7 +145,6 @@ JavaScript's standard `URL` object is useful, but its constructor can be awkward
   )
 })()
 ```
-{{< /example >}}
 
 There are two different knobs for query strings, and the distinction is worth remembering. `search` replaces the whole query string, while `searchParams` appends to what is already there:
 
@@ -170,8 +164,7 @@ This matters in applications where a URL is not just a string to paste together 
 
 Metro includes a `formdata()` helper for the common case where you have a plain object and want a `FormData` instance. This example does not send anything over the network, because there is no good reason to trouble a public API with a pretend file upload, but the code is still runnable and shows the important behaviour: arrays become repeated fields.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -188,7 +181,6 @@ Metro includes a `formdata()` helper for the common case where you have a plain 
   console.log('Published?', finalForm.get('published'))
 })()
 ```
-{{< /example >}}
 
 You can also pass an existing `FormData` object or, in the browser, an HTML form element. Do not set the `Content-Type` header yourself for ordinary multipart form uploads. Let the browser or runtime add the boundary. That is not a Metro rule so much as one of those Fetch rules that has been waiting in the long grass since the first time someone uploaded a file.
 
@@ -196,8 +188,7 @@ You can also pass an existing `FormData` object or, in the browser, an HTML form
 
 Raw Fetch makes you do JSON work twice: stringify the outgoing body, then parse the incoming body. Metro's JSON middleware turns that into a reusable behaviour. JSONPlaceholder accepts `POST`, `PUT`, `PATCH`, and `DELETE` as demonstrations, but it fakes the write instead of permanently storing your data, which is exactly what we want for a tutorial.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -216,7 +207,6 @@ Raw Fetch makes you do JSON work twice: stringify the outgoing body, then parse 
   console.log(response.data)
 })()
 ```
-{{< /example >}}
 
 The JSON middleware does three useful things. If no `Accept` header is present, it adds one. For non-GET and non-HEAD requests, if `request.data` is a normal object and the content type is JSON, it stringifies that object into the request body. When the response has a JSON content type, it parses the response and returns a Metro response whose `data` property is the parsed value.
 
@@ -238,8 +228,7 @@ Without the JSON middleware, a plain object body is only a body value. With the 
 
 Fetch does not throw just because the server says `404`. Neither does Metro's core client. This is a good default, because a `404` from an API can be a perfectly ordinary answer.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -254,12 +243,10 @@ Fetch does not throw just because the server says `404`. Neither does Metro's co
   }
 })()
 ```
-{{< /example >}}
 
 When you do want non-2xx responses to become exceptions, add `thrower()`:
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -274,7 +261,6 @@ When you do want non-2xx responses to become exceptions, add `thrower()`:
   }
 })()
 ```
-{{< /example >}}
 
 The thrown error has the response as its `cause`, so you can still inspect the status and headers. Use this where exceptions match your program flow, but do not feel obliged to throw everything. Sometimes a `401`, `403`, or `404` is information rather than disaster.
 
@@ -295,8 +281,7 @@ It can alter the outgoing request before calling `next(req)`, and it can alter t
 
 Here is a small response middleware that measures roughly how long the request took, then adds that as a response header. It is a toy, but it shows the shape of a response middleware with a real network request underneath.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -323,12 +308,10 @@ Here is a small response middleware that measures roughly how long the request t
   console.log(post.title)
 })()
 ```
-{{< /example >}}
 
 A middleware does not have to call `next()`. A mock server middleware, for example, can return a response directly. If you do that, return `metro.response()` rather than a raw `new Response()` when outer middleware may expect Metro's `.with()` or `.data` helpers.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -356,7 +339,6 @@ A middleware does not have to call `next()`. A mock server middleware, for examp
   console.log(response.data)
 })()
 ```
-{{< /example >}}
 
 ## 8. Middleware order: the onion model
 
@@ -370,8 +352,7 @@ const client = metro.client('/api/')
 
 For an outgoing request, `second` runs first, then `first`, then the actual Fetch call. On the way back, `first` sees the response first, and `second` sees it last. The next example records that order without relying on a server at all.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -395,7 +376,6 @@ For an outgoing request, `second` runs first, then `first`, then the actual Fetc
   console.log(log.join('\n'))
 })()
 ```
-{{< /example >}}
 
 A common JSON API stack looks like this:
 
@@ -412,8 +392,7 @@ On the request side, `getdata()` and `thrower()` mostly stand aside while `json(
 
 As an application grows, raw paths start to look like solder blobs on a perfboard: functional, but hard to read later. Metro's API helper lets you name those paths. JSONPlaceholder has posts and comments, so we can make a tiny client library for it.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -453,7 +432,6 @@ As an application grows, raw paths start to look like solder blobs on a perfboar
   console.log(saved)
 })()
 ```
-{{< /example >}}
 
 `jsonApi()` builds on the Metro client, adds the JSON middleware, throws for failed responses, and returns `response.data` for successful JSON responses. Your methods are bound so `this.get()`, `this.post()`, and nested sections work as you would expect. If you do not want JSON behaviour, use `metro.api()` instead.
 
@@ -474,8 +452,7 @@ This is not meant to become a huge generated SDK. It is a small way to keep URL 
 
 The network is a physical thing. Somewhere there is a cable, a radio, a router, a server, and an overloaded process that has just discovered it would rather be elsewhere. Metro's resilience middleware handles the boring bits of that reality.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -499,7 +476,6 @@ The network is a physical thing. Somewhere there is a cable, a radio, a router, 
   console.log(response.data.current)
 })()
 ```
-{{< /example >}}
 
 This stack reads naturally from the inside out. `backoff()` remembers when the server asks you to slow down, using headers such as `Retry-After` and common rate-limit reset hints. `timeout(8000)` aborts an individual attempt after eight seconds. `retry({ attempts: 3 })` makes another attempt for temporary failures.
 
@@ -538,8 +514,7 @@ You can also pass a Fetch `signal` as a request option. Metro's abort and timeou
 
 Metro includes two small mock middleware helpers. `echoMock()` returns what you sent it, and `errorMock()` returns HTTP error responses based on the path. They are not a substitute for integration tests, but they are excellent for exploring a middleware stack without running a server.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -556,12 +531,10 @@ Metro includes two small mock middleware helpers. `echoMock()` returns what you 
   console.log(response.data.title)
 })()
 ```
-{{< /example >}}
 
 For error handling experiments:
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -576,7 +549,6 @@ For error handling experiments:
   }
 })()
 ```
-{{< /example >}}
 
 Mock middleware is also a good way to test your own middleware. Put your middleware outside or inside the mock depending on which side of the conversation you want to observe.
 
@@ -590,8 +562,7 @@ https://example.com/app#callback?code=abc&state=xyz
 
 Metro's hash-parameter helper keeps that drawer separate from the normal query string:
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -608,7 +579,6 @@ Metro's hash-parameter helper keeps that drawer separate from the normal query s
   console.log(metro.hashParams.clear(withPanel).href)
 })()
 ```
-{{< /example >}}
 
 You will not need this every day, but when you do need it, you will be pleased not to write another regular expression against `location.hash`.
 
@@ -618,8 +588,7 @@ Middleware is wonderful right up to the moment you forget which layer touched th
 
 For quick debugging, add the group tracer globally. This live example makes one request and then removes the tracer again, because global debugging hooks are best treated like crocodile clips: useful, visible, and not left attached forever.
 
-{{< example language="javascript" console="true" preview="false" >}}
-```javascript
+```javascript:console.js
 (async () => {
   await import('https://cdn.jsdelivr.net/npm/@muze-nl/metro@0.7.1/dist/browser.min.js')
 
@@ -633,7 +602,6 @@ For quick debugging, add the group tracer globally. This live example makes one 
   console.log(post.title)
 })()
 ```
-{{< /example >}}
 
 A global tracer sees every Metro client, which is convenient while poking around and too broad for complex applications. For serious debugging, especially when several requests overlap, use a scoped graph tracer:
 
