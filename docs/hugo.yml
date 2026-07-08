@@ -1,43 +1,90 @@
 ---
+# ==============================================================================
+# Generic Hugo configuration.
+# For a full list of options see: https://gohugo.io/configuration/all/
+# ------------------------------------------------------------------------------
 baseURL: 'https://metro.muze.nl/'
 disableHugoGeneratorInject: true
 ignorefiles:
   - 'go.*'
   - 'hugo.yml'
   - 'public/*'
-languageCode: 'en-us'
+locale: 'en-us'
 title: 'MetroJS'
+# ==============================================================================
+
+# ==============================================================================
+# Markup configuration.
+# For a full list of options see: https://gohugo.io/configuration/markup/
+# ------------------------------------------------------------------------------
 markup:
   goldmark:
     renderer:
+      # Allow HTML in Markdown to be rendered as-is
       unsafe: true
+# ==============================================================================
+
+# ==============================================================================
+# Module configuration.
+# For a full list of options see: https://gohugo.io/configuration/module/
+# ------------------------------------------------------------------------------
 module:
   imports:
     - path: github.com/McShelby/hugo-theme-relearn
   mounts:
-    - source: './'
-      target: content
-      excludeFiles:
-        - 'go.*'
-        - 'hugo.yml'
-        - 'public/.*'
-    - source: '../packages/metro/docs'
-      target: content/packages/metro
-    - source: '../packages/metro-core/docs'
-      target: content/packages/metro-core
-    - source: '../packages/metro-api/docs'
-      target: content/packages/metro-api
-    - source: '../packages/metro-middleware/docs'
-      target: content/packages/metro-middleware
-    - source: '../packages/metro-trace/docs'
-      target: content/packages/metro-trace
-    - source: '../packages/metro-hashparams/docs'
-      target: content/packages/metro-hashparams
-    - source: '../packages/metro-formdata/docs'
-      target: content/packages/metro-formdata
-    - source: '../packages/metro-oauth2/docs'
-      target: content/packages/metro-oauth2
-    - source: '../packages/metro-oidc/docs'
-      target: content/packages/metro-oidc
-    - source: '../packages/metro-oldm/docs'
-      target: content/packages/metro-oldm
+    # Mount the docs/ directory as content root
+    - files:
+        - '! go.*'
+        - '! hugo.yml'
+        - '! public/**'
+      source: './'
+      target: 'content/'
+    # Load custom CSS
+    - source: '_/custom.css'
+      target: 'assets/css/custom.css'
+    # Use the img/ directory for Hugo image too
+    - source: 'img/'
+      target: 'content/reference/img/'
+    # Use the main README.md file as the homepage
+    - source: 'README.md'
+      target: 'content/_index.md'
+    # Add pages to create sections in the sidebar
+    # This also makes it possible to define menu order using "weight"
+    - source: 'details/README.md'
+      target: 'content/details/_index.md'
+    - source: '../packages/metro/docs/README.md'
+      target: 'content/packages/metro/_index.md'
+    - source: '../packages/metro-core/docs/README.md'
+      target: 'content/packages/metro-core/_index.md'
+    - source: '../packages/metro-api/docs/README.md'
+      target: 'content/packages/metro-api/_index.md'
+    - source: '../packages/metro-middleware/docs/README.md'
+      target: 'content/packages/metro-middleware/_index.md'
+    - source: '../packages/metro-trace/docs/README.md'
+      target: 'content/packages/metro-trace/_index.md'
+    - source: '../packages/metro-hashparams/docs/README.md'
+      target: 'content/packages/metro-hashparams/_index.md'
+    - source: '../packages/metro-formdata/docs/README.md'
+      target: 'content/packages/metro-formdata/_index.md'
+    - source: '../packages/metro-oauth2/docs/README.md'
+      target: 'content/packages/metro-oauth2/_index.md'
+    - source: '../packages/metro-oidc/docs/README.md'
+      target: 'content/packages/metro-oidc/_index.md'
+    - source: '../packages/metro-oldm/docs/README.md'
+      target: 'content/packages/metro-oldm/_index.md'
+
+# ==============================================================================
+# Theme Specific configuration.For a full list of options see:
+# https://mcshelby.github.io/hugo-theme-relearn/configuration/reference/
+# ------------------------------------------------------------------------------
+params:
+  alwaysopen: false
+  collapsibleMenu: true
+  disableGeneratorVersion: true
+  disableInlineCopyToClipBoard: true
+  disableLandingPageButton: true
+  themeVariant:
+    - 'auto'
+    - 'zen-dark'
+    - 'zen-light'
+# ==============================================================================
