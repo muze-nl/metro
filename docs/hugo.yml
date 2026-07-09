@@ -45,8 +45,8 @@ module:
     # Use the img/ directory for Hugo image too
     - source: 'img/'
       target: 'content/reference/img/'
-    # Use the main README.md file as the homepage
-    - source: 'README.md'
+    # Use the introduction.md file as the homepage
+    - source: 'introduction.md'
       target: 'content/_index.md'
     # Add pages to create sections in the sidebar
     # This also makes it possible to define menu order using "weight"
