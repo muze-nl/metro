@@ -101,7 +101,7 @@ export default function oauth2mw(options)
 	 * redirect, fetches or refreshes an access token when needed, and finally
 	 * sends the request with the correct Authorization header.
 	 */
-	async function oauth2authorized(req, next)
+	async function oauth2authorized(req, next, retryState = {})
 	{
 		getTokensFromLocation()
 		const accessToken = options.tokens.get('access_token')
@@ -120,12 +120,23 @@ export default function oauth2mw(options)
 			}
 			return oauth2authorized(req, next)
 		} else {
-			req = metro.request(req, {
+			const authorizedReq = metro.request(req, {
 				headers: {
 					Authorization: accessToken.type+' '+accessToken.value
 				}
 			})
-			return next(req)
+			const res = await next(authorizedReq)
+			if (!shouldAuthorizeResponse(res) || retryState.handledRejectedToken) {
+				return res
+			}
+			options.tokens.delete('access_token')
+			const token = refreshToken
+				? await refreshAccessToken()
+				: await fetchAccessToken()
+			if (!token) {
+				return metro.response('false')
+			}
+			return oauth2authorized(req, next, { handledRejectedToken: true })
 		}
 	}
 

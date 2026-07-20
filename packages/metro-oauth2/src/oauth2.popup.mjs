@@ -50,7 +50,7 @@ export function handleRedirect(origin = null) {
  * Returns a Promise, which resolves with the authorization_code when login was
  * successful, or rejects with an error if not.
  */
-export function authorizePopup(authorizationCodeURL) {
+export function authorizePopup(authorizationCodeURL, options = {}) {
 	const url = new URL(authorizationCodeURL, window.location.href)
 	const expectedState = url.searchParams.get('state')
 	const redirectUri = url.searchParams.get('redirect_uri')
@@ -88,6 +88,14 @@ export function authorizePopup(authorizationCodeURL) {
 			}
 		}
 		addEventListener('message', handler)
-		window.open(authorizationCodeURL)
+		const popup = options.popup || window.open(authorizationCodeURL)
+		if (!popup || popup.closed) {
+			cleanup()
+			reject('OAuth2 popup was blocked')
+			return
+		}
+		if (options.popup) {
+			popup.location.href = authorizationCodeURL
+		}
 	})
 }
