@@ -127,6 +127,40 @@ tap.test('oidcmw discovers, dynamically registers, authorizes, validates and sto
 	t.ok(store.has('client_info'))
 })
 
+tap.test('oidcmw ignores cached client registration when the requested redirect URI changed', async t => {
+	const currentRedirectUri = 'https://client.example/assets/margin-notes-oauth-callback.html'
+	const staleRedirectUri = 'https://client.example/'
+	const client = mockClient({ redirect_uri: currentRedirectUri })
+	const store = memoryStore()
+	store.set('client_info', {
+		client_id: 'mockClientId',
+		client_secret: 'mockClientSecret',
+		redirect_uris: [staleRedirectUri]
+	})
+
+	let authorizationUrl
+	const oidcClient = client.with(oidcmw({
+		client,
+		issuer,
+		store,
+		use_dpop: false,
+		client_info: {
+			redirect_uris: [currentRedirectUri],
+			client_name: 'Metro Test Client'
+		},
+		authorize_callback: url => {
+			authorizationUrl = url
+			return authorizeWithMock(client, url)
+		}
+	}))
+
+	const response = await oidcClient.get('/protected/')
+
+	t.ok(response.ok)
+	t.equal(authorizationUrl.searchParams.get('redirect_uri'), currentRedirectUri)
+	t.same(store.get('client_info').redirect_uris, [currentRedirectUri])
+})
+
 tap.test('oidcmw rejects an id_token with the wrong issuer', async t => {
 	await t.rejects(
 		runOidcFlow(t, { idTokenClaims: { iss: 'https://other-issuer.example/' } }),
