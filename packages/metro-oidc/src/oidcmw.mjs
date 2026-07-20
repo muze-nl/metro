@@ -24,6 +24,7 @@ export default function oidcmw(options={}) {
 	}
 
 	options = Object.assign({}, defaultOptions, options)
+	const requestedClientInfo = options.client_info
 
 	assert(options, {
 		client: Required(instanceOf(metro.client().constructor)), // required because it is set in defaultOptions
@@ -40,7 +41,10 @@ export default function oidcmw(options={}) {
 		options.openid_configuration = options.store.get('openid_configuration')
 	}
 	if (!options.client_info?.client_id && options.store.has('client_info')) {
-		options.client_info = options.store.get('client_info')
+		const storedClientInfo = options.store.get('client_info')
+		if (clientInfoMatchesRequest(storedClientInfo, requestedClientInfo)) {
+			options.client_info = storedClientInfo
+		}
 	}
 
 	return async (req, next) => {
@@ -167,6 +171,17 @@ export default function oidcmw(options={}) {
 		return res
 	}
 
+}
+
+function clientInfoMatchesRequest(storedClientInfo, requestedClientInfo) {
+	if (!storedClientInfo?.client_id) {
+		return false
+	}
+	if (!Array.isArray(requestedClientInfo?.redirect_uris)) {
+		return true
+	}
+	const storedRedirectUris = new Set(storedClientInfo.redirect_uris || [])
+	return requestedClientInfo.redirect_uris.every(uri => storedRedirectUris.has(uri))
 }
 
 export function isRedirected() {
