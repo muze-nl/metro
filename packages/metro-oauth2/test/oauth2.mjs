@@ -210,6 +210,25 @@ tap.test('refresh token flow succeeds when the refresh response omits a replacem
 	t.same(await res.json(), { result: 'Success' })
 })
 
+tap.test('refresh token flow replaces a rejected access token before returning a protected-resource 401', async t => {
+	const client = mockClient()
+	const oauth2client = client.with(oauth2mw(oauth2Options(client, {
+		oauth2_configuration: {
+			access_token: {
+				type: 'Bearer',
+				value: 'staleAccessToken',
+				expires: new Date(Date.now() + 60_000)
+			},
+			refresh_token: { value: 'mockRefreshToken' }
+		},
+		force_authorization: true
+	})))
+
+	const res = await oauth2client.get('/protected/')
+	t.ok(res.ok)
+	t.same(await res.json(), { result: 'Success' })
+})
+
 tap.test('client credentials grant can fetch a token without an authorization callback', async t => {
 	const client = mockClient()
 	const oauth2client = client.with(oauth2mw(oauth2Options(client, {

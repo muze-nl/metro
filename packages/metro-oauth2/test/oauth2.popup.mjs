@@ -174,10 +174,45 @@ tap.test('authorizePopup SHOULD resolve with received code WHEN message posted w
     t.end()
 })
 
+tap.test('authorizePopup SHOULD reject WHEN popup is blocked', async t => {
+    setupWindow(t)
+    globalThis.window.open = () => null
+    globalThis.addEventListener = (event) => t.equal(event, 'message')
+    globalThis.removeEventListener = (event) => t.equal(event, 'message')
+
+    const actual = await t.rejects(authorizePopup(mockAuthorizationUrl()))
+
+    t.equal(actual, 'OAuth2 popup was blocked')
+    t.end()
+})
+
+tap.test('authorizePopup SHOULD navigate a caller-opened popup', async t => {
+    setupWindow(t)
+    const popup = {
+        closed: false,
+        location: { href: 'about:blank' }
+    }
+    globalThis.window.open = () => t.fail('window.open should not be called')
+    globalThis.addEventListener = createEventListener(t, {
+        data: { authorization_code: 'mockCode', state: 'mockState' },
+        origin: 'https://client.example'
+    })
+    globalThis.removeEventListener = () => {}
+
+    const actual = await authorizePopup(mockAuthorizationUrl(), { popup })
+
+    t.equal(popup.location.href, mockAuthorizationUrl())
+    t.equal(actual, 'mockCode')
+    t.end()
+})
+
 function setupWindow(t) {
     globalThis.window = {
         location: { href: 'https://client.example/app', origin: 'https://client.example' },
-        open: (authorizationCodeURL) => t.equal(authorizationCodeURL, mockAuthorizationUrl())
+        open: (authorizationCodeURL) => {
+            t.equal(authorizationCodeURL, mockAuthorizationUrl())
+            return { closed: false }
+        }
     }
 }
 

@@ -694,21 +694,250 @@
     parseBearerChallenge: () => parseBearerChallenge
   });
 
-  // ../../node_modules/@muze-nl/assert/src/assert.mjs
-  globalThis.assertEnabled = false;
+  // ../../node_modules/@muze-nl/assert/src/assert-core.mjs
+  var assert_core_exports = {};
+  __export(assert_core_exports, {
+    Optional: () => Optional,
+    Recommended: () => Recommended,
+    Required: () => Required,
+    allOf: () => allOf,
+    anyOf: () => anyOf,
+    assert: () => assert,
+    disable: () => disable,
+    enable: () => enable,
+    error: () => error,
+    fails: () => fails,
+    formatIssue: () => formatIssue,
+    formatIssues: () => formatIssues,
+    instanceOf: () => instanceOf,
+    issues: () => issues,
+    not: () => not,
+    oneOf: () => oneOf,
+    validEmail: () => validEmail,
+    validURL: () => validURL,
+    warn: () => warn
+  });
+  var assertEnabled = false;
   function enable() {
-    globalThis.assertEnabled = true;
+    assertEnabled = true;
   }
   function disable() {
-    globalThis.assertEnabled = false;
+    assertEnabled = false;
+  }
+  function appendPath(path = "", key) {
+    if (typeof path == "undefined" || path == null) {
+      path = "";
+    }
+    if (typeof key == "number") {
+      return `${path}[${key}]`;
+    }
+    return `${path}.${key}`;
+  }
+  function pathToArray(path = "") {
+    if (Array.isArray(path)) {
+      return path;
+    }
+    if (!path) {
+      return [];
+    }
+    let result = [];
+    let matcher = /(?:^|\.)([^.\[\]]+)|\[(\d+)\]/g;
+    let match;
+    while (match = matcher.exec(path)) {
+      if (typeof match[1] != "undefined") {
+        result.push(match[1]);
+      } else if (typeof match[2] != "undefined") {
+        result.push(Number(match[2]));
+      }
+    }
+    return result;
+  }
+  function pathToString(path = []) {
+    if (typeof path == "string") {
+      return path.startsWith(".") ? path.slice(1) : path;
+    }
+    return path.map((part, index) => {
+      if (typeof part == "number") {
+        return `[${part}]`;
+      }
+      return `${index ? "." : ""}${part}`;
+    }).join("");
+  }
+  function describeFunction(value) {
+    if (value === String) {
+      return "string";
+    }
+    if (value === Number) {
+      return "number";
+    }
+    if (value === Boolean) {
+      return "boolean";
+    }
+    return value.name || "function";
+  }
+  function clip(text, maxLength = 60) {
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return text.slice(0, maxLength - 1) + "\u2026";
+  }
+  function quoteString(value) {
+    return `'${clip(String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n"))}'`;
+  }
+  function jsonSummary(value) {
+    try {
+      let json = JSON.stringify(value);
+      if (typeof json == "string") {
+        return clip(json);
+      }
+    } catch (e) {
+    }
+    let name = value?.constructor?.name;
+    if (name && name != "Object") {
+      return name;
+    }
+    return Object.prototype.toString.call(value);
+  }
+  function formatValue(value) {
+    if (typeof value == "string") {
+      return quoteString(value);
+    }
+    if (typeof value == "undefined") {
+      return "undefined";
+    }
+    if (value === null) {
+      return "null";
+    }
+    if (typeof value == "function") {
+      return describeFunction(value);
+    }
+    if (value instanceof RegExp) {
+      return value.toString();
+    }
+    if (typeof value == "number" || typeof value == "boolean" || typeof value == "bigint") {
+      return String(value);
+    }
+    if (typeof value == "symbol") {
+      return value.toString();
+    }
+    return jsonSummary(value);
+  }
+  function describeExpected(value) {
+    if (value === String || value === Number || value === Boolean) {
+      return describeFunction(value);
+    }
+    if (typeof value == "function") {
+      return describeFunction(value);
+    }
+    if (value instanceof RegExp) {
+      return value.toString();
+    }
+    if (Array.isArray(value)) {
+      return "[" + value.map(describeExpected).join(", ") + "]";
+    }
+    return formatValue(value);
+  }
+  function describeOneOf(patterns) {
+    return patterns.map(describeExpected).join(", ");
+  }
+  function conciseMessage(message, actual, expected) {
+    if (message == "data and pattern are not equal") {
+      return `expected ${formatValue(expected)}, found ${formatValue(actual)}`;
+    }
+    if (message == "data does not match pattern" || /^data\[\d+\] does not match pattern$/.test(message)) {
+      return `expected ${describeExpected(expected)}, found ${formatValue(actual)}`;
+    }
+    if (message == "data is undefined, should match pattern") {
+      return `missing; expected ${describeExpected(expected)}`;
+    }
+    if (message == "data is required") {
+      return "required";
+    }
+    if (message == "data is an empty string, which is not allowed") {
+      return "empty string is not allowed";
+    }
+    if (message == "data is not an object, pattern is") {
+      return "data is not an object";
+    }
+    if (message == "data is not an instanceof pattern") {
+      return `expected instance of ${describeExpected(expected)}, found ${formatValue(actual)}`;
+    }
+    if (message == "data does not match oneOf patterns" || message == "data does not match anyOf patterns") {
+      return `expected one of ${describeOneOf(expected)}, found ${formatValue(actual)}`;
+    }
+    if (message == "data matches pattern, when required not to") {
+      return `must not match ${describeExpected(expected)}`;
+    }
+    return message;
+  }
+  function formatIssue(issue, options = {}) {
+    if (!issue || typeof issue != "object") {
+      return String(issue);
+    }
+    let path = issue.pathString || pathToString(issue.path || []) || "value";
+    let indent = options.indent ?? "";
+    return `${indent}${path}: ${issue.message}`;
+  }
+  function formatIssues(issues2, options = {}) {
+    if (!issues2) {
+      return false;
+    }
+    let indent = options.indent ?? "  - ";
+    return (Array.isArray(issues2) ? issues2 : [issues2]).map((issue) => formatIssue(issue, { ...options, indent }));
+  }
+  function issueFromProblem(problem) {
+    if (!problem || typeof problem != "object") {
+      return {
+        path: [],
+        pathString: "",
+        message: String(problem),
+        expected: void 0,
+        actual: void 0
+      };
+    }
+    let path = pathToArray(problem.path);
+    let pathString = pathToString(path);
+    let actual = problem.actual ?? problem.found;
+    let expected = describeExpected(problem.expected);
+    let message = conciseMessage(problem.message, actual, problem.expected);
+    return {
+      path,
+      pathString,
+      message,
+      expected,
+      actual
+    };
+  }
+  function problemsToIssues(problems) {
+    if (!problems) {
+      return [];
+    }
+    let result = [];
+    for (let problem of Array.isArray(problems) ? problems : [problems]) {
+      if (!problem) {
+        continue;
+      }
+      if (problem && typeof problem == "object" && problem.problems) {
+        let nested = problemsToIssues(problem.problems);
+        if (nested.length) {
+          result = result.concat(nested);
+          continue;
+        }
+      }
+      result.push(issueFromProblem(problem));
+    }
+    return result;
   }
   function assert(source, test) {
-    if (globalThis.assertEnabled) {
+    if (assertEnabled) {
       let problems = fails(source, test);
       if (problems) {
-        console.error("\u{1F170}\uFE0F  Assertions failed because of:", problems, "in this source:", source);
-        throw new Error("Assertions failed", {
-          cause: { problems, source }
+        let assertionIssues = problemsToIssues(problems);
+        let formattedIssues = formatIssues(assertionIssues);
+        let message = "Assertions failed:\n" + formattedIssues.join("\n");
+        console.error("\u{1F170}\uFE0F  " + message);
+        throw new Error(message, {
+          cause: { problems, issues: assertionIssues, source }
         });
       }
     }
@@ -756,9 +985,10 @@
       if (!Array.isArray(data)) {
         return error("data is not an array", data, "anyOf", path);
       }
-      for (let value of data) {
-        if (oneOf(...patterns)(value)) {
-          return error("data does not match anyOf patterns", value, patterns, path);
+      for (let [index, value] of data.entries()) {
+        let itemPath = appendPath(path, index);
+        if (oneOf(...patterns)(value, root, itemPath)) {
+          return error("data does not match anyOf patterns", value, patterns, itemPath);
         }
       }
       return false;
@@ -810,8 +1040,15 @@
       }
     };
   }
+  function issues(data, pattern, root) {
+    let problems = fails(data, pattern, root);
+    if (!problems) {
+      return false;
+    }
+    return problemsToIssues(problems);
+  }
   function fails(data, pattern, root, path = "") {
-    if (!root) {
+    if (typeof root == "undefined") {
       root = data;
     }
     let problems = [];
@@ -832,9 +1069,9 @@
       }
     } else if (pattern instanceof RegExp) {
       if (Array.isArray(data)) {
-        let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
+        let index = data.findIndex((element, index2) => fails(element, pattern, root, appendPath(path, index2)));
         if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, appendPath(path, index)));
         }
       } else if (typeof data == "undefined") {
         problems.push(error("data is undefined, should match pattern", data, pattern, path));
@@ -853,22 +1090,23 @@
     } else if (Array.isArray(pattern)) {
       if (!Array.isArray(data)) {
         problems.push(error("data is not an array", data, [], path));
-      }
-      for (let p of pattern) {
-        for (let index of data.keys()) {
-          let problem = fails(data[index], p, root, path + "[" + index + "]");
-          if (Array.isArray(problem)) {
-            problems = problems.concat(problem);
-          } else if (problem) {
-            problems.push(problem);
+      } else {
+        for (let p of pattern) {
+          for (let index of data.keys()) {
+            let problem = fails(data[index], p, root, appendPath(path, index));
+            if (Array.isArray(problem)) {
+              problems = problems.concat(problem);
+            } else if (problem) {
+              problems.push(problem);
+            }
           }
         }
       }
     } else if (pattern && typeof pattern == "object") {
       if (Array.isArray(data)) {
-        let index = data.findIndex((element, index2) => fails(element, pattern, root, path + "[" + index2 + "]"));
+        let index = data.findIndex((element, index2) => fails(element, pattern, root, appendPath(path, index2)));
         if (index > -1) {
-          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, path + "[" + index + "]"));
+          problems.push(error("data[" + index + "] does not match pattern", data[index], pattern, appendPath(path, index)));
         }
       } else if (!data || typeof data != "object") {
         problems.push(error("data is not an object, pattern is", data, pattern, path));
@@ -883,7 +1121,7 @@
           }
         } else {
           for (const [patternKey, subpattern] of Object.entries(pattern)) {
-            let result = fails(data[patternKey], subpattern, root, path + "." + patternKey);
+            let result = fails(data[patternKey], subpattern, root, appendPath(path, patternKey));
             if (result) {
               problems = problems.concat(result);
             }
@@ -900,9 +1138,12 @@
     }
     return false;
   }
-  function error(message, found, expected, path, problems) {
+  function error(message, found, expected, path = "", problems) {
+    let pathParts = pathToArray(path);
     let result = {
       path,
+      pathString: pathToString(pathParts),
+      pathParts,
       message,
       found,
       expected
@@ -915,24 +1156,9 @@
   function warn(message, data, pattern, path) {
     console.warn("\u{1F170}\uFE0F  Assert: " + path, message, pattern, data);
   }
-  globalThis.assert = {
-    warn,
-    error,
-    assert,
-    enable,
-    disable,
-    Required,
-    Recommended,
-    Optional,
-    oneOf,
-    anyOf,
-    allOf,
-    validURL,
-    validEmail,
-    instanceOf,
-    not,
-    fails
-  };
+
+  // ../../node_modules/@muze-nl/assert/src/assert.mjs
+  globalThis.assert = { ...assert_core_exports };
 
   // src/tokenstore.mjs
   function tokenStore(site) {
@@ -1034,7 +1260,7 @@
       }
       return oauth2authorized(req, next);
     };
-    async function oauth2authorized(req, next) {
+    async function oauth2authorized(req, next, retryState = {}) {
       getTokensFromLocation();
       const accessToken = options.tokens.get("access_token");
       const refreshToken = options.tokens.get("refresh_token");
@@ -1052,12 +1278,21 @@
         }
         return oauth2authorized(req, next);
       } else {
-        req = request(req, {
+        const authorizedReq = request(req, {
           headers: {
             Authorization: accessToken.type + " " + accessToken.value
           }
         });
-        return next(req);
+        const res = await next(authorizedReq);
+        if (!shouldAuthorizeResponse(res) || retryState.handledRejectedToken) {
+          return res;
+        }
+        options.tokens.delete("access_token");
+        const token = refreshToken ? await refreshAccessToken() : await fetchAccessToken();
+        if (!token) {
+          return response("false");
+        }
+        return oauth2authorized(req, next, { handledRejectedToken: true });
       }
     }
     function getTokensFromLocation() {
@@ -1445,28 +1680,28 @@
     "private_key_jwt"
   ];
   var oauth_authorization_server_metadata = {
-    issuer: Required(validURL),
     authorization_endpoint: Required(validURL),
-    token_endpoint: Required(validURL),
-    jwks_uri: Optional(validURL),
-    registration_endpoint: Optional(validURL),
-    scopes_supported: Recommended([]),
+    issuer: Required(validURL),
     response_types_supported: Required(anyOf("code", "token")),
-    response_modes_supported: Optional([]),
+    token_endpoint: Required(validURL),
+    scopes_supported: Recommended([]),
+    code_challendge_methods_supported: Optional([]),
     grant_types_supported: Optional([]),
-    token_endpoint_auth_methods_supported: Optional([]),
-    token_endpoint_auth_signing_alg_values_supported: Optional([]),
-    service_documentation: Optional(validURL),
-    ui_locales_supported: Optional([]),
-    op_policy_uri: Optional(validURL),
-    op_tos_uri: Optional(validURL),
-    revocation_endpoint: Optional(validURL),
-    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
-    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
     introspection_endpoint: Optional(validURL),
     introspection_endpoint_auth_methods_supported: Optional(validAuthMethods),
     introspection_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
-    code_challendge_methods_supported: Optional([])
+    jwks_uri: Optional(validURL),
+    op_policy_uri: Optional(validURL),
+    op_tos_uri: Optional(validURL),
+    registration_endpoint: Optional(validURL),
+    response_modes_supported: Optional([]),
+    revocation_endpoint: Optional(validURL),
+    revocation_endpoint_auth_methods_supported: Optional(validAuthMethods),
+    revocation_endpoint_auth_signing_alg_values_supported: Optional(validAlgorithms),
+    service_documentation: Optional(validURL),
+    token_endpoint_auth_methods_supported: Optional([]),
+    token_endpoint_auth_signing_alg_values_supported: Optional([]),
+    ui_locales_supported: Optional([])
   };
   function makeClient(options = {}) {
     const defaultOptions = {
@@ -1481,13 +1716,13 @@
   }
   async function fetchWellknownOauthAuthorizationServer(issuer, client2) {
     let res = client2.get(url(issuer, ".wellknown/oauth_authorization_server"));
-    if (res.ok) {
-      assert(res.headers.get("Content-Type"), /application\/json.*/);
-      let configuration = await res.json();
-      assert(configuration, oauth_authorization_server_metadata);
-      return configuration;
+    if (!res.ok) {
+      throw metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
     }
-    throw metroError("metro.oidcmw: Error while fetching " + issuer + ".wellknown/oauth_authorization_server", res);
+    assert(res.headers.get("Content-Type"), /application\/json.*/);
+    let configuration = await res.json();
+    assert(configuration, oauth_authorization_server_metadata);
+    return configuration;
   }
 
   // src/oauth2.popup.mjs
@@ -1523,7 +1758,7 @@
     }
     return success;
   }
-  function authorizePopup(authorizationCodeURL) {
+  function authorizePopup(authorizationCodeURL, options = {}) {
     const url2 = new URL(authorizationCodeURL, window.location.href);
     const expectedState = url2.searchParams.get("state");
     const redirectUri = url2.searchParams.get("redirect_uri");
@@ -1560,7 +1795,15 @@
         }
       };
       addEventListener("message", handler);
-      window.open(authorizationCodeURL);
+      const popup = options.popup || window.open(authorizationCodeURL);
+      if (!popup || popup.closed) {
+        cleanup();
+        reject("OAuth2 popup was blocked");
+        return;
+      }
+      if (options.popup) {
+        popup.location.href = authorizationCodeURL;
+      }
     });
   }
 
