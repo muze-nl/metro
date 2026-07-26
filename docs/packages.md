@@ -35,7 +35,7 @@ const api = client('https://jsonplaceholder.typicode.com/')
 | --- | --- | --- |
 | `@muze-nl/metro` | default `metro`, core exports, `mw`, `trace`, `hashParams`, `formdata`, `api`, `jsonApi` | [combined package](../packages/metro/docs/) |
 | `@muze-nl/metro-core` | `client`, `Client`, `request`, `response`, `url`, `metroError`, `deepClone` | [core](../packages/metro-core/docs/) |
-| `@muze-nl/metro-api` | `API`, `JsonAPI`, `api`, `jsonApi` | [API helpers](../packages/metro-api/docs/) |
+| `@muze-nl/metro-api` | `API`, `api`, `jsonApi` | [API helpers](../packages/metro-api/docs/) |
 | `@muze-nl/metro-middleware` | `json`, `thrower`, `getdata`, `retry`, `timeout`, `abort`, `backoff`, `echoMock`, `errorMock` | [middleware](../packages/metro-middleware/docs/) |
 | `@muze-nl/metro-trace` | `add`, `delete`, `clear`, `group`, `graph`, `localConsole`, `GraphTracer` | [trace](../packages/metro-trace/docs/) |
 | `@muze-nl/metro-hashparams` | `parse`, `append`, `clear` | [hash params](../packages/metro-hashparams/docs/) |

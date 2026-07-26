@@ -1,7 +1,5 @@
 import * as metro from '@muze-nl/metro-core'
-import { json as jsonmw } from '@muze-nl/metro-middleware'
-import { thrower as throwermw } from '@muze-nl/metro-middleware'
-import { getdata as getdatamw } from '@muze-nl/metro-middleware'
+import { getdata, json, thrower } from '@muze-nl/metro-middleware'
 
 /**
  * Metro API Client, extends Client
@@ -9,24 +7,33 @@ import { getdata as getdatamw } from '@muze-nl/metro-middleware'
  * @param methods {name:function,...} list of API methods to expose
  * This class extends the metro client to allow you to add your own
  * api client methods. Methods are bound to this API object.
- * All default client methods (get/post/put/etc.) still work, unless
- * overridden. If a response object has a data part, that will be 
- * returned by the api client methods, instead of the normal response
- * The base API class will throw errors for network responses that
- * are not ok (e.g. status >= 400)
- * It will also return response.data, if that is set, instead of response
+ * All default client methods (get/post/put/etc.) still work, unless overridden.
+ * The constructor does not add middleware. Use api() for the default
+ * thrower/getdata middleware stack, or pass a configured client.
  */
 export class API extends metro.Client
 {
 	#methods = null
 	#base    = ''
 
-	constructor(base, methods, bind=null)
+	constructor(base, methods={}, bind=null)
 	{
 		if (base instanceof metro.Client) {
-			super(base.clientOptions, throwermw(), getdatamw())
+			super(base.clientOptions)
 		} else {
-			super(base, throwermw(), getdatamw())
+			let baseURL = base
+			if (base && typeof base == 'object' && !(base instanceof URL)) {
+				baseURL = base.url
+			}
+			try {
+				new URL(baseURL)
+			} catch {
+				throw new TypeError(
+					'metro-api: API base must be an absolute URL or Metro client',
+					{ cause: base }
+				)
+			}
+			super(base)
 		}
 		if (!bind) {
 			bind = this
@@ -42,7 +49,7 @@ export class API extends metro.Client
 			} else if (methods[methodName] && typeof methods[methodName] == 'object' 
 				&& (Object.getPrototypeOf(methods[methodName])===null 
 					|| Object.getPrototypeOf(methods[methodName]).constructor===Object) 
-			) {
+				) {
 				// allows for api.section.method()
 				this[methodName] = new this.constructor(base, methods[methodName], bind)
 			} else { 
@@ -58,36 +65,23 @@ export class API extends metro.Client
 }
 
 /**
- * This extends the API class to automatically add
- * the jsonmw middleware. So any request.body that is
- * a normal object is automatically translated to JSON
- * Any response that returns JSON is automatically parsed
- * into response.data.
- * If no Accept header is set, it is added.
+ * Returns a new Metro API object, with thrower/getdata middleware stack and the given methods.
+ * @param metroClient|URL|String url or metro client
+ * @param {name:function,...} list of API methods to expose
+ * @return API
  */
-export class JsonAPI extends API
+export function api(base, methods)
 {
-	constructor(base, methods, bind=null) 
-	{
-		if (base instanceof metro.Client) {
-			super(base.with(jsonmw()), methods, bind)
-		} else {
-			super(metro.client(base, jsonmw()), methods, bind)
-		}
-	}
+	return new API(metro.client(base, thrower(), getdata()), methods)
 }
 
 /**
- * Returns a new Metro API object
- * @param {...ClientOptions|string|URL}
+ * Returns a new Metro API object, with json/thrower/getdata middleware stack and the given methods.
+ * @param metroClient|URL|String url or metro client
+ * @param {name:function,...} list of API methods to expose
  * @return API
  */
-export function api(...options)
+export function jsonApi(base, methods)
 {
-	return new API(...metro.deepClone(options))
-}
-
-export function jsonApi(...options)
-{
-	return new JsonAPI(...metro.deepClone(options))
+	return new API(metro.client(base, json(), thrower(), getdata()), methods)
 }

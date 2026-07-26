@@ -662,7 +662,7 @@ The split is straightforward:
 | --- | --- |
 | `@muze-nl/metro-core` | `client`, `Client`, `request`, `response`, `url`, and `metroError`. |
 | `@muze-nl/metro` | The beginner-friendly combined package and browser global. |
-| `@muze-nl/metro-api` | `API`, `JsonAPI`, `api()`, and `jsonApi()`. |
+| `@muze-nl/metro-api` | `API`, `api()`, and `jsonApi()`. |
 | `@muze-nl/metro-middleware` | JSON, thrower, getdata, retry, timeout, abort, backoff, and mocks. |
 | `@muze-nl/metro-trace` | Console tracing and graph tracing. |
 | `@muze-nl/metro-hashparams` | Query-like parameters stored in the URL hash. |

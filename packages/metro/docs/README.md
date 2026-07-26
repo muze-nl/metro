@@ -32,7 +32,7 @@ Use this package when you want the whole Metro toolbox from one import. It is th
 ## What is included
 
 - Core: `client`, `Client`, `request`, `response`, `url`, `metroError`, `deepClone`.
-- API helpers: `API`, `JsonAPI`, `api`, `jsonApi`.
+- API helpers: `API`, `api`, `jsonApi`.
 - Middleware namespace: `metro.mw`.
 - Trace namespace: `metro.trace`.
 - Hash parameter namespace: `metro.hashParams`.
