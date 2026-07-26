@@ -68,7 +68,7 @@ Package-specific installation, usage, and reference documentation lives beside e
 | `@muze-nl/metro-oauth2` | [`packages/metro-oauth2/docs/`](packages/metro-oauth2/docs/) | OAuth2 middleware, PKCE, token storage, popup flow, and DPoP support. |
 | `@muze-nl/metro-oidc` | [`packages/metro-oidc/docs/`](packages/metro-oidc/docs/) | OpenID Connect middleware built on Metro OAuth2. |
 | `@muze-nl/metro-oldm` | [`packages/metro-oldm/docs/`](packages/metro-oldm/docs/) | Linked Data middleware using OLDM. |
-| `@muze-nl/metro-api` | [`packages/metro-api/docs/`](packages/metro-api/docs/) | `api()`, `jsonApi()`, `API`, and `JsonAPI`. |
+| `@muze-nl/metro-api` | [`packages/metro-api/docs/`](packages/metro-api/docs/) | `api()`, `jsonApi()`, and `API`. |
 | `@muze-nl/metro-trace` | [`packages/metro-trace/docs/`](packages/metro-trace/docs/) | Scoped and global tracing helpers plus console graph output. |
 | `@muze-nl/metro-hashparams` | [`packages/metro-hashparams/docs/`](packages/metro-hashparams/docs/) | Query parameters stored in the URL hash fragment. |
 | `@muze-nl/metro-formdata` | [`packages/metro-formdata/docs/`](packages/metro-formdata/docs/) | Small `formdata()` helper. |

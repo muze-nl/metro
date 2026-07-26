@@ -61,6 +61,20 @@ const data = await api.get('/profile')
 
 For OK responses with `response.data`, returns the data directly. Otherwise returns the response.
 
+`getdata({ alwaysData: true })` returns `{}` for OK responses without data. Existing response data is otherwise returned unchanged.
+
+Use `responseProperty` to keep a non-enumerable reference to the original response. Since primitive values cannot carry that property, this mode throws when `response.data` is not object-shaped.
+
+```js
+const response = Symbol('response')
+const data = await client.with(getdata({
+  alwaysData: true,
+  responseProperty: response
+})).post('/items')
+
+console.log(data[response].status)
+```
+
 ## `retry(options)`
 
 ```js
@@ -167,4 +181,3 @@ function addHeader(name, value) {
 ```
 
 For middleware invariants and examples, see [Writing Metro middleware](../../../docs/middleware-authoring.md).
-

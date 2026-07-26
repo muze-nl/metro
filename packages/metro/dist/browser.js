@@ -753,11 +753,30 @@
   }
 
   // ../metro-middleware/src/getdata.mjs
-  function getdatamw() {
+  function getdatamw(options = {}) {
     return async function getdata(req, next) {
       let res = await next(req);
-      if (res.ok && res.data) {
-        return res.data;
+      if (res.ok) {
+        if (options.alwaysData) {
+          let data = res.data;
+          if (data == null) {
+            data = {};
+          }
+          if (options.responseProperty && (typeof data != "object" && typeof data != "function")) {
+            throw new TypeError("getdata: responseProperty requires response.data to be an object");
+          }
+          if (options.responseProperty) {
+            Object.defineProperty(data, options.responseProperty, {
+              value: res,
+              enumerable: false,
+              configurable: true
+            });
+          }
+          return data;
+        }
+        if (res.data) {
+          return res.data;
+        }
       }
       return res;
     };
@@ -1413,11 +1432,23 @@
   var API = class extends Client {
     #methods = null;
     #base = "";
-    constructor(base, methods, bind = null) {
+    constructor(base, methods = {}, bind = null) {
       if (base instanceof Client) {
-        super(base.clientOptions, throwermw(), getdatamw());
+        super(base.clientOptions);
       } else {
-        super(base, throwermw(), getdatamw());
+        let baseURL = base;
+        if (base && typeof base == "object" && !(base instanceof URL)) {
+          baseURL = base.url;
+        }
+        try {
+          new URL(baseURL);
+        } catch {
+          throw new TypeError(
+            "metro-api: API base must be an absolute URL or Metro client",
+            { cause: base }
+          );
+        }
+        super(base);
       }
       if (!bind) {
         bind = this;
@@ -1438,20 +1469,11 @@
       return new this.constructor(this.#base, Object.assign({}, this.#methods, methods));
     }
   };
-  var JsonAPI = class extends API {
-    constructor(base, methods, bind = null) {
-      if (base instanceof Client) {
-        super(base.with(jsonmw()), methods, bind);
-      } else {
-        super(client(base, jsonmw()), methods, bind);
-      }
-    }
-  };
-  function api(...options) {
-    return new API(...deepClone(options));
+  function api(base, methods) {
+    return new API(client(base, throwermw(), getdatamw()), methods);
   }
-  function jsonApi(...options) {
-    return new JsonAPI(...deepClone(options));
+  function jsonApi(base, methods) {
+    return new API(client(base, jsonmw(), throwermw(), getdatamw()), methods);
   }
 
   // ../metro-trace/src/index.mjs
@@ -2558,7 +2580,6 @@
   // src/index.mjs
   var metro = Object.assign({}, src_exports, {
     API,
-    JsonAPI,
     api,
     jsonApi,
     mw: src_default,
