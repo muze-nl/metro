@@ -24,6 +24,8 @@ console.log(await posts.getPost(1))
 
 Use this package when an application has a small named API surface and you do not want to pass URLs around everywhere. `@muze-nl/metro` re-exports these helpers as `metro.api()` and `metro.jsonApi()`.
 
+For applications, use the factory functions. Libraries that extend API behaviour can compose a Metro client and call `new API()` inside their own factories.
+
 ## Reference
 
 See [reference](reference.md).
