@@ -88,10 +88,6 @@ module:
       target: 'content/packages/metro-oidc/'
     - source: '../packages/metro-oidc/docs/README.md'
       target: 'content/packages/metro-oidc/_index.md'
-    - source: '../packages/metro-oldm/docs/'
-      target: 'content/packages/metro-oldm/'
-    - source: '../packages/metro-oldm/docs/README.md'
-      target: 'content/packages/metro-oldm/_index.md'
 
 # ==============================================================================
 # Theme Specific configuration.For a full list of options see:

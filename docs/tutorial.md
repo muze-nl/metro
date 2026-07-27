@@ -669,7 +669,6 @@ The split is straightforward:
 | `@muze-nl/metro-formdata` | The `formdata()` helper. |
 | `@muze-nl/metro-oauth2` | OAuth2 middleware and helpers. |
 | `@muze-nl/metro-oidc` | OpenID Connect middleware on top of Metro and OAuth2. |
-| `@muze-nl/metro-oldm` | Linked Data parsing/writing middleware using OLDM. |
 
 The important architectural choice is that `metro-core` stays small. Higher-level behaviour lives in optional packages, and the combined package gathers the common pieces for people who would rather get on with building the application.
 
@@ -902,41 +901,10 @@ const raw = oidc.idToken({ issuer: 'https://solidcommunity.net/' })
 const claims = oidc.idTokenClaims({ issuer: 'https://solidcommunity.net/' })
 ```
 
-For Linked Data resources, add the OLDM middleware:
-
-```bash
-npm install @muze-nl/metro @muze-nl/metro-oidc @muze-nl/metro-oldm
-```
-
-```js
-import metro from '@muze-nl/metro'
-import oidc from '@muze-nl/metro-oidc'
-import oldmmw from '@muze-nl/metro-oldm'
-
-const pod = metro.client('https://example.solidcommunity.net/')
-  .with(oidc.oidcmw({
-    issuer: 'https://solidcommunity.net/',
-    client_info: {
-      client_name: 'Linked Data Workbench',
-      redirect_uris: [`${location.origin}/app.html`]
-    }
-  }))
-  .with(oldmmw({
-    prefixes: {
-      schema: 'https://schema.org/',
-      foaf: 'http://xmlns.com/foaf/0.1/'
-    }
-  }))
-
-const profile = await pod.get('profile/card')
-console.log(profile.data)
-```
-
-The OLDM middleware sets an appropriate `Accept` header for Linked Data, serializes outgoing linked-data objects for non-GET requests, and parses recognised Linked Data response formats into `response.data`. The parsed data is OLDM data, so the next stop is the OLDM documentation rather than Metro itself.
 
 ## 19. A final mental model
 
-Metro has a pleasantly small centre. At the centre is a Fetch-compatible client. Around it are immutable request, response, URL, and form-data helpers, each with `with()` so changes stay local. Around that is middleware, where cross-cutting behaviour belongs. Around that are convenience packages: JSON, API wrappers, retries, tracing, OAuth2, OIDC, and Linked Data.
+Metro has a pleasantly small centre. At the centre is a Fetch-compatible client. Around it are immutable request, response, URL, and form-data helpers, each with `with()` so changes stay local. Around that is middleware, where cross-cutting behaviour belongs. Around that are convenience packages: JSON, API wrappers, retries, tracing, OAuth2, and OIDC.
 
 When you are deciding where code should go, this rule of thumb usually works: if it is specific to one call, put it in the call options; if it is specific to one remote service, put it in a derived client; if it should apply to many calls, make it middleware; if it merely observes, make it a tracer; and if it turns a set of endpoints into a small vocabulary for your app, make an API helper.
 

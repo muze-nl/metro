@@ -34,7 +34,6 @@ Metro is Fetch with a small composable client around it. Use the combined `@muze
 | `@muze-nl/metro-middleware` | [middleware](../packages/metro-middleware/docs/) | JSON, thrower, retry, timeout, abort, backoff, mocks. |
 | `@muze-nl/metro-oauth2` | [OAuth2](../packages/metro-oauth2/docs/) | Authorization-code, PKCE, popup, token storage, DPoP. |
 | `@muze-nl/metro-oidc` | [OIDC](../packages/metro-oidc/docs/) | Discovery, registration, OIDC auth, ID token validation. |
-| `@muze-nl/metro-oldm` | [OLDM](../packages/metro-oldm/docs/) | Linked Data parsing and writing. |
 | `@muze-nl/metro-api` | [API helpers](../packages/metro-api/docs/) | Named API methods on top of Metro clients. |
 | `@muze-nl/metro-trace` | [trace](../packages/metro-trace/docs/) | Request tracing and console graph diagnostics. |
 | `@muze-nl/metro-hashparams` | [hash params](../packages/metro-hashparams/docs/) | Query-like values in `location.hash`. |

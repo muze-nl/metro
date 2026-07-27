@@ -42,7 +42,6 @@ const api = client('https://jsonplaceholder.typicode.com/')
 | `@muze-nl/metro-formdata` | `formdata` | [formdata](../packages/metro-formdata/docs/) |
 | `@muze-nl/metro-oauth2` | `oauth2mw`, OAuth helpers, `dpopmw`, stores, popup helpers | [OAuth2](../packages/metro-oauth2/docs/) |
 | `@muze-nl/metro-oidc` | `oidcmw`, `discover`, `register`, `idToken`, `idTokenClaims` | [OIDC](../packages/metro-oidc/docs/) |
-| `@muze-nl/metro-oldm` | default `oldmmw` | [OLDM](../packages/metro-oldm/docs/) |
 
 ## Rule of thumb
 

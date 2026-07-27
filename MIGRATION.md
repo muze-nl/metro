@@ -7,7 +7,6 @@
    - `metro` -> `packages/metro`
    - `metro-oauth2` -> `packages/metro-oauth2`
    - `metro-oidc` -> `packages/metro-oidc`
-   - `metro-oldm` -> `packages/metro-oldm`
 3. Preserve Git history if desired with `git subtree add` or a history-rewrite tool.
 4. Update CI to run from the root workspace.
 5. Archive the old standalone repositories only after the monorepo is published and README links point to the new locations.
@@ -19,9 +18,8 @@ This first monorepo pass keeps the package names unchanged:
 - `@muze-nl/metro`
 - `@muze-nl/metro-oauth2`
 - `@muze-nl/metro-oidc`
-- `@muze-nl/metro-oldm`
 
-If OAuth2/OIDC/OLDM should move to `@muze-labs`, do that as a separate migration so users get a clear deprecation path.
+If OAuth2/OIDC should move to `@muze-labs`, do that as a separate migration so users get a clear deprecation path.
 
 For each old npm package name that moves, publish a final patch release that prints or documents the new package name, then deprecate the old package:
 

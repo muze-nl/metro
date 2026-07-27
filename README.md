@@ -1,6 +1,6 @@
 # Metro
 
-Metro is a Fetch-compatible HTTP client with middleware. It keeps the browser's `Request`, `Response`, `URL`, and `FormData` model, then adds a small set of conveniences: reusable clients, immutable `.with()` helpers, middleware composition, API helpers, tracing, and optional packages for OAuth2, OpenID Connect, and Linked Data.
+Metro is a Fetch-compatible HTTP client with middleware. It keeps the browser's `Request`, `Response`, `URL`, and `FormData` model, then adds a small set of conveniences: reusable clients, immutable `.with()` helpers, middleware composition, API helpers, tracing, and optional packages for OAuth2 and OpenID Connect.
 
 ## Install
 
@@ -67,7 +67,6 @@ Package-specific installation, usage, and reference documentation lives beside e
 | `@muze-nl/metro-middleware` | [`packages/metro-middleware/docs/`](packages/metro-middleware/docs/) | Generic middleware such as JSON, retry, timeout, abort, backoff, and test mocks. |
 | `@muze-nl/metro-oauth2` | [`packages/metro-oauth2/docs/`](packages/metro-oauth2/docs/) | OAuth2 middleware, PKCE, token storage, popup flow, and DPoP support. |
 | `@muze-nl/metro-oidc` | [`packages/metro-oidc/docs/`](packages/metro-oidc/docs/) | OpenID Connect middleware built on Metro OAuth2. |
-| `@muze-nl/metro-oldm` | [`packages/metro-oldm/docs/`](packages/metro-oldm/docs/) | Linked Data middleware using OLDM. |
 | `@muze-nl/metro-api` | [`packages/metro-api/docs/`](packages/metro-api/docs/) | `api()`, `jsonApi()`, and `API`. |
 | `@muze-nl/metro-trace` | [`packages/metro-trace/docs/`](packages/metro-trace/docs/) | Scoped and global tracing helpers plus console graph output. |
 | `@muze-nl/metro-hashparams` | [`packages/metro-hashparams/docs/`](packages/metro-hashparams/docs/) | Query parameters stored in the URL hash fragment. |
@@ -97,4 +96,4 @@ import oidcmockserver from '@muze-nl/metro-oidc/testing'
 
 ## Package boundary rule
 
-`@muze-nl/metro-core` should stay small. Generic middleware belongs in `@muze-nl/metro-middleware`, tracing belongs in `@muze-nl/metro-trace`, beginner convenience belongs in `@muze-nl/metro`, and auth or Linked Data behaviour belongs in its own package.
+`@muze-nl/metro-core` should stay small. Generic middleware belongs in `@muze-nl/metro-middleware`, tracing belongs in `@muze-nl/metro-trace`, beginner convenience belongs in `@muze-nl/metro`, and auth behaviour belongs in its own package.

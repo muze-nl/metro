@@ -7,7 +7,6 @@ This monorepo is intended to make Metro more mature without turning the core int
 - `@muze-nl/metro` remains the small core HTTP client.
 - `@muze-nl/metro-oauth2` remains separate because OAuth2 is authorization middleware, not core HTTP behavior.
 - `@muze-nl/metro-oidc` remains separate because OIDC adds identity concepts on top of OAuth2.
-- `@muze-nl/metro-oldm` remains separate because Linked Data parsing/serialization is a domain concern.
 
 ## Alignment notes
 
@@ -20,8 +19,8 @@ This monorepo is intended to make Metro more mature without turning the core int
 ### Gaps to improve
 
 1. Add real-world examples for common APIs before adding provider-specific packages.
-2. Add missing tests for OIDC and OLDM middleware.
-3. Review whether OAuth2, OIDC, and OLDM should stay under `@muze-nl` or move temporarily to `@muze-labs` while the APIs mature.
+2. Add missing tests for OIDC middleware.
+3. Review whether OAuth2 and OIDC should stay under `@muze-nl` or move temporarily to `@muze-labs` while the APIs mature.
 4. Consider extracting repeated OAuth2/OIDC helpers only when the duplication is concrete.
 5. Add a consistent package-level documentation structure for tutorials, reference, and examples.
 6. Make linting consistent across packages; the uploaded OAuth2 code currently has ESLint issues that should be fixed deliberately rather than hidden.
@@ -29,7 +28,7 @@ This monorepo is intended to make Metro more mature without turning the core int
 ## Near-term roadmap
 
 1. Stabilize the root workspace and package scripts.
-2. Add smoke tests for `metro-oidc` and `metro-oldm`.
+2. Add smoke tests for `metro-oidc`.
 3. Add real-world examples:
    - GitHub: token auth, headers, pagination.
    - Dropbox: OAuth2 PKCE, list folder, upload/download.

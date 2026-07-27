@@ -6,7 +6,6 @@ const packages = [
 	'metro',
 	'metro-oauth2',
 	'metro-oidc',
-	'metro-oldm',
 	'metro-core',
 	'metro-api',
 	'metro-middleware',
