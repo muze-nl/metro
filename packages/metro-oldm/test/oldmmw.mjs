@@ -1,5 +1,6 @@
 import tap from 'tap'
 import metro from '@muze-nl/metro'
+import oldm from '@muze-nl/oldm'
 import oldmmw from '../src/oldmmw.mjs'
 
 const turtle = `@prefix schema: <https://schema.org/> .
@@ -38,13 +39,27 @@ function mockLinkedDataServer(t, options = {}) {
 }
 
 tap.test('GET adds an Accept header and parses Turtle responses into OLDM data', async t => {
-	const client = metro.client().with(mockLinkedDataServer(t)).with(oldmmw())
+	const linkedData = oldmmw()
+	const client = metro.client().with(mockLinkedDataServer(t)).with(linkedData)
 
 	const res = await client.get('https://example.test/people.ttl')
 	t.ok(res.ok)
 	t.equal(res.data.constructor.name, 'Graph')
 	t.ok(res.data.subjects['https://example.test/people.ttl#me'])
 	t.equal(res.data.subjects['https://example.test/people.ttl#me']['schema$name'].toString(), 'Ada')
+	t.equal(linkedData.context.graph('https://example.test/people.ttl'), res.data)
+})
+
+tap.test('oldmmw can use a caller-owned OLDM context', async t => {
+	const context = oldm.context()
+	const linkedData = oldmmw({ context })
+	const client = metro.client().with(mockLinkedDataServer(t)).with(linkedData)
+
+	const res = await client.get('https://example.test/people.ttl')
+
+	t.equal(linkedData.context, context)
+	t.equal(context.graph('https://example.test/people.ttl'), res.data)
+	t.equal(context.get('https://example.test/people.ttl#me')['schema$name'].toString(), 'Ada')
 })
 
 tap.test('GET leaves non-linked-data responses unchanged', async t => {

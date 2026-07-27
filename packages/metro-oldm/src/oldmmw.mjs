@@ -25,9 +25,9 @@ export default function oldmmw(options)
 		options.prefixes['ldp'] = 'http://www.w3.org/ns/ldp#'
 	}
 
-	const context = oldm.context(options)
+	const context = options.context ?? oldm.context(options)
 
-	return async function oldmmw(req, next) {
+	async function oldmmw(req, next) {
 		if (!req.headers.get('Accept')) {
             req = req.with({
                 headers: {
@@ -68,6 +68,9 @@ export default function oldmmw(options)
         }
         return res
 	}
+
+	oldmmw.context = context
+	return oldmmw
 }
 
 const mimetypes = [
