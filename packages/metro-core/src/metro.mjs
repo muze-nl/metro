@@ -351,7 +351,8 @@ function callTracers(tracers, method, ...args)
 /**
  * A span tracer runs the traced work itself. The work still runs exactly
  * once, and only its own result or error reaches the caller, even when the
- * tracer fails before or after running it.
+ * tracer fails before or after running it. A tracer that rethrows the
+ * work's own error is reported as failing as well.
  */
 async function tracedSpan(tracer, name, fn, data, context)
 {
@@ -362,21 +363,13 @@ async function tracedSpan(tracer, name, fn, data, context)
 		}
 		return work
 	}
-	let tracerError = null
 	try {
 		await tracer.span(name, run, data, context)
 	}
 	catch(error) {
-		tracerError = error
+		metroConsole.error('metro: tracer.span() failed', error)
 	}
-	run()
-	if (tracerError) {
-		const workFailed = await work.then(() => false, () => true)
-		if (!workFailed) {
-			metroConsole.error('metro: tracer.span() failed', tracerError)
-		}
-	}
-	return work
+	return run()
 }
 
 function callTracer(tracer, method, args)

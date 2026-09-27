@@ -295,20 +295,12 @@
       }
       return work;
     };
-    let tracerError = null;
     try {
       await tracer.span(name, run, data, context);
     } catch (error) {
-      tracerError = error;
+      metroConsole.error("metro: tracer.span() failed", error);
     }
-    run();
-    if (tracerError) {
-      const workFailed = await work.then(() => false, () => true);
-      if (!workFailed) {
-        metroConsole.error("metro: tracer.span() failed", tracerError);
-      }
-    }
-    return work;
+    return run();
   }
   function callTracer(tracer, method, args) {
     const reportFailure = (error) => {
