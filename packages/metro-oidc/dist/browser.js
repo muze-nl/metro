@@ -1245,7 +1245,7 @@
       }
       return oauth2authorized(req, next);
     };
-    async function oauth2authorized(req, next, options_ = {}) {
+    async function oauth2authorized(req, next, retryState = {}) {
       getTokensFromLocation();
       const accessToken = options.tokens.get("access_token");
       const refreshToken = options.tokens.get("refresh_token");
@@ -1269,7 +1269,7 @@
           }
         });
         const res = await next(authorizedReq);
-        if (!shouldAuthorizeResponse(res) || options_.handledRejectedToken) {
+        if (!shouldAuthorizeResponse(res) || retryState.handledRejectedToken) {
           return res;
         }
         options.tokens.delete("access_token");
@@ -1976,16 +1976,30 @@
       if (res && isJSON(res.headers?.get("Content-Type"))) {
         let tempRes = res.clone();
         let body = await tempRes.text();
+        if (body === "") {
+          return res;
+        }
         try {
           let json2 = JSON.parse(body, options.reviver);
           return res.with({
             body: json2
           });
-        } catch (e) {
+        } catch (error2) {
+          if (!res.ok) {
+            return res;
+          }
+          throw parseError(req, res, error2);
         }
       }
       return res;
     };
+  }
+  function parseError(req, res, cause) {
+    const message2 = "jsonmw: could not parse " + res.headers.get("Content-Type") + " response from " + req.url;
+    const error2 = new Error(message2, { cause });
+    error2.request = req;
+    error2.response = res;
+    return error2;
   }
   var jsonRE = /^application\/([a-zA-Z0-9\-_]+\+)?json\b/;
   function isJSON(contentType) {

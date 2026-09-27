@@ -16,14 +16,16 @@
     "pack:dry-run": "npm pack --dry-run --workspaces",
     "release:check": "npm test && npm run build && npm run pack:dry-run",
     "smoke": "node scripts/test-workspaces.mjs",
-    "test:workspaces": "npm run test --workspaces --if-present"
+    "test:workspaces": "npm run test --workspaces --if-present",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "esbuild": "^0.28.1",
     "eslint": "^10.5.0",
     "globals": "^17.7.0",
-    "tap": "^21.7.4"
+    "tap": "^21.7.4",
+    "semver": "^7.8.5"
   },
   "engines": {
     "node": ">=20.0.0"
