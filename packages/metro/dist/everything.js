@@ -107,35 +107,11 @@
       if (!(typeof options === "object") || options instanceof String) {
         throw metroError("metro.client.fetch: Invalid options parameter " + metroURL + "client/fetch-invalid-options/", options);
       }
-      const metrofetch = async function browserFetch(req2) {
-        if (req2[Symbol.metroProxy]) {
-          req2 = req2[Symbol.metroSource];
-        }
-        const res = await fetch(req2);
-        return response(res);
-      };
-      let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || []);
       options = Object.assign({}, this.clientOptions, options);
       const traceContext = createTraceContext(req, options);
       const middlewareContext = createMiddlewareContext(this, options, traceContext);
-      let next;
-      for (let middleware of middlewares) {
-        next = /* @__PURE__ */ (function(next2, middleware2) {
-          return async function(req2) {
-            let res;
-            let tracers = traceContext.tracers;
-            callTracers(tracers, "request", req2, middleware2, traceContext);
-            try {
-              res = await middleware2(req2, next2, middlewareContext);
-            } catch (error) {
-              callTracers(tracers, "error", error, req2, middleware2, traceContext);
-              throw error;
-            }
-            callTracers(tracers, "response", res, middleware2, traceContext);
-            return res;
-          };
-        })(next, middleware);
-      }
+      const middlewares = this.clientOptions?.middlewares || [];
+      const next = createMiddlewareChain(middlewares, traceContext, middlewareContext);
       return next(req);
     }
     with(...options) {
@@ -145,6 +121,35 @@
       return this.clientOptions.url;
     }
   };
+  async function browserFetch(req) {
+    if (req[Symbol.metroProxy]) {
+      req = req[Symbol.metroSource];
+    }
+    const res = await fetch(req);
+    return response(res);
+  }
+  function createMiddlewareChain(middlewares, traceContext, middlewareContext) {
+    let next;
+    for (const middleware of [browserFetch, ...middlewares]) {
+      next = traceMiddleware(middleware, next, traceContext, middlewareContext);
+    }
+    return next;
+  }
+  function traceMiddleware(middleware, next, traceContext, middlewareContext) {
+    const tracers = traceContext.tracers;
+    return async function(req) {
+      callTracers(tracers, "request", req, middleware, traceContext);
+      let res;
+      try {
+        res = await middleware(req, next, middlewareContext);
+      } catch (error) {
+        callTracers(tracers, "error", error, req, middleware, traceContext);
+        throw error;
+      }
+      callTracers(tracers, "response", res, middleware, traceContext);
+      return res;
+    };
+  }
   var traceContextId = 0;
   var TRACE_OPTION_KEYS = ["trace", "tracer", "tracers"];
   function fetchOptionsFrom(...options) {

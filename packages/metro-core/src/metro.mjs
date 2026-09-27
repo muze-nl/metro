@@ -128,38 +128,11 @@ export class Client
 			throw metroError('metro.client.fetch: Invalid options parameter '+metroURL+'client/fetch-invalid-options/', options)
 		}
 
-		const metrofetch = async function browserFetch(req)
-		{
-			if (req[Symbol.metroProxy]) {
-				req = req[Symbol.metroSource]
-			}
-			const res = await fetch(req)
-			return response(res)
-		}
-		
-		let middlewares = [metrofetch].concat(this.clientOptions?.middlewares?.slice() || [])
 		options = Object.assign({}, this.clientOptions, options)
 		const traceContext = createTraceContext(req, options)
 		const middlewareContext = createMiddlewareContext(this, options, traceContext)
-		//@TODO: do this once in constructor?
-		let next
-		for (let middleware of middlewares) {
-			next = (function(next, middleware) {
-				return async function(req) {
-					let res
-					let tracers = traceContext.tracers
-					callTracers(tracers, 'request', req, middleware, traceContext)
-					try {
-						res = await middleware(req, next, middlewareContext)
-					} catch(error) {
-						callTracers(tracers, 'error', error, req, middleware, traceContext)
-						throw error
-					}
-					callTracers(tracers, 'response', res, middleware, traceContext)
-					return res
-				}								
-			})(next, middleware)
-		}
+		const middlewares = this.clientOptions?.middlewares || []
+		const next = createMiddlewareChain(middlewares, traceContext, middlewareContext)
 		return next(req)
 	}
 
@@ -173,6 +146,54 @@ export class Client
 
 }
 
+
+/**
+ * The last fetch in every middleware chain: sends the request with the
+ * platform fetch and wraps the result as a metro response.
+ */
+async function browserFetch(req)
+{
+	if (req[Symbol.metroProxy]) {
+		req = req[Symbol.metroSource]
+	}
+	const res = await fetch(req)
+	return response(res)
+}
+
+/**
+ * Returns the entry point of the middleware chain. The middleware added last
+ * runs first; each receives the next one, ending with browserFetch. The chain
+ * is built per request, because every request has its own trace context.
+ */
+function createMiddlewareChain(middlewares, traceContext, middlewareContext)
+{
+	let next
+	for (const middleware of [browserFetch, ...middlewares]) {
+		next = traceMiddleware(middleware, next, traceContext, middlewareContext)
+	}
+	return next
+}
+
+/**
+ * Wraps one middleware so tracers observe its request, response or error.
+ */
+function traceMiddleware(middleware, next, traceContext, middlewareContext)
+{
+	const tracers = traceContext.tracers
+	return async function(req) {
+		callTracers(tracers, 'request', req, middleware, traceContext)
+		let res
+		try {
+			res = await middleware(req, next, middlewareContext)
+		}
+		catch(error) {
+			callTracers(tracers, 'error', error, req, middleware, traceContext)
+			throw error
+		}
+		callTracers(tracers, 'response', res, middleware, traceContext)
+		return res
+	}
+}
 
 let traceContextId = 0
 const TRACE_OPTION_KEYS = ['trace', 'tracer', 'tracers']
