@@ -1196,6 +1196,7 @@
   }
 
   // ../metro-oauth2/src/oauth2.mjs
+  var pendingTokenRequests = /* @__PURE__ */ new Map();
   var SUPPORTED_TOKEN_TYPES = /* @__PURE__ */ new Map([
     ["bearer", "Bearer"],
     ["dpop", "DPoP"]
@@ -1228,6 +1229,7 @@
     const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
     options.oauth2_configuration = oauth2;
+    const tokenStoreKey = options.tokens ?? "site:" + options.site;
     const store = tokenStore(options.site);
     if (!options.tokens) {
       options.tokens = store.tokens;
@@ -1269,13 +1271,13 @@
       const refreshToken = options.tokens.get("refresh_token");
       const tokenIsExpired = isExpired(accessToken);
       if (!accessToken || tokenIsExpired && !refreshToken) {
-        const token = await fetchAccessToken();
+        const token = await requestToken(fetchAccessToken);
         if (!token) {
           throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next);
       } else if (tokenIsExpired && refreshToken) {
-        const token = await refreshAccessToken();
+        const token = await requestToken(refreshAccessToken);
         if (!token) {
           throw authorizationNotCompleted(req);
         }
@@ -1290,13 +1292,29 @@
         if (!shouldAuthorizeResponse(res) || retryState.handledRejectedToken) {
           return res;
         }
+        if (options.tokens.get("access_token")?.value !== accessToken.value) {
+          return oauth2authorized(req, next, { handledRejectedToken: true });
+        }
         options.tokens.delete("access_token");
-        const token = refreshToken ? await refreshAccessToken() : await fetchAccessToken();
+        let tokenRequest = fetchAccessToken;
+        if (refreshToken) {
+          tokenRequest = refreshAccessToken;
+        }
+        const token = await requestToken(tokenRequest);
         if (!token) {
           throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next, { handledRejectedToken: true });
       }
+    }
+    function requestToken(tokenRequest) {
+      if (!pendingTokenRequests.has(tokenStoreKey)) {
+        const pending = tokenRequest().finally(() => {
+          pendingTokenRequests.delete(tokenStoreKey);
+        });
+        pendingTokenRequests.set(tokenStoreKey, pending);
+      }
+      return pendingTokenRequests.get(tokenStoreKey);
     }
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {

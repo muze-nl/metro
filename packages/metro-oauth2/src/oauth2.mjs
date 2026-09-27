@@ -2,6 +2,8 @@ import * as metro from '@muze-nl/metro-core'
 import { assert, Required, validURL } from '@muze-nl/assert'
 import {tokenStore} from './tokenstore.mjs'
 
+const pendingTokenRequests = new Map()
+
 const SUPPORTED_TOKEN_TYPES = new Map([
 	['bearer', 'Bearer'],
 	['dpop', 'DPoP']
@@ -49,6 +51,9 @@ export default function oauth2mw(options)
 	options = Object.assign({}, defaultOptions, options)
 	options.oauth2_configuration = oauth2
 
+	// Requests that share stored tokens must also share token requests. The
+	// default stores of all middleware instances for one site share storage.
+	const tokenStoreKey = options.tokens ?? 'site:'+options.site
 	const store = tokenStore(options.site)
 	if (!options.tokens) {
 		options.tokens = store.tokens
@@ -108,13 +113,13 @@ export default function oauth2mw(options)
 		const refreshToken = options.tokens.get('refresh_token')
 		const tokenIsExpired = isExpired(accessToken)
 		if (!accessToken || (tokenIsExpired && !refreshToken)) {
-			const token = await fetchAccessToken()
+			const token = await requestToken(fetchAccessToken)
 			if (!token) {
 				throw authorizationNotCompleted(req)
 			}
 			return oauth2authorized(req, next)
 		} else if (tokenIsExpired && refreshToken) {
-			const token = await refreshAccessToken()
+			const token = await requestToken(refreshAccessToken)
 			if (!token) {
 				throw authorizationNotCompleted(req)
 			}
@@ -129,15 +134,37 @@ export default function oauth2mw(options)
 			if (!shouldAuthorizeResponse(res) || retryState.handledRejectedToken) {
 				return res
 			}
+			if (options.tokens.get('access_token')?.value !== accessToken.value) {
+				// another request already replaced the rejected token
+				return oauth2authorized(req, next, { handledRejectedToken: true })
+			}
 			options.tokens.delete('access_token')
-			const token = refreshToken
-				? await refreshAccessToken()
-				: await fetchAccessToken()
+			let tokenRequest = fetchAccessToken
+			if (refreshToken) {
+				tokenRequest = refreshAccessToken
+			}
+			const token = await requestToken(tokenRequest)
 			if (!token) {
 				throw authorizationNotCompleted(req)
 			}
 			return oauth2authorized(req, next, { handledRejectedToken: true })
 		}
+	}
+
+	/**
+	 * Runs one token request (authorization or refresh) per token store at a
+	 * time. Concurrent requests wait for the same result instead of each
+	 * exchanging the refresh token or opening an authorization window.
+	 */
+	function requestToken(tokenRequest)
+	{
+		if (!pendingTokenRequests.has(tokenStoreKey)) {
+			const pending = tokenRequest().finally(() => {
+				pendingTokenRequests.delete(tokenStoreKey)
+			})
+			pendingTokenRequests.set(tokenStoreKey, pending)
+		}
+		return pendingTokenRequests.get(tokenStoreKey)
 	}
 
 	/**
