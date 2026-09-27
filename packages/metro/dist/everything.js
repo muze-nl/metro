@@ -1263,6 +1263,9 @@
     if (signals.length == 1) {
       return signals[0];
     }
+    if (typeof AbortSignal != "undefined" && typeof AbortSignal.any == "function") {
+      return AbortSignal.any(signals);
+    }
     const controller = new AbortController();
     const cleanup = [];
     const abort = (event) => {

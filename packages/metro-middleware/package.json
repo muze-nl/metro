@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-middleware",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Optional middleware for Metro",
   "type": "module",
   "main": "src/index.mjs",
