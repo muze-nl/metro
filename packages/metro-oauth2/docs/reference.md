@@ -41,7 +41,7 @@ Adds OAuth2 authorization to a Metro client. By default it first tries the reque
 
 Important options: `site`, `client`, `authorize_callback`, `force_authorization`, `state`, `tokens`, and `oauth2_configuration`.
 
-`oauth2_configuration` may include `access_token`, `authorization_code`, `authorization_endpoint`, `client_id`, `client_secret`, `code_verifier`, `grant_type`, `login_hint`, `prompt`, `redirect_uri`, `refresh_token`, `scope`, `token_endpoint`, and `token_endpoint_auth_method`. `login_hint` and `prompt` are passed on to the authorization endpoint. Set `issuer` to check the `iss` parameter of authorization responses (RFC 9207): a response from another issuer is refused, and with `authorization_response_iss_parameter_supported: true` a response without `iss` is refused too. `oidcmw()` sets both from the issuer's discovery metadata.
+`oauth2_configuration` may include `access_token`, `authorization_code`, `authorization_endpoint`, `client_id`, `client_secret`, `code_verifier`, `grant_type`, `login_hint`, `prompt`, `redirect_uri`, `refresh_token`, `scope`, `token_endpoint`, and `token_endpoint_auth_method`. `login_hint` and `prompt` are passed on to the authorization endpoint. Set `issuer` to check the `iss` parameter of authorization responses (RFC 9207): a response from another issuer is refused, and with `authorization_response_iss_parameter_supported: true` a response without `iss` is refused too. `oidcmw()` sets both from the issuer's discovery metadata. Set `token_type` (e.g. `'DPoP'`) to require that token type: a token response with another type, such as a Bearer token where a DPoP-bound token was requested, is refused and not stored.
 
 `authorize_callback(url)` receives the authorization URL and returns the authorization code. The default callback redirects the browser there and returns `false`. When the callback returns no code, because it declined or is redirecting, the request rejects with an error whose `code` is `'authorization_not_completed'`, and the request is not sent. It never resolves as a successful response.
 
@@ -111,7 +111,7 @@ const api = client('https://resource.example/')
   }))
 ```
 
-Adds DPoP proofs (RFC 9449) to token endpoint requests, so the issuer binds the tokens to this client's key, and to requests whose `Authorization` header uses the `DPoP` scheme. Other requests are sent unchanged. OIDC uses this by default because Solid identity and storage servers commonly require sender-constrained tokens.
+Adds DPoP proofs (RFC 9449) to token endpoint requests, so the issuer binds the tokens to this client's key, and to requests whose `Authorization` header uses the `DPoP` scheme. Other requests are sent unchanged. When the token endpoint (`400`) or a resource (`401`) answers with `use_dpop_nonce`, the request is sent once more with a proof that includes the server's `DPoP-Nonce`; later proofs for that server include its latest nonce. OIDC uses this by default because Solid identity and storage servers commonly require sender-constrained tokens.
 
 ## Stores
 

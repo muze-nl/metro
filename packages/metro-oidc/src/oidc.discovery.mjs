@@ -30,10 +30,13 @@ export default async function oidcDiscovery(options={}) {
 
 	options = Object.assign({},defaultOptions,options)
 	options.client = options.client.with(throwermw()).with(jsonmw())
+	requireSecureURL('issuer', options.issuer)
 
-	const TestSucceeded = false
 	function MustUseHTTPS(url) {
-		return TestSucceeded // FIXME todo
+		if (isSecureURL(url)) {
+			return false
+		}
+		return error('url must use https', url)
 	}
 
 	// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
@@ -91,9 +94,89 @@ export default async function oidcDiscovery(options={}) {
 		configURL
 	)
 	const openid_config = response.data
+	// the full metadata schema is a diagnostic, only checked when assertions
+	// are enabled; the checks that protect the login always run
 	assert(openid_config, openid_provider_metadata)
-
-	// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationValidation
-	assert(openid_config.issuer, options.issuer)
+	checkProviderMetadata(openid_config, options.issuer)
 	return openid_config
+}
+
+const REQUIRED_ENDPOINTS = ['authorization_endpoint', 'token_endpoint', 'jwks_uri']
+
+/**
+ * The metadata the login depends on, checked whether or not assertions are
+ * enabled: the document must describe the issuer it was fetched for
+ * (Discovery section 4.3), so iss checks compare against the right issuer,
+ * and every endpoint that receives codes, tokens or keys must use https.
+ */
+function checkProviderMetadata(config, issuer)
+{
+	if (!config || typeof config !== 'object') {
+		throw metro.metroError('metro.oidc.discovery: openid-configuration for '+issuer+' is not a JSON object')
+	}
+	if (!sameIssuer(config.issuer, issuer)) {
+		throw metro.metroError('metro.oidc.discovery: openid-configuration is for issuer '+config.issuer+', expected '+issuer)
+	}
+	requireSecureURL('issuer', config.issuer)
+	for (const name of REQUIRED_ENDPOINTS) {
+		if (!config[name]) {
+			throw metro.metroError('metro.oidc.discovery: openid-configuration for '+issuer+' has no '+name)
+		}
+		requireSecureURL(name, config[name])
+	}
+	if (config.registration_endpoint) {
+		requireSecureURL('registration_endpoint', config.registration_endpoint)
+	}
+}
+
+/**
+ * Issuer identifiers must be identical. The only difference allowed is a
+ * trailing slash, which WebID profiles and discovery documents often
+ * disagree on.
+ */
+function sameIssuer(discovered, requested)
+{
+	if (typeof discovered != 'string') {
+		return false
+	}
+	return withoutTrailingSlash(discovered) === withoutTrailingSlash(String(requested))
+}
+
+function withoutTrailingSlash(value)
+{
+	return value.replace(/\/$/, '')
+}
+
+function requireSecureURL(name, value)
+{
+	if (!isSecureURL(value)) {
+		throw metro.metroError('metro.oidc.discovery: '+name+' must use https: '+value)
+	}
+}
+
+/**
+ * https is required; plain http is only accepted on the local machine, for
+ * development servers.
+ */
+function isSecureURL(value)
+{
+	let url
+	try {
+		url = new URL(String(value))
+	}
+	catch(e) {
+		return false
+	}
+	if (url.protocol == 'https:') {
+		return true
+	}
+	return url.protocol == 'http:' && isLoopback(url.hostname)
+}
+
+function isLoopback(hostname)
+{
+	return hostname == 'localhost'
+		|| hostname.endsWith('.localhost')
+		|| hostname == '127.0.0.1'
+		|| hostname == '[::1]'
 }

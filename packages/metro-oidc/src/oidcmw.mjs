@@ -11,6 +11,18 @@ import { validateIdToken } from './oidc.jwt.mjs'
 
 const pendingClientSetups = new Map()
 
+/**
+ * A browser app cannot keep a client secret, so it registers as a public
+ * client (Solid-OIDC section 11.3: secrets should not be stored in browser
+ * storage). The refresh_token grant is requested so issuers hand out refresh
+ * tokens. Metadata supplied by the app takes precedence.
+ */
+const BROWSER_CLIENT_METADATA = {
+	token_endpoint_auth_method: 'none',
+	grant_types: ['authorization_code', 'refresh_token'],
+	response_types: ['code']
+}
+
 function sharedClientSetup(key, setup) {
 	if (!pendingClientSetups.has(key)) {
 		const pending = setup().finally(() => {
@@ -103,8 +115,12 @@ export default function oidcmw(options={}) {
 			client_info = await register({
 				registration_endpoint: openid_configuration.registration_endpoint,
 				client: options.client,
-				client_info
+				client_info: Object.assign({}, BROWSER_CLIENT_METADATA, client_info)
 			})
+			if (client_info.token_endpoint_auth_method == 'none') {
+				// a public client has no use for a secret, so it is not stored
+				delete client_info.client_secret
+			}
 		}
 		return { openid_configuration, client_info }
 	}
@@ -141,7 +157,7 @@ export default function oidcmw(options={}) {
 
 		// now initialize an oauth2 client stack, using options.client as default
 		// with forceAuthentication: true
-		const scope = options.scope || 'openid'
+		const scope = options.scope || defaultScope(options)
 		const nonce = options.nonce || oauth2.generateCodeVerifier(32)
 
 		const oauth2Options = Object.assign(
@@ -153,6 +169,7 @@ export default function oidcmw(options={}) {
 				oauth2_configuration: {
 					client_id: options.client_info?.client_id,
 					client_secret: options.client_info?.client_secret,
+					token_endpoint_auth_method: options.client_info?.token_endpoint_auth_method,
 					grant_type: 'authorization_code',
 					response_type: 'code',
 					response_mode: 'query',
@@ -164,6 +181,7 @@ export default function oidcmw(options={}) {
 					issuer: options.openid_configuration.issuer,
 					authorization_response_iss_parameter_supported:
 						options.openid_configuration.authorization_response_iss_parameter_supported,
+					token_type: options.use_dpop ? 'DPoP' : undefined,
 					nonce
 				}
 			}
@@ -266,6 +284,20 @@ function expectedClaimsFor(options) {
 		return Object.assign({ webid: options.webid }, options.expected_claims)
 	}
 	return options.expected_claims || {}
+}
+
+/**
+ * Solid-OIDC issuers only include the webid claim when the webid scope is
+ * requested (Solid-OIDC section 7). It is requested when a WebID is given or
+ * the issuer lists it in scopes_supported, which marks a Solid-OIDC issuer.
+ */
+function defaultScope(options) {
+	const supported = options.openid_configuration?.scopes_supported
+	const solidIssuer = Array.isArray(supported) && supported.includes('webid')
+	if (options.webid || solidIssuer) {
+		return 'openid webid'
+	}
+	return 'openid'
 }
 
 function siteFor(issuer, account) {

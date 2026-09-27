@@ -33,7 +33,7 @@ Adds OpenID Connect authorization to a Metro client. By default it tries the req
 
 Important options: `issuer`, `client_info`, `webid`, `login_hint`, `expected_claims`, `client`, `openid_configuration`, `oauth2`, `store`, `scope`, `nonce`, `use_dpop`, `force_authorization`, and `authorize_callback`.
 
-`use_dpop` defaults to `true`. Disable it only for providers or tests that do not support DPoP.
+`use_dpop` defaults to `true`. Disable it only for providers or tests that do not support DPoP. With `use_dpop`, only DPoP-bound access tokens are accepted: a Bearer token from the issuer is refused, as RFC 9449 section 5.10 requires when DPoP protection matters.
 
 ### Which user
 
@@ -45,6 +45,8 @@ Tokens are stored per issuer. To keep different users at the same issuer apart, 
 
 With `webid` or `login_hint`, tokens and the ID token are stored for that user only, so logging in as another user never reuses them. An ID token for a different user than expected is refused and not stored, even when the issuer still has a login session for that other user. Pass the same `webid` or `login_hint` to `idToken()` and `idTokenClaims()`.
 
+Without a `scope` option, `oidcmw()` requests `openid webid` when a `webid` is given or the issuer lists `webid` in its `scopes_supported`: Solid-OIDC issuers only include the `webid` claim for that scope. Otherwise it requests `openid`.
+
 ## `discover(options)`
 
 ```js
@@ -52,6 +54,8 @@ const config = await discover({ issuer: 'https://solidcommunity.net/' })
 ```
 
 Fetches OIDC discovery metadata. Pass a Metro client with `client` when you want custom middleware or tests.
+
+The metadata must be for the requested issuer (only a trailing slash may differ), must contain `authorization_endpoint`, `token_endpoint` and `jwks_uri`, and the issuer and all its endpoints must use `https`. Plain `http` is only accepted on the local machine (`localhost`, `127.0.0.1`, `[::1]`). These checks always run; the complete metadata schema is only checked when assertions are enabled.
 
 ## `register(options)`
 
@@ -65,7 +69,7 @@ const info = await register({
 })
 ```
 
-Performs dynamic client registration and returns client information. `oidcmw()` calls this automatically when no `client_info.client_id` is present and the issuer supports registration.
+Performs dynamic client registration and returns client information. `oidcmw()` calls this automatically when no `client_info.client_id` is present and the issuer supports registration. It then registers a public client: it asks for `token_endpoint_auth_method: 'none'`, `grant_types: ['authorization_code', 'refresh_token']` and `response_types: ['code']`, unless `client_info` says otherwise, and it uses the authentication method the issuer registered. A public client's secret, if an issuer returns one anyway, is not stored.
 
 ## ID token helpers
 

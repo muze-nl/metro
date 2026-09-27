@@ -114,7 +114,7 @@ export default function oidcmockserver(options = {}) {
 			userinfo_endpoint: endpoint('/userinfo/'),
 			jwks_uri: endpoint('/jwks/'),
 			registration_endpoint: endpoint('/register/'),
-			scopes_supported: ['openid', 'profile', 'email'],
+			scopes_supported: options.scopes_supported ?? ['openid', 'profile', 'email'],
 			response_types_supported: ['code', 'id_token', 'id_token token'],
 			grant_types_supported: ['authorization_code', 'refresh_token'],
 			subject_types_supported: ['public'],

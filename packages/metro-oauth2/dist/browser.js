@@ -1543,7 +1543,7 @@
       }
     }
     function storeTokenResponse(data) {
-      const token = validateTokenResponse(data);
+      const token = validateTokenResponse(data, oauth22.token_type);
       options.tokens.set("access_token", token);
       if (data.refresh_token) {
         options.tokens.set("refresh_token", { value: data.refresh_token });
@@ -1554,10 +1554,10 @@
     if (!res) {
       return false;
     }
-    if (res.status === 400) {
-      return true;
-    }
     const challenge = parseBearerChallenge(res.headers?.get("WWW-Authenticate"));
+    if (res.status === 400) {
+      return challenge?.error === "invalid_token";
+    }
     if (challenge?.error === "insufficient_scope") {
       return false;
     }
@@ -1575,7 +1575,7 @@
     }
     return token;
   }
-  function validateTokenResponse(data) {
+  function validateTokenResponse(data, requiredTokenType) {
     if (!data || typeof data !== "object") {
       throw metroError("OAuth2mw: token endpoint did not return a JSON object");
     }
@@ -1586,6 +1586,9 @@
       throw metroError("OAuth2mw: token response did not include token_type");
     }
     const tokenType = normalizeTokenType(data.token_type);
+    if (requiredTokenType && tokenType !== normalizeTokenType(requiredTokenType)) {
+      throw metroError("OAuth2mw: token endpoint returned a " + tokenType + " token, but " + requiredTokenType + " is required");
+    }
     return {
       value: data.access_token,
       expires: data.expires_in === void 0 ? null : getExpires(data.expires_in),
@@ -2163,6 +2166,7 @@
   }
 
   // src/oauth2.dpop.mjs
+  var serverNonces = /* @__PURE__ */ new Map();
   function dpopmw(options) {
     assert(options, {
       site: Required(validURL),
@@ -2171,38 +2175,78 @@
       // this property is unfortunately rarely supported
     });
     return async (req, next) => {
-      const keys = await keysStore();
-      let keyInfo = await keys.get(options.site);
-      if (!keyInfo) {
-        let keyPair = await generateKeyPair("ES256");
-        keyInfo = { domain: options.site, keyPair };
-        await keys.set(keyInfo);
+      const keyPair = await keyPairFor(options.site);
+      const origin = url(req.url).origin;
+      let res = await next(await withProof(req, keyPair));
+      rememberNonce(origin, res);
+      if (needsProof(req) && await asksForNonce(res)) {
+        res = await next(await withProof(req, keyPair));
+        rememberNonce(origin, res);
       }
-      const url2 = url(req.url);
-      if (req.url.startsWith(options.token_endpoint)) {
-        const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method);
-        req = req.with({
-          headers: {
-            "DPoP": dpopHeader
-          }
-        });
-      } else if (isDPoPAuthorization(req.headers.get("Authorization"))) {
-        const nonce = localStorage.getItem(url2.host + ":nonce") || void 0;
-        const accessToken = req.headers.get("Authorization").split(" ")[1];
-        const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
-        req = req.with({
-          headers: {
-            "Authorization": "DPoP " + accessToken,
-            "DPoP": dpopHeader
-          }
-        });
-      }
-      let response2 = await next(req);
-      if (response2.headers.get("DPoP-Nonce")) {
-        localStorage.setItem(url2.host + ":nonce", response2.headers.get("DPoP-Nonce"));
-      }
-      return response2;
+      return res;
     };
+    function needsProof(req) {
+      return req.url.startsWith(options.token_endpoint) || isDPoPAuthorization(req.headers.get("Authorization"));
+    }
+    async function withProof(req, keyPair) {
+      if (!needsProof(req)) {
+        return req;
+      }
+      const nonce = serverNonces.get(url(req.url).origin);
+      const htu = targetURI(req.url);
+      if (req.url.startsWith(options.token_endpoint)) {
+        const proof2 = await generateProof(keyPair, htu, req.method, nonce);
+        return req.with({
+          headers: {
+            "DPoP": proof2
+          }
+        });
+      }
+      const accessToken = req.headers.get("Authorization").split(" ")[1];
+      const proof = await generateProof(keyPair, htu, req.method, nonce, accessToken);
+      return req.with({
+        headers: {
+          "Authorization": "DPoP " + accessToken,
+          "DPoP": proof
+        }
+      });
+    }
+  }
+  async function keyPairFor(site) {
+    const keys = await keysStore();
+    let keyInfo = await keys.get(site);
+    if (!keyInfo) {
+      const keyPair = await generateKeyPair("ES256");
+      keyInfo = { domain: site, keyPair };
+      await keys.set(keyInfo);
+    }
+    return keyInfo.keyPair;
+  }
+  function targetURI(url2) {
+    const target = new URL(url2);
+    target.search = "";
+    target.hash = "";
+    return target.href;
+  }
+  function rememberNonce(origin, res) {
+    const nonce = res.headers.get("DPoP-Nonce");
+    if (nonce) {
+      serverNonces.set(origin, nonce);
+    }
+  }
+  async function asksForNonce(res) {
+    if (!res.headers.get("DPoP-Nonce")) {
+      return false;
+    }
+    if (res.status == 401) {
+      const challenge = parseBearerChallenge(res.headers.get("WWW-Authenticate"));
+      return challenge?.error == "use_dpop_nonce";
+    }
+    if (res.status == 400) {
+      const body = await res.clone().json().catch(() => null);
+      return body?.error == "use_dpop_nonce";
+    }
+    return false;
   }
   function isDPoPAuthorization(value) {
     return /^DPoP\s/i.test(value || "");
