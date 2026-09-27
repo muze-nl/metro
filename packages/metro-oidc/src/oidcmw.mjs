@@ -179,7 +179,8 @@ export default function oidcmw(options={}) {
 				return res
 			}
 			const contentType = res.headers.get('content-type')
-			if (!contentType?.startsWith('application/json')) {
+			if (!res.ok || !contentType?.startsWith('application/json')) {
+				// oauth2mw reports the token endpoint's own error
 				return res
 			}
 
@@ -190,14 +191,22 @@ export default function oidcmw(options={}) {
 			}
 
 			const id_token = data?.id_token
+			const isRefresh = await grantTypeOf(req) == 'refresh_token'
+			if (isRefresh && !id_token) {
+				// a refresh response may omit the id_token; the stored one stays
+				return res
+			}
 			const jwks = await getJwks()
 			const validation = await validateIdToken(id_token, {
 				issuer: options.openid_configuration.issuer,
 				client_id: options.client_info.client_id,
 				jwks,
 				openid_configuration: options.openid_configuration,
-				nonce: userStore.get('pending_nonce')
+				nonce: isRefresh ? undefined : userStore.get('pending_nonce')
 			})
+			if (isRefresh) {
+				assertSameUserAsLogin(validation.claims, userStore.get('id_token_claims'))
+			}
 			assertExpectedUser(validation.claims, expectedClaims)
 			userStore.set('id_token', id_token)
 			userStore.set('id_token_claims', validation.claims)
@@ -279,6 +288,22 @@ function assertExpectedUser(claims, expectedClaims) {
 			throw metro.metroError('metro.oidcmw: id_token is for a different user: '
 				+ 'expected ' + name + ' ' + expected + ', got ' + actual)
 		}
+	}
+}
+
+async function grantTypeOf(req) {
+	const body = await req.clone().text()
+	return new URLSearchParams(body).get('grant_type')
+}
+
+/**
+ * An id_token from a refresh has no nonce of its own. It must describe the
+ * same login: same issuer (checked by validateIdToken) and same subject.
+ */
+function assertSameUserAsLogin(claims, loginClaims) {
+	if (loginClaims && claims.sub !== loginClaims.sub) {
+		throw metro.metroError('metro.oidcmw: refreshed id_token is for a different user: '
+			+ 'expected sub ' + loginClaims.sub + ', got ' + claims.sub)
 	}
 }
 

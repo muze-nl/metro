@@ -3684,7 +3684,7 @@
           return res2;
         }
         const contentType = res2.headers.get("content-type");
-        if (!contentType?.startsWith("application/json")) {
+        if (!res2.ok || !contentType?.startsWith("application/json")) {
           return res2;
         }
         let data = res2.data && typeof res2.data === "object" ? res2.data : null;
@@ -3693,14 +3693,21 @@
           data = await res22.json();
         }
         const id_token = data?.id_token;
+        const isRefresh = await grantTypeOf(req2) == "refresh_token";
+        if (isRefresh && !id_token) {
+          return res2;
+        }
         const jwks = await getJwks();
         const validation = await validateIdToken(id_token, {
           issuer: options.openid_configuration.issuer,
           client_id: options.client_info.client_id,
           jwks,
           openid_configuration: options.openid_configuration,
-          nonce: userStore.get("pending_nonce")
+          nonce: isRefresh ? void 0 : userStore.get("pending_nonce")
         });
+        if (isRefresh) {
+          assertSameUserAsLogin(validation.claims, userStore.get("id_token_claims"));
+        }
         assertExpectedUser(validation.claims, expectedClaims);
         userStore.set("id_token", id_token);
         userStore.set("id_token_claims", validation.claims);
@@ -3761,6 +3768,15 @@
       if (actual !== expected) {
         throw metroError("metro.oidcmw: id_token is for a different user: expected " + name + " " + expected + ", got " + actual);
       }
+    }
+  }
+  async function grantTypeOf(req) {
+    const body = await req.clone().text();
+    return new URLSearchParams(body).get("grant_type");
+  }
+  function assertSameUserAsLogin(claims, loginClaims) {
+    if (loginClaims && claims.sub !== loginClaims.sub) {
+      throw metroError("metro.oidcmw: refreshed id_token is for a different user: expected sub " + loginClaims.sub + ", got " + claims.sub);
     }
   }
   function claimValue(claims, name) {
