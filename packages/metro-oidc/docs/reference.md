@@ -29,7 +29,7 @@ const api = client('https://example.solidcommunity.net/')
   }))
 ```
 
-Adds OpenID Connect authorization to a Metro client. By default it tries the request first and authorizes after a `401` or `403`. Set `force_authorization: true` to authorize immediately.
+Adds OpenID Connect authorization to a Metro client. By default it tries the request first and authorizes after a `401` or `403`. Set `force_authorization: true` to authorize immediately. `oidcmw()` checks the status of the response itself, so add middleware that turns responses into errors or data, such as `thrower()` and `getdata()`, after it: `client.with(oidcmw(options)).with(thrower())`.
 
 Important options: `issuer`, `client_info`, `webid`, `login_hint`, `expected_claims`, `client`, `openid_configuration`, `oauth2`, `store`, `scope`, `nonce`, `use_dpop`, `force_authorization`, and `authorize_callback`.
 

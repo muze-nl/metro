@@ -3669,14 +3669,7 @@
     return async (req, next) => {
       let res;
       if (!options.force_authorization) {
-        try {
-          res = await next(req);
-        } catch (err) {
-          res = err?.cause;
-          if (!res || res.status != 401 && res.status != 403) {
-            throw err;
-          }
-        }
+        res = await next(req);
         if (res.ok || res.status != 401 && res.status != 403) {
           return res;
         }
