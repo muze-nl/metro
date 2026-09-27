@@ -263,7 +263,7 @@
         if (!tracer) {
           return fn();
         }
-        return tracer.span(name, fn, data, context);
+        return tracedSpan(tracer, name, fn, data, context);
       },
       link(key) {
         let traceId = null;
@@ -286,6 +286,29 @@
         callTracer(tracer, method, args);
       }
     }
+  }
+  async function tracedSpan(tracer, name, fn, data, context) {
+    let work = null;
+    const run = () => {
+      if (!work) {
+        work = (async () => fn())();
+      }
+      return work;
+    };
+    let tracerError = null;
+    try {
+      await tracer.span(name, run, data, context);
+    } catch (error) {
+      tracerError = error;
+    }
+    run();
+    if (tracerError) {
+      const workFailed = await work.then(() => false, () => true);
+      if (!workFailed) {
+        metroConsole.error("metro: tracer.span() failed", tracerError);
+      }
+    }
+    return work;
   }
   function callTracer(tracer, method, args) {
     const reportFailure = (error) => {
