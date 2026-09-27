@@ -12,53 +12,127 @@
  * - the tests pass
  * - rebuilding the packages does not change committed files such as dist/
  *
- * Packages are published in dependency order. Published versions are
- * skipped, so after a failure the script can simply be run again.
+ * Packages are published in dependency order. A release that stops halfway,
+ * for example when the npm login window was closed, continues where it left
+ * off when the script is run again for the same commit: packages it already
+ * published are skipped, even while npm is still processing them, and tests
+ * and builds that passed are not repeated. That progress is kept in
+ * node_modules/.cache/release-progress.json and removed after a complete
+ * release.
  */
 import {
-	readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, rmSync
+	readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, rmSync,
+	writeFileSync
 } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import semver from 'semver'
 
 const root = process.cwd()
 const publish = process.argv.includes('--publish')
+const progressFile = join(root, 'node_modules', '.cache', 'release-progress.json')
 
-main()
+main().catch(error => fail(error.message))
 
-function main()
+async function main()
 {
 	const packages = readPackages(root)
-	const releases = packages.filter(pkg => !isPublished(pkg))
-	const published = packages.filter(pkg => !releases.includes(pkg))
+	const progress = loadProgress()
+	const publishedEarlier = pkg => progress.published.includes(specifierOf(pkg))
+	const releases = packages.filter(pkg => !publishedEarlier(pkg) && !isPublished(pkg))
+	const published = packages.filter(pkg => !releases.includes(pkg) && !publishedEarlier(pkg))
 	checkPublishedPackagesAreUnchanged(published)
 	if (!releases.length) {
+		clearProgress()
 		console.log('release: every package version is already on npm')
 		return
 	}
+	if (progress.published.length) {
+		console.log('release: continuing; published earlier for this commit:')
+		for (const specifier of progress.published) {
+			console.log(`  ${specifier}`)
+		}
+	}
 	console.log('release: unpublished package versions:')
 	for (const pkg of releases) {
-		console.log(`  ${pkg.name}@${pkg.version}`)
+		console.log(`  ${specifierOf(pkg)}`)
 	}
 
 	checkWorkingTreeIsClean('before release')
-	checkDependencies(releases, packages)
-	run('npm', ['test'], root)
-	buildPackages(releases)
-	checkWorkingTreeIsClean('after rebuilding; commit the rebuilt files')
+	checkDependencies(releases, packages.filter(publishedEarlier), packages)
+	if (progress.tested) {
+		console.log('release: tests and builds already passed for this commit')
+	}
+	else {
+		run('npm', ['test'], root)
+		buildPackages(releases)
+		checkWorkingTreeIsClean('after rebuilding; commit the rebuilt files')
+		progress.tested = true
+		saveProgress(progress)
+	}
 
 	for (const pkg of orderByDependencies(releases)) {
-		publishPackage(pkg)
+		await publishPackage(pkg, progress)
 	}
 
 	if (publish) {
+		clearProgress()
 		console.log('release: done')
 	}
 	else {
 		console.log('release: dry run complete; use --publish to publish')
 	}
+}
+
+function specifierOf(pkg)
+{
+	return `${pkg.name}@${pkg.version}`
+}
+
+/**
+ * Progress of an earlier, unfinished release. It only applies to the commit
+ * it was made for; a different commit starts a fresh release.
+ */
+function loadProgress()
+{
+	const fresh = { commit: currentCommit(), tested: false, published: [] }
+	if (!existsSync(progressFile)) {
+		return fresh
+	}
+	const progress = JSON.parse(readFileSync(progressFile, 'utf8'))
+	if (progress.commit !== fresh.commit) {
+		return fresh
+	}
+	return progress
+}
+
+/**
+ * A dry run publishes nothing, so it records no progress.
+ */
+function saveProgress(progress)
+{
+	if (!publish) {
+		return
+	}
+	mkdirSync(dirname(progressFile), { recursive: true })
+	writeFileSync(progressFile, JSON.stringify(progress, null, 2))
+}
+
+function clearProgress()
+{
+	if (publish) {
+		rmSync(progressFile, { force: true })
+	}
+}
+
+function currentCommit()
+{
+	const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' })
+	if (result.status !== 0) {
+		fail(`git rev-parse failed\n${result.stderr}`)
+	}
+	return result.stdout.trim()
 }
 
 /**
@@ -100,17 +174,19 @@ function readPackage(dir)
 
 function isPublished(pkg)
 {
-	const versions = registryVersions(`${pkg.name}@${pkg.version}`)
+	const versions = registryVersions(specifierOf(pkg))
 	return versions.includes(pkg.version)
 }
 
 /**
  * Returns the registry versions matching a name@range specifier, or an
- * empty list when npm does not know the package.
+ * empty list when npm does not know the package. Registry lookups use
+ * --prefer-online: npm's cached metadata may predate a version published
+ * minutes ago.
  */
 function registryVersions(specifier)
 {
-	const result = spawnSync('npm', ['view', specifier, 'version', '--json'], {
+	const result = spawnSync('npm', ['view', specifier, 'version', '--json', '--prefer-online'], {
 		cwd: root,
 		encoding: 'utf8'
 	})
@@ -168,7 +244,7 @@ function unpack(specifier, cwd, destination)
 	rmSync(destination, { recursive: true, force: true })
 	mkdirSync(destination, { recursive: true })
 	const result = spawnSync(
-		'npm', ['pack', specifier, '--json', '--pack-destination', destination],
+		'npm', ['pack', specifier, '--json', '--prefer-online', '--pack-destination', destination],
 		{ cwd, encoding: 'utf8' }
 	)
 	if (result.status !== 0) {
@@ -217,9 +293,11 @@ function checkWorkingTreeIsClean(moment)
 
 /**
  * A released package must be installable: each dependency range must match
- * either a version released now, or a version already on npm.
+ * either a version released now, or a version already on npm. Versions
+ * published earlier in this release count as released now, since npm may
+ * still be processing them.
  */
-function checkDependencies(releases, packages)
+function checkDependencies(releases, publishedEarlier, packages)
 {
 	const local = new Map(packages.map(pkg => [pkg.name, pkg]))
 	const problems = []
@@ -227,6 +305,7 @@ function checkDependencies(releases, packages)
 		for (const [name, range] of runtimeDependencies(pkg)) {
 			const localPackage = local.get(name)
 			const releasedNow = releases.includes(localPackage)
+				|| publishedEarlier.includes(localPackage)
 			if (releasedNow && semver.satisfies(localPackage.version, range)) {
 				continue
 			}
@@ -305,16 +384,51 @@ function orderByDependencies(releases)
 
 /**
  * Scoped packages are private on npm unless published with public access.
- * npm may ask for a one-time password, so the terminal stays attached.
+ * A version npm already has counts as published: an earlier run may have
+ * published it without recording that, e.g. when it was interrupted.
  */
-function publishPackage(pkg)
+async function publishPackage(pkg, progress)
 {
-	console.log(`\nrelease: publishing ${pkg.name}@${pkg.version}`)
+	const specifier = specifierOf(pkg)
+	console.log(`\nrelease: publishing ${specifier}`)
 	const args = ['publish', '--access', 'public']
 	if (!publish) {
 		args.push('--dry-run')
 	}
-	run('npm', args, pkg.dir)
+	const { status, errorOutput } = await runShowingErrors('npm', args, pkg.dir)
+	if (status !== 0) {
+		if (!publish || !isAlreadyPublished(errorOutput)) {
+			fail(`npm ${args.join(' ')} failed for ${specifier}`)
+		}
+		console.log(`release: ${specifier} was already published; continuing`)
+	}
+	progress.published.push(specifier)
+	saveProgress(progress)
+}
+
+function isAlreadyPublished(errorOutput)
+{
+	return /EPUBLISHCONFLICT|cannot publish over the previously published version/i
+		.test(errorOutput)
+}
+
+/**
+ * Runs a command attached to the terminal, so npm can ask for a login or a
+ * one-time password, while also collecting its error output. That output is
+ * still shown as it arrives.
+ */
+function runShowingErrors(command, args, cwd)
+{
+	return new Promise((resolve, reject) => {
+		const child = spawn(command, args, { cwd, stdio: ['inherit', 'inherit', 'pipe'] })
+		let errorOutput = ''
+		child.stderr.on('data', chunk => {
+			process.stderr.write(chunk)
+			errorOutput += chunk
+		})
+		child.on('error', reject)
+		child.on('close', status => resolve({ status, errorOutput }))
+	})
 }
 
 function run(command, args, cwd)
