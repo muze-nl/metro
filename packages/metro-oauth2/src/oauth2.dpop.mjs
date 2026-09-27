@@ -40,7 +40,9 @@ export default function dpopmw(options) {
 				}
 			})
 
-		} else if (req.headers.has('Authorization')) { //FIXME: not all requests use the dpop bound access token, so check which key to use, or if to add dpop at all
+		} else if (isDPoPAuthorization(req.headers.get('Authorization'))) {
+			// Only DPoP-bound access tokens get a proof. Bearer tokens, and
+			// Authorization headers for other schemes, are sent unchanged.
 			// note: don't use options.site here, nonce can differ
 			const nonce       = localStorage.getItem(url.host+':nonce') || undefined // null is not acceptible for DpOp()
 			const accessToken = req.headers.get('Authorization').split(' ')[1]
@@ -61,4 +63,9 @@ export default function dpopmw(options) {
 		return response
 	}
 	
+}
+
+function isDPoPAuthorization(value)
+{
+	return /^DPoP\s/i.test(value || '')
 }

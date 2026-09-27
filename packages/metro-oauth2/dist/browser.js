@@ -2157,7 +2157,7 @@
             "DPoP": dpopHeader
           }
         });
-      } else if (req.headers.has("Authorization")) {
+      } else if (isDPoPAuthorization(req.headers.get("Authorization"))) {
         const nonce = localStorage.getItem(url2.host + ":nonce") || void 0;
         const accessToken = req.headers.get("Authorization").split(" ")[1];
         const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
@@ -2174,6 +2174,9 @@
       }
       return response2;
     };
+  }
+  function isDPoPAuthorization(value) {
+    return /^DPoP\s/i.test(value || "");
   }
 
   // src/index.mjs
