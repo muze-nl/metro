@@ -1539,10 +1539,10 @@
     if (!res) {
       return false;
     }
-    if (res.status === 400) {
-      return true;
-    }
     const challenge = parseBearerChallenge(res.headers?.get("WWW-Authenticate"));
+    if (res.status === 400) {
+      return challenge?.error === "invalid_token";
+    }
     if (challenge?.error === "insufficient_scope") {
       return false;
     }

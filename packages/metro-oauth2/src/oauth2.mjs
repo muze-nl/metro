@@ -441,19 +441,21 @@ export default function oauth2mw(options)
 
 /**
  * Returns true when a resource response should trigger OAuth2 authorization.
- * A 401 usually means missing/invalid credentials. A Bearer/DPoP
- * insufficient_scope challenge is not recoverable by simply retrying login, so
- * it is passed back to the caller.
+ * A 401 means missing or invalid credentials (RFC 6750 section 3.1). A
+ * Bearer/DPoP insufficient_scope challenge is not recoverable by simply
+ * retrying login, so it is passed back to the caller. A 400 is a malformed
+ * request, which a new token cannot fix, unless its challenge says the token
+ * is invalid.
  */
 function shouldAuthorizeResponse(res)
 {
 	if (!res) {
 		return false
 	}
-	if (res.status === 400) {
-		return true
-	}
 	const challenge = parseBearerChallenge(res.headers?.get('WWW-Authenticate'))
+	if (res.status === 400) {
+		return challenge?.error === 'invalid_token'
+	}
 	if (challenge?.error === 'insufficient_scope') {
 		return false
 	}
