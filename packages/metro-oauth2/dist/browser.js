@@ -1809,7 +1809,11 @@
     const redirectUri = url2.searchParams.get("redirect_uri");
     const expectedOrigin = redirectUri ? new URL(redirectUri, window.location.href).origin : window.location.origin;
     return new Promise((resolve, reject) => {
+      let settled = false;
+      let closedWatcher = null;
       const cleanup = () => {
+        settled = true;
+        clearInterval(closedWatcher);
         if (typeof removeEventListener === "function") {
           removeEventListener("message", handler);
         }
@@ -1849,8 +1853,17 @@
       if (options.popup) {
         popup.location.href = authorizationCodeURL;
       }
+      if (!settled) {
+        closedWatcher = setInterval(() => {
+          if (popup.closed) {
+            cleanup();
+            reject("OAuth2 popup was closed");
+          }
+        }, POPUP_CLOSED_CHECK_MS);
+      }
     });
   }
+  var POPUP_CLOSED_CHECK_MS = 500;
 
   // src/keysstore.mjs
   function keysStore() {

@@ -233,3 +233,21 @@ function createPostMessage(t, expectedOrigin, expectedMessage) {
         t.match(message, expectedMessage)
     }
 }
+
+tap.test('authorizePopup SHOULD reject WHEN the user closes the popup', async t => {
+    setupWindow(t)
+    const popup = { closed: false }
+    globalThis.window.open = () => popup
+    globalThis.addEventListener = () => {}
+    globalThis.removeEventListener = () => {}
+
+    const pending = authorizePopup(mockAuthorizationUrl())
+    setTimeout(() => {
+        popup.closed = true
+    }, 50)
+
+    const actual = await t.rejects(pending)
+
+    t.equal(actual, 'OAuth2 popup was closed')
+    t.end()
+})

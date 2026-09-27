@@ -89,6 +89,8 @@ const api = client('https://resource.example/')
   }))
 ```
 
+`authorizePopup` rejects with `'OAuth2 popup was blocked'` when the popup cannot open, and with `'OAuth2 popup was closed'` when the user closes it before logging in.
+
 Callback page:
 
 ```html
