@@ -41,7 +41,7 @@ Adds OAuth2 authorization to a Metro client. By default it first tries the reque
 
 Important options: `site`, `client`, `authorize_callback`, `force_authorization`, `state`, `tokens`, and `oauth2_configuration`.
 
-`oauth2_configuration` may include `access_token`, `authorization_code`, `authorization_endpoint`, `client_id`, `client_secret`, `code_verifier`, `grant_type`, `redirect_uri`, `refresh_token`, `scope`, `token_endpoint`, and `token_endpoint_auth_method`.
+`oauth2_configuration` may include `access_token`, `authorization_code`, `authorization_endpoint`, `client_id`, `client_secret`, `code_verifier`, `grant_type`, `login_hint`, `prompt`, `redirect_uri`, `refresh_token`, `scope`, `token_endpoint`, and `token_endpoint_auth_method`. `login_hint` and `prompt` are passed on to the authorization endpoint.
 
 Do not put a real client secret in browser code.
 

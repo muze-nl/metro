@@ -263,6 +263,9 @@ export default function oauth2mw(options)
 		if (oauth2.prompt) {
 			search.prompt = oauth2.prompt
 		}
+		if (oauth2.login_hint) {
+			search.login_hint = oauth2.login_hint
+		}
 		if (oauth2.nonce) {
 			search.nonce = oauth2.nonce
 		}

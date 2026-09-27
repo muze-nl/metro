@@ -31,9 +31,19 @@ const api = client('https://example.solidcommunity.net/')
 
 Adds OpenID Connect authorization to a Metro client. By default it tries the request first and authorizes after a `401` or `403`. Set `force_authorization: true` to authorize immediately.
 
-Important options: `issuer`, `client_info`, `client`, `openid_configuration`, `oauth2`, `store`, `scope`, `nonce`, `use_dpop`, `force_authorization`, and `authorize_callback`.
+Important options: `issuer`, `client_info`, `webid`, `login_hint`, `expected_claims`, `client`, `openid_configuration`, `oauth2`, `store`, `scope`, `nonce`, `use_dpop`, `force_authorization`, and `authorize_callback`.
 
 `use_dpop` defaults to `true`. Disable it only for providers or tests that do not support DPoP.
+
+### Which user
+
+Tokens are stored per issuer. To keep different users at the same issuer apart, tell `oidcmw()` which user it acts for:
+
+- `webid`: the user's WebID. It is sent to the issuer as `login_hint`, and the ID token's `webid` claim must match it. Older Solid issuers without a `webid` claim are matched on `sub`.
+- `login_hint`: without a WebID, a hint for the issuer about which user should log in.
+- `expected_claims`: without a WebID, claims the ID token must contain, e.g. `{ sub: '…' }`.
+
+With `webid` or `login_hint`, tokens and the ID token are stored for that user only, so logging in as another user never reuses them. An ID token for a different user than expected is refused and not stored, even when the issuer still has a login session for that other user. Pass the same `webid` or `login_hint` to `idToken()` and `idTokenClaims()`.
 
 ## `discover(options)`
 
@@ -64,7 +74,7 @@ const raw = idToken({ issuer: 'https://solidcommunity.net/' })
 const claims = idTokenClaims({ issuer: 'https://solidcommunity.net/' })
 ```
 
-Returns the stored raw ID token or validated claims. Pass the same `issuer` or `store` used by the middleware.
+Returns the stored raw ID token or validated claims. Pass the same `issuer` and `webid` or `login_hint`, or the same `store`, used by the middleware.
 
 ## `validateIdToken(idToken, options)`
 

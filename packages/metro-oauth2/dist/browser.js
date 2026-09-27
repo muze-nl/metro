@@ -1409,6 +1409,9 @@
       if (oauth22.prompt) {
         search.prompt = oauth22.prompt;
       }
+      if (oauth22.login_hint) {
+        search.login_hint = oauth22.login_hint;
+      }
       if (oauth22.nonce) {
         search.nonce = oauth22.nonce;
       }

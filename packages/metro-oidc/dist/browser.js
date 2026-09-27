@@ -1394,6 +1394,9 @@
       if (oauth2.prompt) {
         search.prompt = oauth2.prompt;
       }
+      if (oauth2.login_hint) {
+        search.login_hint = oauth2.login_hint;
+      }
       if (oauth2.nonce) {
         search.nonce = oauth2.nonce;
       }
@@ -3537,8 +3540,13 @@
       oauth2: Optional({}),
       openid_configuration: Optional()
     });
+    const account = accountFor(options);
+    const expectedClaims = expectedClaimsFor(options);
+    const site = siteFor(options.issuer, account);
+    let userStore = options.store;
     if (!options.store) {
       options.store = oidcStore(options.issuer);
+      userStore = oidcStore(site);
     }
     if (!options.openid_configuration && options.store.has("openid_configuration")) {
       options.openid_configuration = options.store.get("openid_configuration");
@@ -3584,10 +3592,10 @@
       }
       const scope = options.scope || "openid";
       const nonce = options.nonce || generateCodeVerifier(32);
-      options.store.set("pending_nonce", nonce);
+      userStore.set("pending_nonce", nonce);
       const oauth2Options = Object.assign(
         {
-          site: options.issuer,
+          site,
           client: options.client,
           force_authorization: true,
           authorize_callback: options.authorize_callback,
@@ -3602,6 +3610,7 @@
             scope,
             //FIXME: should only use scopes supported by server
             redirect_uri: options.client_info.redirect_uris[0],
+            login_hint: options.login_hint ?? options.webid,
             nonce
           }
         }
@@ -3630,10 +3639,11 @@
           client_id: options.client_info.client_id,
           jwks,
           openid_configuration: options.openid_configuration,
-          nonce: options.store.get("pending_nonce")
+          nonce: userStore.get("pending_nonce")
         });
-        options.store.set("id_token", id_token);
-        options.store.set("id_token_claims", validation.claims);
+        assertExpectedUser(validation.claims, expectedClaims);
+        userStore.set("id_token", id_token);
+        userStore.set("id_token_claims", validation.claims);
         return res2;
       };
       const getJwks = async () => {
@@ -3670,6 +3680,35 @@
     const storedRedirectUris = new Set(storedClientInfo.redirect_uris || []);
     return requestedClientInfo.redirect_uris.every((uri) => storedRedirectUris.has(uri));
   }
+  function accountFor(options) {
+    return options.webid ?? options.login_hint;
+  }
+  function expectedClaimsFor(options) {
+    if (options.webid) {
+      return Object.assign({ webid: options.webid }, options.expected_claims);
+    }
+    return options.expected_claims || {};
+  }
+  function siteFor(issuer, account) {
+    if (!account) {
+      return issuer;
+    }
+    return issuer + "|" + account;
+  }
+  function assertExpectedUser(claims, expectedClaims) {
+    for (const [name, expected] of Object.entries(expectedClaims)) {
+      const actual = claimValue(claims, name);
+      if (actual !== expected) {
+        throw metroError("metro.oidcmw: id_token is for a different user: expected " + name + " " + expected + ", got " + actual);
+      }
+    }
+  }
+  function claimValue(claims, name) {
+    if (name == "webid" && claims.webid === void 0) {
+      return claims.sub;
+    }
+    return claims[name];
+  }
   function isRedirected2() {
     return isRedirected();
   }
@@ -3678,7 +3717,7 @@
       if (!options.issuer) {
         throw metroError("Must supply options.issuer or options.store to get the id_token");
       }
-      options.store = oidcStore(options.issuer);
+      options.store = oidcStore(siteFor(options.issuer, accountFor(options)));
     }
     return options.store.get("id_token");
   }
@@ -3687,7 +3726,7 @@
       if (!options.issuer) {
         throw metroError("Must supply options.issuer or options.store to get the id_token claims");
       }
-      options.store = oidcStore(options.issuer);
+      options.store = oidcStore(siteFor(options.issuer, accountFor(options)));
     }
     return options.store.get("id_token_claims");
   }
