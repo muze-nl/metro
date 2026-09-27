@@ -278,8 +278,21 @@
   function callTracers(tracers, method, ...args) {
     for (const tracer of tracers) {
       if (tracer && typeof tracer[method] == "function") {
-        tracer[method].call(tracer, ...args);
+        callTracer(tracer, method, args);
       }
+    }
+  }
+  function callTracer(tracer, method, args) {
+    const reportFailure = (error) => {
+      metroConsole.error("metro: tracer." + method + "() failed", error);
+    };
+    try {
+      const result = tracer[method].call(tracer, ...args);
+      if (typeof result?.then == "function") {
+        result.then(void 0, reportFailure);
+      }
+    } catch (error) {
+      reportFailure(error);
     }
   }
   function isPlainObject(value) {

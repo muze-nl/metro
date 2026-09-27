@@ -314,12 +314,32 @@ function createTraceAPI(context)
 	return api
 }
 
+/**
+ * Tracers observe requests, they must not change them. A failing tracer is
+ * reported, but never alters the request's outcome or stops other tracers.
+ */
 function callTracers(tracers, method, ...args)
 {
 	for (const tracer of tracers) {
 		if (tracer && typeof tracer[method] == 'function') {
-			tracer[method].call(tracer, ...args)
+			callTracer(tracer, method, args)
 		}
+	}
+}
+
+function callTracer(tracer, method, args)
+{
+	const reportFailure = error => {
+		metroConsole.error('metro: tracer.'+method+'() failed', error)
+	}
+	try {
+		const result = tracer[method].call(tracer, ...args)
+		if (typeof result?.then == 'function') {
+			result.then(undefined, reportFailure)
+		}
+	}
+	catch(error) {
+		reportFailure(error)
 	}
 }
 

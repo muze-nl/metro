@@ -16,6 +16,8 @@ const api = client('/api/', { trace: tracer })
 
 Prefer scoped tracing for application code. The tracer only sees requests made by that client and nested requests made through `context.fetch()` or `context.trace.options()`.
 
+Tracers only observe. If a tracer method throws, or returns a promise that rejects, Metro reports the failure with `console.error` and carries on: the request is still sent, its result or original error is unchanged, and the other tracers are still called. This does not apply to `span()`, which runs the traced work itself.
+
 ## `add(name, tracer)`
 
 ```js
