@@ -226,7 +226,6 @@ export default function oidcmw(options={}) {
 		if (options.use_dpop) {
 			const dpopOptions = {
 				site: options.issuer,
-				authorization_endpoint: options.openid_configuration.authorization_endpoint,
 				token_endpoint: options.openid_configuration.token_endpoint,
 				dpop_signing_alg_values_supported: options.openid_configuration.dpop_signing_alg_values_supported
 			}

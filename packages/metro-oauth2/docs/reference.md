@@ -107,12 +107,11 @@ Callback page:
 const api = client('https://resource.example/')
   .with(dpopmw({
     site: 'https://issuer.example/',
-    authorization_endpoint: 'https://issuer.example/authorize',
     token_endpoint: 'https://issuer.example/token'
   }))
 ```
 
-Adds DPoP support for requests that carry OAuth tokens. OIDC uses this by default because Solid identity and storage servers commonly require sender-constrained tokens.
+Adds DPoP proofs (RFC 9449) to token endpoint requests, so the issuer binds the tokens to this client's key, and to requests whose `Authorization` header uses the `DPoP` scheme. Other requests are sent unchanged. OIDC uses this by default because Solid identity and storage servers commonly require sender-constrained tokens.
 
 ## Stores
 

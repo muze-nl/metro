@@ -60,7 +60,6 @@ function resourceClient()
 		return metro.response('ok')
 	}).with(dpopmw({
 		site,
-		authorization_endpoint: site + 'authorize',
 		token_endpoint: site + 'token'
 	}))
 	return { client, seen }
@@ -100,4 +99,13 @@ tap.test('other Authorization schemes are sent unchanged', async t => {
 
 	t.equal(seen.authorization, 'Basic dXNlcjpwYXNz')
 	t.equal(seen.dpop, null)
+})
+
+tap.test('token endpoint requests get a DPoP proof', async t => {
+	useBrowserStorage(t)
+	const { client, seen } = resourceClient()
+
+	await client.post(site + 'token', { body: 'grant_type=refresh_token' })
+
+	t.match(seen.dpop, /^ey/)
 })

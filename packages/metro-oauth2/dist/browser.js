@@ -2166,7 +2166,6 @@
   function dpopmw(options) {
     assert(options, {
       site: Required(validURL),
-      authorization_endpoint: Required(validURL),
       token_endpoint: Required(validURL),
       dpop_signing_alg_values_supported: Optional([])
       // this property is unfortunately rarely supported
@@ -2180,14 +2179,7 @@
         await keys.set(keyInfo);
       }
       const url2 = url(req.url);
-      if (req.url.startsWith(options.authorization_endpoint)) {
-        let params = req.body;
-        if (params instanceof URLSearchParams || params instanceof FormData) {
-          params.set("dpop_jkt", keyInfo.keyPair.publicKey);
-        } else {
-          params.dpop_jkt = keyInfo.keyPair.publicKey;
-        }
-      } else if (req.url.startsWith(options.token_endpoint)) {
+      if (req.url.startsWith(options.token_endpoint)) {
         const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method);
         req = req.with({
           headers: {
