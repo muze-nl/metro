@@ -130,3 +130,75 @@ tap.test('trace.event from middleware survives a failing tracer', async t => {
 
 	t.equal(res.status, 201)
 })
+
+/**
+ * Runs work through context.trace.span() inside a middleware, with the
+ * given span tracer, and returns what the caller of span() received.
+ */
+async function spanThrough(spanTracer, work)
+{
+	let spanResult
+	const api = client(server().handle).with(async (req, next, context) => {
+		spanResult = await context.trace.span('work', work)
+			.then(value => ({ value }), error => ({ error }))
+		return next(req)
+	})
+	await api.get('https://example.test/', { tracer: spanTracer })
+	return spanResult
+}
+
+tap.test('a span tracer that fails before running the work does not stop it', async t => {
+	captureConsoleErrors(t)
+	let runs = 0
+	const result = await spanThrough({
+		span: async () => {
+			throw new Error('tracer bug')
+		}
+	}, async () => {
+		runs++
+		return 'done'
+	})
+
+	t.equal(runs, 1)
+	t.equal(result.value, 'done')
+})
+
+tap.test('a span tracer that fails after the work keeps its result', async t => {
+	const errors = captureConsoleErrors(t)
+	const result = await spanThrough({
+		span: async (name, fn) => {
+			await fn()
+			throw new Error('tracer bug')
+		}
+	}, async () => 'done')
+
+	t.equal(result.value, 'done')
+	t.match(errors[0].join(' '), /tracer\.span\(\) failed/)
+})
+
+tap.test('a failure of the traced work still reaches the caller', async t => {
+	captureConsoleErrors(t)
+	const failure = new Error('work failed')
+	const result = await spanThrough({
+		span: async (name, fn) => fn()
+	}, async () => {
+		throw failure
+	})
+
+	t.equal(result.error, failure)
+})
+
+tap.test('the traced work runs once even if the tracer calls it twice', async t => {
+	captureConsoleErrors(t)
+	let runs = 0
+	await spanThrough({
+		span: async (name, fn) => {
+			await fn()
+			return fn()
+		}
+	}, async () => {
+		runs++
+	})
+
+	t.equal(runs, 1)
+})

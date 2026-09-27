@@ -263,7 +263,7 @@
         if (!tracer) {
           return fn();
         }
-        return tracer.span(name, fn, data, context);
+        return tracedSpan(tracer, name, fn, data, context);
       },
       link(key) {
         let traceId = null;
@@ -286,6 +286,21 @@
         callTracer(tracer, method, args);
       }
     }
+  }
+  async function tracedSpan(tracer, name, fn, data, context) {
+    let work = null;
+    const run = () => {
+      if (!work) {
+        work = (async () => fn())();
+      }
+      return work;
+    };
+    try {
+      await tracer.span(name, run, data, context);
+    } catch (error2) {
+      metroConsole.error("metro: tracer.span() failed", error2);
+    }
+    return run();
   }
   function callTracer(tracer, method, args) {
     const reportFailure = (error2) => {
@@ -1211,6 +1226,7 @@
   }
 
   // src/oauth2.mjs
+  var pendingTokenRequests = /* @__PURE__ */ new Map();
   var SUPPORTED_TOKEN_TYPES = /* @__PURE__ */ new Map([
     ["bearer", "Bearer"],
     ["dpop", "DPoP"]
@@ -1243,6 +1259,7 @@
     const oauth22 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
     options.oauth2_configuration = oauth22;
+    const tokenStoreKey = options.tokens ?? "site:" + options.site;
     const store = tokenStore(options.site);
     if (!options.tokens) {
       options.tokens = store.tokens;
@@ -1284,15 +1301,15 @@
       const refreshToken = options.tokens.get("refresh_token");
       const tokenIsExpired = isExpired(accessToken);
       if (!accessToken || tokenIsExpired && !refreshToken) {
-        const token = await fetchAccessToken();
+        const token = await requestToken(fetchAccessToken);
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next);
       } else if (tokenIsExpired && refreshToken) {
-        const token = await refreshAccessToken();
+        const token = await requestToken(refreshAccessToken);
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next);
       } else {
@@ -1305,13 +1322,29 @@
         if (!shouldAuthorizeResponse(res) || retryState.handledRejectedToken) {
           return res;
         }
+        if (options.tokens.get("access_token")?.value !== accessToken.value) {
+          return oauth2authorized(req, next, { handledRejectedToken: true });
+        }
         options.tokens.delete("access_token");
-        const token = refreshToken ? await refreshAccessToken() : await fetchAccessToken();
+        let tokenRequest = fetchAccessToken;
+        if (refreshToken) {
+          tokenRequest = refreshAccessToken;
+        }
+        const token = await requestToken(tokenRequest);
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next, { handledRejectedToken: true });
       }
+    }
+    function requestToken(tokenRequest) {
+      if (!pendingTokenRequests.has(tokenStoreKey)) {
+        const pending = tokenRequest().finally(() => {
+          pendingTokenRequests.delete(tokenStoreKey);
+        });
+        pendingTokenRequests.set(tokenStoreKey, pending);
+      }
+      return pendingTokenRequests.get(tokenStoreKey);
     }
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {
@@ -1408,6 +1441,9 @@
       }
       if (oauth22.prompt) {
         search.prompt = oauth22.prompt;
+      }
+      if (oauth22.login_hint) {
+        search.login_hint = oauth22.login_hint;
       }
       if (oauth22.nonce) {
         search.nonce = oauth22.nonce;
@@ -1623,6 +1659,12 @@
     }
     return randomState;
   }
+  function authorizationNotCompleted(req) {
+    const error2 = new Error("oauth2mw: authorization was not completed for " + req.url + "; no access token was obtained");
+    error2.code = "authorization_not_completed";
+    error2.request = req;
+    return error2;
+  }
   function isRedirected() {
     let url2 = new URL(document.location.href);
     if (!url2.searchParams.has("code")) {
@@ -1782,7 +1824,11 @@
     const redirectUri = url2.searchParams.get("redirect_uri");
     const expectedOrigin = redirectUri ? new URL(redirectUri, window.location.href).origin : window.location.origin;
     return new Promise((resolve, reject) => {
+      let settled = false;
+      let closedWatcher = null;
       const cleanup = () => {
+        settled = true;
+        clearInterval(closedWatcher);
         if (typeof removeEventListener === "function") {
           removeEventListener("message", handler);
         }
@@ -1822,8 +1868,17 @@
       if (options.popup) {
         popup.location.href = authorizationCodeURL;
       }
+      if (!settled) {
+        closedWatcher = setInterval(() => {
+          if (popup.closed) {
+            cleanup();
+            reject("OAuth2 popup was closed");
+          }
+        }, POPUP_CLOSED_CHECK_MS);
+      }
     });
   }
+  var POPUP_CLOSED_CHECK_MS = 500;
 
   // src/keysstore.mjs
   function keysStore() {
@@ -2117,7 +2172,7 @@
             "DPoP": dpopHeader
           }
         });
-      } else if (req.headers.has("Authorization")) {
+      } else if (isDPoPAuthorization(req.headers.get("Authorization"))) {
         const nonce = localStorage.getItem(url2.host + ":nonce") || void 0;
         const accessToken = req.headers.get("Authorization").split(" ")[1];
         const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
@@ -2134,6 +2189,9 @@
       }
       return response2;
     };
+  }
+  function isDPoPAuthorization(value) {
+    return /^DPoP\s/i.test(value || "");
   }
 
   // src/index.mjs

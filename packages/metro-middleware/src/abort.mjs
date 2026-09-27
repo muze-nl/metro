@@ -38,6 +38,15 @@ export default function abortmw(options={})
 	return abort
 }
 
+/**
+ * Returns a signal that aborts when any of the given signals aborts, with
+ * that signal's reason.
+ *
+ * AbortSignal.any() lets the platform release the combined signal once it
+ * is no longer used. The fallback for older runtimes keeps its listeners on
+ * the source signals until one of them aborts, so a long-lived source
+ * signal accumulates one listener per combined signal.
+ */
 export function combineSignals(...signals)
 {
 	signals = signals.filter(Boolean)
@@ -46,6 +55,9 @@ export function combineSignals(...signals)
 	}
 	if (signals.length == 1) {
 		return signals[0]
+	}
+	if (typeof AbortSignal != 'undefined' && typeof AbortSignal.any == 'function') {
+		return AbortSignal.any(signals)
 	}
 	const controller = new AbortController()
 	const cleanup = []

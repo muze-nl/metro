@@ -73,7 +73,12 @@ export default function oidcmockserver(options = {}) {
 		client_secret: options.client_secret,
 		redirect_uri: options.redirect_uri,
 		scope: 'openid profile email',
-		id_token: tokenContext => idToken(tokenContext),
+		id_token: tokenContext => {
+			if (tokenContext.grant_type == 'refresh_token' && options.refreshIdToken === false) {
+				return undefined
+			}
+			return idToken(tokenContext)
+		},
 		requirePKCE: options.requirePKCE ?? false
 	})
 	const clients = new Map()

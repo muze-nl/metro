@@ -48,7 +48,8 @@ export function handleRedirect(origin = null) {
 /**
  * Opens a new window to the oauth2 authorization endpoint.
  * Returns a Promise, which resolves with the authorization_code when login was
- * successful, or rejects with an error if not.
+ * successful, or rejects with an error if not, including when the user closes
+ * the popup.
  */
 export function authorizePopup(authorizationCodeURL, options = {}) {
 	const url = new URL(authorizationCodeURL, window.location.href)
@@ -57,7 +58,11 @@ export function authorizePopup(authorizationCodeURL, options = {}) {
 	const expectedOrigin = redirectUri ? new URL(redirectUri, window.location.href).origin : window.location.origin
 
 	return new Promise((resolve, reject) => {
+		let settled = false
+		let closedWatcher = null
 		const cleanup = () => {
+			settled = true
+			clearInterval(closedWatcher)
 			if (typeof removeEventListener === 'function') {
 				removeEventListener('message', handler)
 			}
@@ -97,5 +102,17 @@ export function authorizePopup(authorizationCodeURL, options = {}) {
 		if (options.popup) {
 			popup.location.href = authorizationCodeURL
 		}
+		// Browsers do not report a closed window, so check for it. Without this
+		// the promise never settles when the user closes the popup.
+		if (!settled) {
+			closedWatcher = setInterval(() => {
+				if (popup.closed) {
+					cleanup()
+					reject('OAuth2 popup was closed')
+				}
+			}, POPUP_CLOSED_CHECK_MS)
+		}
 	})
 }
+
+const POPUP_CLOSED_CHECK_MS = 500

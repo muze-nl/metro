@@ -263,7 +263,7 @@
         if (!tracer) {
           return fn();
         }
-        return tracer.span(name, fn, data, context);
+        return tracedSpan(tracer, name, fn, data, context);
       },
       link(key) {
         let traceId = null;
@@ -286,6 +286,21 @@
         callTracer(tracer, method, args);
       }
     }
+  }
+  async function tracedSpan(tracer, name, fn, data, context) {
+    let work = null;
+    const run = () => {
+      if (!work) {
+        work = (async () => fn())();
+      }
+      return work;
+    };
+    try {
+      await tracer.span(name, run, data, context);
+    } catch (error2) {
+      metroConsole.error("metro: tracer.span() failed", error2);
+    }
+    return run();
   }
   function callTracer(tracer, method, args) {
     const reportFailure = (error2) => {
@@ -1196,6 +1211,7 @@
   }
 
   // ../metro-oauth2/src/oauth2.mjs
+  var pendingTokenRequests = /* @__PURE__ */ new Map();
   var SUPPORTED_TOKEN_TYPES = /* @__PURE__ */ new Map([
     ["bearer", "Bearer"],
     ["dpop", "DPoP"]
@@ -1228,6 +1244,7 @@
     const oauth2 = Object.assign({}, defaultOptions.oauth2_configuration, options?.oauth2_configuration);
     options = Object.assign({}, defaultOptions, options);
     options.oauth2_configuration = oauth2;
+    const tokenStoreKey = options.tokens ?? "site:" + options.site;
     const store = tokenStore(options.site);
     if (!options.tokens) {
       options.tokens = store.tokens;
@@ -1269,15 +1286,15 @@
       const refreshToken = options.tokens.get("refresh_token");
       const tokenIsExpired = isExpired(accessToken);
       if (!accessToken || tokenIsExpired && !refreshToken) {
-        const token = await fetchAccessToken();
+        const token = await requestToken(fetchAccessToken);
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next);
       } else if (tokenIsExpired && refreshToken) {
-        const token = await refreshAccessToken();
+        const token = await requestToken(refreshAccessToken);
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next);
       } else {
@@ -1290,13 +1307,29 @@
         if (!shouldAuthorizeResponse(res) || retryState.handledRejectedToken) {
           return res;
         }
+        if (options.tokens.get("access_token")?.value !== accessToken.value) {
+          return oauth2authorized(req, next, { handledRejectedToken: true });
+        }
         options.tokens.delete("access_token");
-        const token = refreshToken ? await refreshAccessToken() : await fetchAccessToken();
+        let tokenRequest = fetchAccessToken;
+        if (refreshToken) {
+          tokenRequest = refreshAccessToken;
+        }
+        const token = await requestToken(tokenRequest);
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next, { handledRejectedToken: true });
       }
+    }
+    function requestToken(tokenRequest) {
+      if (!pendingTokenRequests.has(tokenStoreKey)) {
+        const pending = tokenRequest().finally(() => {
+          pendingTokenRequests.delete(tokenStoreKey);
+        });
+        pendingTokenRequests.set(tokenStoreKey, pending);
+      }
+      return pendingTokenRequests.get(tokenStoreKey);
     }
     function getTokensFromLocation() {
       if (typeof window !== "undefined" && window?.location) {
@@ -1393,6 +1426,9 @@
       }
       if (oauth2.prompt) {
         search.prompt = oauth2.prompt;
+      }
+      if (oauth2.login_hint) {
+        search.login_hint = oauth2.login_hint;
       }
       if (oauth2.nonce) {
         search.nonce = oauth2.nonce;
@@ -1607,6 +1643,12 @@
       counter++;
     }
     return randomState;
+  }
+  function authorizationNotCompleted(req) {
+    const error2 = new Error("oauth2mw: authorization was not completed for " + req.url + "; no access token was obtained");
+    error2.code = "authorization_not_completed";
+    error2.request = req;
+    return error2;
   }
   function isRedirected() {
     let url2 = new URL(document.location.href);
@@ -1938,7 +1980,7 @@
             "DPoP": dpopHeader
           }
         });
-      } else if (req.headers.has("Authorization")) {
+      } else if (isDPoPAuthorization(req.headers.get("Authorization"))) {
         const nonce = localStorage.getItem(url2.host + ":nonce") || void 0;
         const accessToken = req.headers.get("Authorization").split(" ")[1];
         const dpopHeader = await generateProof(keyInfo.keyPair, req.url, req.method, nonce, accessToken);
@@ -1955,6 +1997,9 @@
       }
       return response2;
     };
+  }
+  function isDPoPAuthorization(value) {
+    return /^DPoP\s/i.test(value || "");
   }
 
   // ../metro-middleware/src/json.mjs
@@ -3515,6 +3560,16 @@
   }
 
   // src/oidcmw.mjs
+  var pendingClientSetups = /* @__PURE__ */ new Map();
+  function sharedClientSetup(key, setup) {
+    if (!pendingClientSetups.has(key)) {
+      const pending = setup().finally(() => {
+        pendingClientSetups.delete(key);
+      });
+      pendingClientSetups.set(key, pending);
+    }
+    return pendingClientSetups.get(key);
+  }
   function oidcmw(options = {}) {
     const defaultOptions = {
       client: client(),
@@ -3537,8 +3592,14 @@
       oauth2: Optional({}),
       openid_configuration: Optional()
     });
+    const account = accountFor(options);
+    const expectedClaims = expectedClaimsFor(options);
+    const site = siteFor(options.issuer, account);
+    const clientSetupKey = options.issuer + " " + JSON.stringify(requestedClientInfo?.redirect_uris ?? null);
+    let userStore = options.store;
     if (!options.store) {
       options.store = oidcStore(options.issuer);
+      userStore = oidcStore(site);
     }
     if (!options.openid_configuration && options.store.has("openid_configuration")) {
       options.openid_configuration = options.store.get("openid_configuration");
@@ -3548,6 +3609,46 @@
       if (clientInfoMatchesRequest(storedClientInfo, requestedClientInfo)) {
         options.client_info = storedClientInfo;
       }
+    }
+    async function prepareClient() {
+      if (options.openid_configuration && options.client_info?.client_id) {
+        return;
+      }
+      const prepared = await sharedClientSetup(clientSetupKey, discoverAndRegister);
+      options.openid_configuration = prepared.openid_configuration;
+      options.client_info = prepared.client_info;
+      options.store.set("openid_configuration", options.openid_configuration);
+      options.store.set("client_info", options.client_info);
+    }
+    async function discoverAndRegister() {
+      let openid_configuration = options.openid_configuration;
+      if (!openid_configuration) {
+        openid_configuration = await oidcDiscovery({
+          issuer: options.issuer,
+          client: options.client.with(options.issuer)
+        });
+      }
+      let client_info = options.client_info;
+      if (!client_info?.client_id) {
+        if (!openid_configuration.registration_endpoint) {
+          throw metroError("metro.oidcmw: Error: issuer " + options.issuer + " does not support dynamic client registration, but you haven't specified a client_id");
+        }
+        client_info = await register({
+          registration_endpoint: openid_configuration.registration_endpoint,
+          client: options.client,
+          client_info
+        });
+      }
+      return { openid_configuration, client_info };
+    }
+    function rememberNonce(authorizeCallback) {
+      if (typeof authorizeCallback != "function") {
+        return authorizeCallback;
+      }
+      return async (url2) => {
+        userStore.set("pending_nonce", url2.searchParams.get("nonce"));
+        return authorizeCallback(url2);
+      };
     }
     return async (req, next) => {
       let res;
@@ -3564,33 +3665,15 @@
           return res;
         }
       }
-      if (!options.openid_configuration) {
-        options.openid_configuration = await oidcDiscovery({
-          issuer: options.issuer,
-          client: options.client.with(options.issuer)
-        });
-        options.store.set("openid_configuration", options.openid_configuration);
-      }
-      if (!options.client_info?.client_id) {
-        if (!options.openid_configuration.registration_endpoint) {
-          throw metroError("metro.oidcmw: Error: issuer " + options.issuer + " does not support dynamic client registration, but you haven't specified a client_id");
-        }
-        options.client_info = await register({
-          registration_endpoint: options.openid_configuration.registration_endpoint,
-          client: options.client,
-          client_info: options.client_info
-        });
-        options.store.set("client_info", options.client_info);
-      }
+      await prepareClient();
       const scope = options.scope || "openid";
       const nonce = options.nonce || generateCodeVerifier(32);
-      options.store.set("pending_nonce", nonce);
       const oauth2Options = Object.assign(
         {
-          site: options.issuer,
+          site,
           client: options.client,
           force_authorization: true,
-          authorize_callback: options.authorize_callback,
+          authorize_callback: rememberNonce(options.authorize_callback),
           oauth2_configuration: {
             client_id: options.client_info?.client_id,
             client_secret: options.client_info?.client_secret,
@@ -3602,6 +3685,7 @@
             scope,
             //FIXME: should only use scopes supported by server
             redirect_uri: options.client_info.redirect_uris[0],
+            login_hint: options.login_hint ?? options.webid,
             nonce
           }
         }
@@ -3615,7 +3699,7 @@
           return res2;
         }
         const contentType = res2.headers.get("content-type");
-        if (!contentType?.startsWith("application/json")) {
+        if (!res2.ok || !contentType?.startsWith("application/json")) {
           return res2;
         }
         let data = res2.data && typeof res2.data === "object" ? res2.data : null;
@@ -3624,16 +3708,24 @@
           data = await res22.json();
         }
         const id_token = data?.id_token;
+        const isRefresh = await grantTypeOf(req2) == "refresh_token";
+        if (isRefresh && !id_token) {
+          return res2;
+        }
         const jwks = await getJwks();
         const validation = await validateIdToken(id_token, {
           issuer: options.openid_configuration.issuer,
           client_id: options.client_info.client_id,
           jwks,
           openid_configuration: options.openid_configuration,
-          nonce: options.store.get("pending_nonce")
+          nonce: isRefresh ? void 0 : userStore.get("pending_nonce")
         });
-        options.store.set("id_token", id_token);
-        options.store.set("id_token_claims", validation.claims);
+        if (isRefresh) {
+          assertSameUserAsLogin(validation.claims, userStore.get("id_token_claims"));
+        }
+        assertExpectedUser(validation.claims, expectedClaims);
+        userStore.set("id_token", id_token);
+        userStore.set("id_token_claims", validation.claims);
         return res2;
       };
       const getJwks = async () => {
@@ -3670,6 +3762,44 @@
     const storedRedirectUris = new Set(storedClientInfo.redirect_uris || []);
     return requestedClientInfo.redirect_uris.every((uri) => storedRedirectUris.has(uri));
   }
+  function accountFor(options) {
+    return options.webid ?? options.login_hint;
+  }
+  function expectedClaimsFor(options) {
+    if (options.webid) {
+      return Object.assign({ webid: options.webid }, options.expected_claims);
+    }
+    return options.expected_claims || {};
+  }
+  function siteFor(issuer, account) {
+    if (!account) {
+      return issuer;
+    }
+    return issuer + "|" + account;
+  }
+  function assertExpectedUser(claims, expectedClaims) {
+    for (const [name, expected] of Object.entries(expectedClaims)) {
+      const actual = claimValue(claims, name);
+      if (actual !== expected) {
+        throw metroError("metro.oidcmw: id_token is for a different user: expected " + name + " " + expected + ", got " + actual);
+      }
+    }
+  }
+  async function grantTypeOf(req) {
+    const body = await req.clone().text();
+    return new URLSearchParams(body).get("grant_type");
+  }
+  function assertSameUserAsLogin(claims, loginClaims) {
+    if (loginClaims && claims.sub !== loginClaims.sub) {
+      throw metroError("metro.oidcmw: refreshed id_token is for a different user: expected sub " + loginClaims.sub + ", got " + claims.sub);
+    }
+  }
+  function claimValue(claims, name) {
+    if (name == "webid" && claims.webid === void 0) {
+      return claims.sub;
+    }
+    return claims[name];
+  }
   function isRedirected2() {
     return isRedirected();
   }
@@ -3678,7 +3808,7 @@
       if (!options.issuer) {
         throw metroError("Must supply options.issuer or options.store to get the id_token");
       }
-      options.store = oidcStore(options.issuer);
+      options.store = oidcStore(siteFor(options.issuer, accountFor(options)));
     }
     return options.store.get("id_token");
   }
@@ -3687,7 +3817,7 @@
       if (!options.issuer) {
         throw metroError("Must supply options.issuer or options.store to get the id_token claims");
       }
-      options.store = oidcStore(options.issuer);
+      options.store = oidcStore(siteFor(options.issuer, accountFor(options)));
     }
     return options.store.get("id_token_claims");
   }

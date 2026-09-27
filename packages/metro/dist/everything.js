@@ -263,7 +263,7 @@
         if (!tracer) {
           return fn();
         }
-        return tracer.span(name, fn, data, context);
+        return tracedSpan(tracer, name, fn, data, context);
       },
       link(key) {
         let traceId = null;
@@ -286,6 +286,21 @@
         callTracer(tracer, method, args);
       }
     }
+  }
+  async function tracedSpan(tracer, name, fn, data, context) {
+    let work = null;
+    const run = () => {
+      if (!work) {
+        work = (async () => fn())();
+      }
+      return work;
+    };
+    try {
+      await tracer.span(name, run, data, context);
+    } catch (error) {
+      metroConsole.error("metro: tracer.span() failed", error);
+    }
+    return run();
   }
   function callTracer(tracer, method, args) {
     const reportFailure = (error) => {
@@ -1262,6 +1277,9 @@
     }
     if (signals.length == 1) {
       return signals[0];
+    }
+    if (typeof AbortSignal != "undefined" && typeof AbortSignal.any == "function") {
+      return AbortSignal.any(signals);
     }
     const controller = new AbortController();
     const cleanup = [];
