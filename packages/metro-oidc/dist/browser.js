@@ -1528,7 +1528,7 @@
       }
     }
     function storeTokenResponse(data) {
-      const token = validateTokenResponse(data);
+      const token = validateTokenResponse(data, oauth2.token_type);
       options.tokens.set("access_token", token);
       if (data.refresh_token) {
         options.tokens.set("refresh_token", { value: data.refresh_token });
@@ -1560,7 +1560,7 @@
     }
     return token;
   }
-  function validateTokenResponse(data) {
+  function validateTokenResponse(data, requiredTokenType) {
     if (!data || typeof data !== "object") {
       throw metroError("OAuth2mw: token endpoint did not return a JSON object");
     }
@@ -1571,6 +1571,9 @@
       throw metroError("OAuth2mw: token response did not include token_type");
     }
     const tokenType = normalizeTokenType(data.token_type);
+    if (requiredTokenType && tokenType !== normalizeTokenType(requiredTokenType)) {
+      throw metroError("OAuth2mw: token endpoint returned a " + tokenType + " token, but " + requiredTokenType + " is required");
+    }
     return {
       value: data.access_token,
       expires: data.expires_in === void 0 ? null : getExpires(data.expires_in),
@@ -3740,6 +3743,7 @@
             login_hint: options.login_hint ?? options.webid,
             issuer: options.openid_configuration.issuer,
             authorization_response_iss_parameter_supported: options.openid_configuration.authorization_response_iss_parameter_supported,
+            token_type: options.use_dpop ? "DPoP" : void 0,
             nonce
           }
         }

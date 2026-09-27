@@ -431,7 +431,7 @@ export default function oauth2mw(options)
 	 */
 	function storeTokenResponse(data)
 	{
-		const token = validateTokenResponse(data)
+		const token = validateTokenResponse(data, oauth2.token_type)
 		options.tokens.set('access_token', token)
 		if (data.refresh_token) {
 			options.tokens.set('refresh_token', { value: data.refresh_token })
@@ -483,7 +483,7 @@ function normalizeInitialToken(name, token)
  * Validates the client-relevant fields of a token endpoint response and returns
  * the internal access-token shape used by the middleware.
  */
-function validateTokenResponse(data)
+function validateTokenResponse(data, requiredTokenType)
 {
 	if (!data || typeof data !== 'object') {
 		throw metro.metroError('OAuth2mw: token endpoint did not return a JSON object')
@@ -495,6 +495,11 @@ function validateTokenResponse(data)
 		throw metro.metroError('OAuth2mw: token response did not include token_type')
 	}
 	const tokenType = normalizeTokenType(data.token_type)
+	if (requiredTokenType && tokenType !== normalizeTokenType(requiredTokenType)) {
+		// e.g. a Bearer token where a DPoP-bound token was requested: an
+		// unbound token must not be used or stored (RFC 9449 section 5.10)
+		throw metro.metroError('OAuth2mw: token endpoint returned a '+tokenType+' token, but '+requiredTokenType+' is required')
+	}
 	return {
 		value: data.access_token,
 		expires: data.expires_in === undefined ? null : getExpires(data.expires_in),

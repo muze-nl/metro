@@ -164,6 +164,7 @@ export default function oidcmw(options={}) {
 					issuer: options.openid_configuration.issuer,
 					authorization_response_iss_parameter_supported:
 						options.openid_configuration.authorization_response_iss_parameter_supported,
+					token_type: options.use_dpop ? 'DPoP' : undefined,
 					nonce
 				}
 			}

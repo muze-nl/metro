@@ -33,7 +33,7 @@ Adds OpenID Connect authorization to a Metro client. By default it tries the req
 
 Important options: `issuer`, `client_info`, `webid`, `login_hint`, `expected_claims`, `client`, `openid_configuration`, `oauth2`, `store`, `scope`, `nonce`, `use_dpop`, `force_authorization`, and `authorize_callback`.
 
-`use_dpop` defaults to `true`. Disable it only for providers or tests that do not support DPoP.
+`use_dpop` defaults to `true`. Disable it only for providers or tests that do not support DPoP. With `use_dpop`, only DPoP-bound access tokens are accepted: a Bearer token from the issuer is refused, as RFC 9449 section 5.10 requires when DPoP protection matters.
 
 ### Which user
 
