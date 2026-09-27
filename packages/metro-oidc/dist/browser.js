@@ -1271,13 +1271,13 @@
       if (!accessToken || tokenIsExpired && !refreshToken) {
         const token = await fetchAccessToken();
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next);
       } else if (tokenIsExpired && refreshToken) {
         const token = await refreshAccessToken();
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next);
       } else {
@@ -1293,7 +1293,7 @@
         options.tokens.delete("access_token");
         const token = refreshToken ? await refreshAccessToken() : await fetchAccessToken();
         if (!token) {
-          return response("false");
+          throw authorizationNotCompleted(req);
         }
         return oauth2authorized(req, next, { handledRejectedToken: true });
       }
@@ -1610,6 +1610,12 @@
       counter++;
     }
     return randomState;
+  }
+  function authorizationNotCompleted(req) {
+    const error2 = new Error("oauth2mw: authorization was not completed for " + req.url + "; no access token was obtained");
+    error2.code = "authorization_not_completed";
+    error2.request = req;
+    return error2;
   }
   function isRedirected() {
     let url2 = new URL(document.location.href);

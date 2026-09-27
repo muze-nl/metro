@@ -110,13 +110,13 @@ export default function oauth2mw(options)
 		if (!accessToken || (tokenIsExpired && !refreshToken)) {
 			const token = await fetchAccessToken()
 			if (!token) {
-				return metro.response('false')
+				throw authorizationNotCompleted(req)
 			}
 			return oauth2authorized(req, next)
 		} else if (tokenIsExpired && refreshToken) {
 			const token = await refreshAccessToken()
 			if (!token) {
-				return metro.response('false')
+				throw authorizationNotCompleted(req)
 			}
 			return oauth2authorized(req, next)
 		} else {
@@ -134,7 +134,7 @@ export default function oauth2mw(options)
 				? await refreshAccessToken()
 				: await fetchAccessToken()
 			if (!token) {
-				return metro.response('false')
+				throw authorizationNotCompleted(req)
 			}
 			return oauth2authorized(req, next, { handledRejectedToken: true })
 		}
@@ -608,6 +608,21 @@ export function createState(length)
  * Returns true if the current document.location contains an OAuth2 code
  * parameter in either the query string or hash fragment.
  */
+/**
+ * No access token was obtained, e.g. because authorize_callback returned no
+ * authorization code: it declined, or it is redirecting the browser to the
+ * authorization endpoint. The request is not sent, so it must not look like
+ * a successful response.
+ */
+function authorizationNotCompleted(req)
+{
+	const error = new Error('oauth2mw: authorization was not completed for '
+		+ req.url + '; no access token was obtained')
+	error.code = 'authorization_not_completed'
+	error.request = req
+	return error
+}
+
 export function isRedirected() {
 	let url = new URL(document.location.href)
 	if (!url.searchParams.has('code')) {

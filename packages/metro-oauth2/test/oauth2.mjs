@@ -384,3 +384,19 @@ tap.test('testing entry exports the OAuth2 mock server explicitly', async t => {
 	t.type(testing.default, 'function')
 	t.type(testing.oauth2mockserver, 'function')
 })
+
+tap.test('a declined authorization rejects instead of looking like success', async t => {
+	const client = mockClient()
+	const oauth2client = client.with(oauth2mw(oauth2Options(client, {
+		force_authorization: true,
+		authorize_callback: async () => false
+	})))
+
+	const error = await oauth2client.get('/protected/')
+		.then(() => null, error => error)
+
+	t.ok(error, 'the request rejects')
+	t.equal(error.code, 'authorization_not_completed')
+	t.match(error.message, /oauth2mw: authorization was not completed/)
+	t.match(error.request.url, /\/protected\/$/)
+})

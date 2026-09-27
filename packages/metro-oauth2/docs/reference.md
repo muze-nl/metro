@@ -43,6 +43,8 @@ Important options: `site`, `client`, `authorize_callback`, `force_authorization`
 
 `oauth2_configuration` may include `access_token`, `authorization_code`, `authorization_endpoint`, `client_id`, `client_secret`, `code_verifier`, `grant_type`, `login_hint`, `prompt`, `redirect_uri`, `refresh_token`, `scope`, `token_endpoint`, and `token_endpoint_auth_method`. `login_hint` and `prompt` are passed on to the authorization endpoint.
 
+`authorize_callback(url)` receives the authorization URL and returns the authorization code. The default callback redirects the browser there and returns `false`. When the callback returns no code, because it declined or is redirecting, the request rejects with an error whose `code` is `'authorization_not_completed'`, and the request is not sent. It never resolves as a successful response.
+
 Do not put a real client secret in browser code.
 
 ## PKCE helpers
