@@ -3657,6 +3657,11 @@
 
   // src/oidcmw.mjs
   var pendingClientSetups = /* @__PURE__ */ new Map();
+  var BROWSER_CLIENT_METADATA = {
+    token_endpoint_auth_method: "none",
+    grant_types: ["authorization_code", "refresh_token"],
+    response_types: ["code"]
+  };
   function sharedClientSetup(key, setup) {
     if (!pendingClientSetups.has(key)) {
       const pending = setup().finally(() => {
@@ -3732,8 +3737,11 @@
         client_info = await register({
           registration_endpoint: openid_configuration.registration_endpoint,
           client: options.client,
-          client_info
+          client_info: Object.assign({}, BROWSER_CLIENT_METADATA, client_info)
         });
+        if (client_info.token_endpoint_auth_method == "none") {
+          delete client_info.client_secret;
+        }
       }
       return { openid_configuration, client_info };
     }
@@ -3766,6 +3774,7 @@
           oauth2_configuration: {
             client_id: options.client_info?.client_id,
             client_secret: options.client_info?.client_secret,
+            token_endpoint_auth_method: options.client_info?.token_endpoint_auth_method,
             grant_type: "authorization_code",
             response_type: "code",
             response_mode: "query",

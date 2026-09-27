@@ -11,6 +11,18 @@ import { validateIdToken } from './oidc.jwt.mjs'
 
 const pendingClientSetups = new Map()
 
+/**
+ * A browser app cannot keep a client secret, so it registers as a public
+ * client (Solid-OIDC section 11.3: secrets should not be stored in browser
+ * storage). The refresh_token grant is requested so issuers hand out refresh
+ * tokens. Metadata supplied by the app takes precedence.
+ */
+const BROWSER_CLIENT_METADATA = {
+	token_endpoint_auth_method: 'none',
+	grant_types: ['authorization_code', 'refresh_token'],
+	response_types: ['code']
+}
+
 function sharedClientSetup(key, setup) {
 	if (!pendingClientSetups.has(key)) {
 		const pending = setup().finally(() => {
@@ -103,8 +115,12 @@ export default function oidcmw(options={}) {
 			client_info = await register({
 				registration_endpoint: openid_configuration.registration_endpoint,
 				client: options.client,
-				client_info
+				client_info: Object.assign({}, BROWSER_CLIENT_METADATA, client_info)
 			})
+			if (client_info.token_endpoint_auth_method == 'none') {
+				// a public client has no use for a secret, so it is not stored
+				delete client_info.client_secret
+			}
 		}
 		return { openid_configuration, client_info }
 	}
@@ -153,6 +169,7 @@ export default function oidcmw(options={}) {
 				oauth2_configuration: {
 					client_id: options.client_info?.client_id,
 					client_secret: options.client_info?.client_secret,
+					token_endpoint_auth_method: options.client_info?.token_endpoint_auth_method,
 					grant_type: 'authorization_code',
 					response_type: 'code',
 					response_mode: 'query',

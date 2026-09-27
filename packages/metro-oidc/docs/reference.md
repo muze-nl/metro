@@ -69,7 +69,7 @@ const info = await register({
 })
 ```
 
-Performs dynamic client registration and returns client information. `oidcmw()` calls this automatically when no `client_info.client_id` is present and the issuer supports registration.
+Performs dynamic client registration and returns client information. `oidcmw()` calls this automatically when no `client_info.client_id` is present and the issuer supports registration. It then registers a public client: it asks for `token_endpoint_auth_method: 'none'`, `grant_types: ['authorization_code', 'refresh_token']` and `response_types: ['code']`, unless `client_info` says otherwise, and it uses the authentication method the issuer registered. A public client's secret, if an issuer returns one anyway, is not stored.
 
 ## ID token helpers
 
