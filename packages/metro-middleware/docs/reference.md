@@ -36,6 +36,8 @@ Adds `Accept: application/json` when missing, serializes plain object request bo
 
 Options: `contentType`, `accept`, `reviver`, `replacer`, `space`.
 
+A successful (`response.ok`) response with a JSON content type whose body is not valid JSON rejects the request. The error's `cause` is the `JSON.parse` error; `error.request` and `error.response` hold the request and the unparsed response. An error response, such as a 404, whose body is not valid JSON is returned unchanged: its status already reports the failure. An empty body is not parsed.
+
 ## `thrower(options)`
 
 ```js

@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Beginner-friendly combined Metro package",
   "type": "module",
   "source": [
@@ -77,11 +77,11 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@muze-nl/metro-core": "^0.8.0",
-    "@muze-nl/metro-api": "^0.8.0",
-    "@muze-nl/metro-middleware": "^0.8.0",
-    "@muze-nl/metro-trace": "^0.8.0",
-    "@muze-nl/metro-hashparams": "^0.8.0",
-    "@muze-nl/metro-formdata": "^0.8.0"
+    "@muze-nl/metro-core": "^0.9.0",
+    "@muze-nl/metro-api": "^0.9.0",
+    "@muze-nl/metro-middleware": "^0.9.0",
+    "@muze-nl/metro-trace": "^0.9.0",
+    "@muze-nl/metro-hashparams": "^0.9.0",
+    "@muze-nl/metro-formdata": "^0.9.0"
   }
 }

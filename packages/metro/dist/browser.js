@@ -716,16 +716,30 @@
       if (res && isJSON(res.headers?.get("Content-Type"))) {
         let tempRes = res.clone();
         let body = await tempRes.text();
+        if (body === "") {
+          return res;
+        }
         try {
           let json2 = JSON.parse(body, options.reviver);
           return res.with({
             body: json2
           });
-        } catch (e) {
+        } catch (error) {
+          if (!res.ok) {
+            return res;
+          }
+          throw parseError(req, res, error);
         }
       }
       return res;
     };
+  }
+  function parseError(req, res, cause) {
+    const message = "jsonmw: could not parse " + res.headers.get("Content-Type") + " response from " + req.url;
+    const error = new Error(message, { cause });
+    error.request = req;
+    error.response = res;
+    return error;
   }
   var jsonRE = /^application\/([a-zA-Z0-9\-_]+\+)?json\b/;
   function isJSON(contentType) {

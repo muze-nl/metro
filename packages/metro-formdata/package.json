@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-formdata",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "FormData helper for Metro",
   "type": "module",
   "main": "src/index.mjs",
@@ -9,7 +9,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@muze-nl/metro-core": "^0.8.0"
+    "@muze-nl/metro-core": "^0.9.0"
   },
   "files": [
     "/src",

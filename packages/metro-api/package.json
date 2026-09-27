@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-api",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "API helpers for Metro clients",
   "type": "module",
   "main": "src/index.mjs",
@@ -9,8 +9,8 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@muze-nl/metro-core": "^0.8.0",
-    "@muze-nl/metro-middleware": "^0.8.0"
+    "@muze-nl/metro-core": "^0.9.0",
+    "@muze-nl/metro-middleware": "^0.9.0"
   },
   "files": [
     "/src",

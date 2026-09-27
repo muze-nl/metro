@@ -1,6 +1,6 @@
 {
   "name": "@muze-nl/metro-oidc",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "oidc client middleware for @muze-nl/metro",
   "type": "module",
   "source": [
@@ -53,9 +53,9 @@
   ],
   "dependencies": {
     "@muze-nl/assert": "^0.6.0",
-    "@muze-nl/metro-core": "^0.8.0",
-    "@muze-nl/metro-middleware": "^0.8.0",
-    "@muze-nl/metro-oauth2": "^0.8.2",
+    "@muze-nl/metro-core": "^0.9.0",
+    "@muze-nl/metro-middleware": "^0.9.0",
+    "@muze-nl/metro-oauth2": "^0.9.0",
     "jose": "^6.2.3"
   },
   "exports": {
