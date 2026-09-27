@@ -3542,6 +3542,16 @@
   }
 
   // src/oidcmw.mjs
+  var pendingClientSetups = /* @__PURE__ */ new Map();
+  function sharedClientSetup(key, setup) {
+    if (!pendingClientSetups.has(key)) {
+      const pending = setup().finally(() => {
+        pendingClientSetups.delete(key);
+      });
+      pendingClientSetups.set(key, pending);
+    }
+    return pendingClientSetups.get(key);
+  }
   function oidcmw(options = {}) {
     const defaultOptions = {
       client: client(),
@@ -3567,6 +3577,7 @@
     const account = accountFor(options);
     const expectedClaims = expectedClaimsFor(options);
     const site = siteFor(options.issuer, account);
+    const clientSetupKey = options.issuer + " " + JSON.stringify(requestedClientInfo?.redirect_uris ?? null);
     let userStore = options.store;
     if (!options.store) {
       options.store = oidcStore(options.issuer);
@@ -3580,6 +3591,46 @@
       if (clientInfoMatchesRequest(storedClientInfo, requestedClientInfo)) {
         options.client_info = storedClientInfo;
       }
+    }
+    async function prepareClient() {
+      if (options.openid_configuration && options.client_info?.client_id) {
+        return;
+      }
+      const prepared = await sharedClientSetup(clientSetupKey, discoverAndRegister);
+      options.openid_configuration = prepared.openid_configuration;
+      options.client_info = prepared.client_info;
+      options.store.set("openid_configuration", options.openid_configuration);
+      options.store.set("client_info", options.client_info);
+    }
+    async function discoverAndRegister() {
+      let openid_configuration = options.openid_configuration;
+      if (!openid_configuration) {
+        openid_configuration = await oidcDiscovery({
+          issuer: options.issuer,
+          client: options.client.with(options.issuer)
+        });
+      }
+      let client_info = options.client_info;
+      if (!client_info?.client_id) {
+        if (!openid_configuration.registration_endpoint) {
+          throw metroError("metro.oidcmw: Error: issuer " + options.issuer + " does not support dynamic client registration, but you haven't specified a client_id");
+        }
+        client_info = await register({
+          registration_endpoint: openid_configuration.registration_endpoint,
+          client: options.client,
+          client_info
+        });
+      }
+      return { openid_configuration, client_info };
+    }
+    function rememberNonce(authorizeCallback) {
+      if (typeof authorizeCallback != "function") {
+        return authorizeCallback;
+      }
+      return async (url2) => {
+        userStore.set("pending_nonce", url2.searchParams.get("nonce"));
+        return authorizeCallback(url2);
+      };
     }
     return async (req, next) => {
       let res;
@@ -3596,33 +3647,15 @@
           return res;
         }
       }
-      if (!options.openid_configuration) {
-        options.openid_configuration = await oidcDiscovery({
-          issuer: options.issuer,
-          client: options.client.with(options.issuer)
-        });
-        options.store.set("openid_configuration", options.openid_configuration);
-      }
-      if (!options.client_info?.client_id) {
-        if (!options.openid_configuration.registration_endpoint) {
-          throw metroError("metro.oidcmw: Error: issuer " + options.issuer + " does not support dynamic client registration, but you haven't specified a client_id");
-        }
-        options.client_info = await register({
-          registration_endpoint: options.openid_configuration.registration_endpoint,
-          client: options.client,
-          client_info: options.client_info
-        });
-        options.store.set("client_info", options.client_info);
-      }
+      await prepareClient();
       const scope = options.scope || "openid";
       const nonce = options.nonce || generateCodeVerifier(32);
-      userStore.set("pending_nonce", nonce);
       const oauth2Options = Object.assign(
         {
           site,
           client: options.client,
           force_authorization: true,
-          authorize_callback: options.authorize_callback,
+          authorize_callback: rememberNonce(options.authorize_callback),
           oauth2_configuration: {
             client_id: options.client_info?.client_id,
             client_secret: options.client_info?.client_secret,

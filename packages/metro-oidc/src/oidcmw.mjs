@@ -9,6 +9,18 @@ import jsonmw from '@muze-nl/metro-middleware/json'
 import throwermw from '@muze-nl/metro-middleware/thrower'
 import { validateIdToken } from './oidc.jwt.mjs'
 
+const pendingClientSetups = new Map()
+
+function sharedClientSetup(key, setup) {
+	if (!pendingClientSetups.has(key)) {
+		const pending = setup().finally(() => {
+			pendingClientSetups.delete(key)
+		})
+		pendingClientSetups.set(key, pending)
+	}
+	return pendingClientSetups.get(key)
+}
+
 export default function oidcmw(options={}) {
 
 	const defaultOptions = {
@@ -40,6 +52,8 @@ export default function oidcmw(options={}) {
 	const account = accountFor(options)
 	const expectedClaims = expectedClaimsFor(options)
 	const site = siteFor(options.issuer, account)
+	const clientSetupKey = options.issuer + ' '
+		+ JSON.stringify(requestedClientInfo?.redirect_uris ?? null)
 	let userStore = options.store
 	if (!options.store) {
 		options.store = oidcStore(options.issuer)
@@ -52,6 +66,63 @@ export default function oidcmw(options={}) {
 		const storedClientInfo = options.store.get('client_info')
 		if (clientInfoMatchesRequest(storedClientInfo, requestedClientInfo)) {
 			options.client_info = storedClientInfo
+		}
+	}
+
+	/**
+	 * Discovers the issuer and registers this client once. Concurrent requests
+	 * wait for the same registration, so tokens are never issued to one
+	 * registered client while another client_id is stored.
+	 */
+	async function prepareClient()
+	{
+		if (options.openid_configuration && options.client_info?.client_id) {
+			return
+		}
+		const prepared = await sharedClientSetup(clientSetupKey, discoverAndRegister)
+		options.openid_configuration = prepared.openid_configuration
+		options.client_info = prepared.client_info
+		options.store.set('openid_configuration', options.openid_configuration)
+		options.store.set('client_info', options.client_info)
+	}
+
+	async function discoverAndRegister()
+	{
+		let openid_configuration = options.openid_configuration
+		if (!openid_configuration) {
+			openid_configuration = await discover({
+				issuer: options.issuer,
+				client: options.client.with(options.issuer)
+			})
+		}
+		let client_info = options.client_info
+		if (!client_info?.client_id) {
+			if (!openid_configuration.registration_endpoint) {
+				throw metro.metroError('metro.oidcmw: Error: issuer '+options.issuer+' does not support dynamic client registration, but you haven\'t specified a client_id')
+			}
+			client_info = await register({
+				registration_endpoint: openid_configuration.registration_endpoint,
+				client: options.client,
+				client_info
+			})
+		}
+		return { openid_configuration, client_info }
+	}
+
+	/**
+	 * The id_token must carry the nonce of the authorization request that
+	 * produced it. Storing the nonce when that request starts means a request
+	 * waiting for someone else's login, or the first request after a redirect
+	 * back from the issuer, cannot replace it.
+	 */
+	function rememberNonce(authorizeCallback)
+	{
+		if (typeof authorizeCallback != 'function') {
+			return authorizeCallback
+		}
+		return async url => {
+			userStore.set('pending_nonce', url.searchParams.get('nonce'))
+			return authorizeCallback(url)
 		}
 	}
 
@@ -70,38 +141,19 @@ export default function oidcmw(options={}) {
 				return res
 			}
 		}
-		if (!options.openid_configuration) {
-			options.openid_configuration = await discover({
-				issuer: options.issuer,
-				client: options.client.with(options.issuer)
-			})
-			options.store.set('openid_configuration', options.openid_configuration)
-		}
-
-		if (!options.client_info?.client_id) {
-			if (!options.openid_configuration.registration_endpoint) {
-				throw metro.metroError('metro.oidcmw: Error: issuer '+options.issuer+' does not support dynamic client registration, but you haven\'t specified a client_id')
-			}
-			options.client_info = await register({
-				registration_endpoint: options.openid_configuration.registration_endpoint,
-				client: options.client,
-				client_info: options.client_info
-			})
-			options.store.set('client_info', options.client_info)
-		}
+		await prepareClient()
 
 		// now initialize an oauth2 client stack, using options.client as default
 		// with forceAuthentication: true
 		const scope = options.scope || 'openid'
 		const nonce = options.nonce || oauth2.generateCodeVerifier(32)
-		userStore.set('pending_nonce', nonce)
 
 		const oauth2Options = Object.assign(
 			{
 				site,
 				client: options.client,
 				force_authorization: true,
-				authorize_callback: options.authorize_callback,
+				authorize_callback: rememberNonce(options.authorize_callback),
 				oauth2_configuration: {
 					client_id: options.client_info?.client_id,
 					client_secret: options.client_info?.client_secret,
