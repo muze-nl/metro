@@ -2142,9 +2142,12 @@
     };
     options = Object.assign({}, defaultOptions, options);
     options.client = options.client.with(throwermw()).with(jsonmw());
-    const TestSucceeded = false;
+    requireSecureURL("issuer", options.issuer);
     function MustUseHTTPS(url2) {
-      return TestSucceeded;
+      if (isSecureURL(url2)) {
+        return false;
+      }
+      return error("url must use https", url2);
     }
     const openid_provider_metadata = {
       issuer: Required(allOf(options.issuer, MustUseHTTPS)),
@@ -2192,8 +2195,56 @@
     );
     const openid_config = response2.data;
     assert(openid_config, openid_provider_metadata);
-    assert(openid_config.issuer, options.issuer);
+    checkProviderMetadata(openid_config, options.issuer);
     return openid_config;
+  }
+  var REQUIRED_ENDPOINTS = ["authorization_endpoint", "token_endpoint", "jwks_uri"];
+  function checkProviderMetadata(config, issuer) {
+    if (!config || typeof config !== "object") {
+      throw metroError("metro.oidc.discovery: openid-configuration for " + issuer + " is not a JSON object");
+    }
+    if (!sameIssuer(config.issuer, issuer)) {
+      throw metroError("metro.oidc.discovery: openid-configuration is for issuer " + config.issuer + ", expected " + issuer);
+    }
+    requireSecureURL("issuer", config.issuer);
+    for (const name of REQUIRED_ENDPOINTS) {
+      if (!config[name]) {
+        throw metroError("metro.oidc.discovery: openid-configuration for " + issuer + " has no " + name);
+      }
+      requireSecureURL(name, config[name]);
+    }
+    if (config.registration_endpoint) {
+      requireSecureURL("registration_endpoint", config.registration_endpoint);
+    }
+  }
+  function sameIssuer(discovered, requested) {
+    if (typeof discovered != "string") {
+      return false;
+    }
+    return withoutTrailingSlash(discovered) === withoutTrailingSlash(String(requested));
+  }
+  function withoutTrailingSlash(value) {
+    return value.replace(/\/$/, "");
+  }
+  function requireSecureURL(name, value) {
+    if (!isSecureURL(value)) {
+      throw metroError("metro.oidc.discovery: " + name + " must use https: " + value);
+    }
+  }
+  function isSecureURL(value) {
+    let url2;
+    try {
+      url2 = new URL(String(value));
+    } catch (e) {
+      return false;
+    }
+    if (url2.protocol == "https:") {
+      return true;
+    }
+    return url2.protocol == "http:" && isLoopback(url2.hostname);
+  }
+  function isLoopback(hostname) {
+    return hostname == "localhost" || hostname.endsWith(".localhost") || hostname == "127.0.0.1" || hostname == "[::1]";
   }
 
   // src/oidc.register.mjs

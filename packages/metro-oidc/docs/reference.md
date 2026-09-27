@@ -53,6 +53,8 @@ const config = await discover({ issuer: 'https://solidcommunity.net/' })
 
 Fetches OIDC discovery metadata. Pass a Metro client with `client` when you want custom middleware or tests.
 
+The metadata must be for the requested issuer (only a trailing slash may differ), must contain `authorization_endpoint`, `token_endpoint` and `jwks_uri`, and the issuer and all its endpoints must use `https`. Plain `http` is only accepted on the local machine (`localhost`, `127.0.0.1`, `[::1]`). These checks always run; the complete metadata schema is only checked when assertions are enabled.
+
 ## `register(options)`
 
 ```js
