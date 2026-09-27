@@ -1361,6 +1361,7 @@
           history.pushState({}, "", url2.href);
         }
         if (params) {
+          validateIssuer(params.get("iss"));
           if (params.has("error")) {
             throw metroError("oauth2mw: authorization failed: " + params.get("error") + (params.get("error_description") ? " (" + params.get("error_description") + ")" : ""));
           }
@@ -1509,6 +1510,7 @@
     function storeAuthorizationResult(authorization) {
       let code = authorization;
       if (authorization && typeof authorization === "object") {
+        validateIssuer(authorization.iss);
         if (authorization.error) {
           throw metroError("oauth2mw: authorization failed: " + authorization.error);
         }
@@ -1519,6 +1521,20 @@
         throw metroError("oauth2mw: authorization callback did not return an authorization code");
       }
       options.tokens.set("authorization_code", code);
+    }
+    function validateIssuer(iss) {
+      if (!oauth22.issuer) {
+        return;
+      }
+      if (!iss) {
+        if (oauth22.authorization_response_iss_parameter_supported) {
+          throw metroError("oauth2mw: authorization response is missing iss, expected " + oauth22.issuer);
+        }
+        return;
+      }
+      if (iss !== oauth22.issuer) {
+        throw metroError("oauth2mw: authorization response is from issuer " + iss + ", expected " + oauth22.issuer);
+      }
     }
     function validateState(state) {
       let storedState = options.state.get();
@@ -1803,13 +1819,15 @@
         success = true;
         message = {
           authorization_code: params.get("code"),
-          state: params.get("state")
+          state: params.get("state"),
+          iss: params.get("iss")
         };
       } else if (params.has("error")) {
         message = {
           error: params.get("error"),
           error_description: params.get("error_description"),
-          state: params.get("state")
+          state: params.get("state"),
+          iss: params.get("iss")
         };
       } else {
         message = { error: "Could not find an authorization_code" };
@@ -1844,7 +1862,11 @@
             return;
           }
           cleanup();
-          resolve(event.data.authorization_code);
+          resolve({
+            authorization_code: event.data.authorization_code,
+            state: event.data.state,
+            iss: event.data.iss
+          });
         } else if (event.data.error) {
           if (expectedState && event.data.state && event.data.state !== expectedState) {
             cleanup();

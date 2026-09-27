@@ -156,7 +156,7 @@ tap.test('authorizePopup SHOULD ignore wrong-origin messages and resolve with re
 
     const actual = await authorizePopup(mockAuthorizationUrl())
 
-    t.equal(actual, 'mockCode')
+    t.same(actual, { authorization_code: 'mockCode', state: 'mockState', iss: undefined })
     t.end()
 })
 
@@ -170,7 +170,7 @@ tap.test('authorizePopup SHOULD resolve with received code WHEN message posted w
 
     const actual = await authorizePopup(mockAuthorizationUrl())
 
-    t.equal(actual, 'mockCode')
+    t.same(actual, { authorization_code: 'mockCode', state: 'mockState', iss: undefined })
     t.end()
 })
 
@@ -202,7 +202,7 @@ tap.test('authorizePopup SHOULD navigate a caller-opened popup', async t => {
     const actual = await authorizePopup(mockAuthorizationUrl(), { popup })
 
     t.equal(popup.location.href, mockAuthorizationUrl())
-    t.equal(actual, 'mockCode')
+    t.same(actual, { authorization_code: 'mockCode', state: 'mockState', iss: undefined })
     t.end()
 })
 
@@ -249,5 +249,17 @@ tap.test('authorizePopup SHOULD reject WHEN the user closes the popup', async t 
     const actual = await t.rejects(pending)
 
     t.equal(actual, 'OAuth2 popup was closed')
+    t.end()
+})
+
+tap.test('handleRedirect SHOULD pass on the iss of the authorization response', async t => {
+    globalThis.window = { location: { origin: 'https://client.example', search: '?code=mockCode&state=mockState&iss=https%3A%2F%2Fissuer.example%2F', hash: '' } }
+    globalThis.window.parent = {
+        postMessage: createPostMessage(t, 'https://client.example', { authorization_code: 'mockCode', state: 'mockState', iss: 'https://issuer.example/' })
+    }
+
+    const actual = handleRedirect()
+
+    t.ok(actual)
     t.end()
 })

@@ -165,6 +165,9 @@ export default function oidcmw(options={}) {
 					scope, //FIXME: should only use scopes supported by server
 					redirect_uri: options.client_info.redirect_uris[0],
 					login_hint: options.login_hint ?? options.webid,
+					issuer: options.openid_configuration.issuer,
+					authorization_response_iss_parameter_supported:
+						options.openid_configuration.authorization_response_iss_parameter_supported,
 					nonce
 				}
 			}

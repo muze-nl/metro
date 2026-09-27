@@ -27,13 +27,15 @@ export function handleRedirect(origin = null) {
 			success = true
 			message = {
 				authorization_code: params.get('code'),
-				state: params.get('state')
+				state: params.get('state'),
+				iss: params.get('iss')
 			}
 		} else if (params.has('error')) {
 			message = {
 				error: params.get('error'),
 				error_description: params.get('error_description'),
-				state: params.get('state')
+				state: params.get('state'),
+				iss: params.get('iss')
 			}
 		} else {
 			message = { error: 'Could not find an authorization_code' }
@@ -47,9 +49,10 @@ export function handleRedirect(origin = null) {
 
 /**
  * Opens a new window to the oauth2 authorization endpoint.
- * Returns a Promise, which resolves with the authorization_code when login was
- * successful, or rejects with an error if not, including when the user closes
- * the popup.
+ * Returns a Promise, which resolves with the authorization response
+ * { authorization_code, state, iss } when login was successful, or rejects
+ * with an error if not, including when the user closes the popup. oauth2mw
+ * checks the state and iss of that response.
  */
 export function authorizePopup(authorizationCodeURL, options = {}) {
 	const url = new URL(authorizationCodeURL, window.location.href)
@@ -78,7 +81,11 @@ export function authorizePopup(authorizationCodeURL, options = {}) {
 					return
 				}
 				cleanup()
-				resolve(event.data.authorization_code)
+				resolve({
+					authorization_code: event.data.authorization_code,
+					state: event.data.state,
+					iss: event.data.iss
+				})
 			} else if (event.data.error) {
 				if (expectedState && event.data.state && event.data.state !== expectedState) {
 					cleanup()

@@ -188,6 +188,7 @@ export default function oauth2mw(options)
 				history.pushState({},'',url.href)
 			}
 			if (params) {
+				validateIssuer(params.get('iss'))
 				if (params.has('error')) {
 					throw metro.metroError('oauth2mw: authorization failed: '+params.get('error')+(params.get('error_description') ? ' ('+params.get('error_description')+')' : ''))
 				}
@@ -377,6 +378,7 @@ export default function oauth2mw(options)
 	{
 		let code = authorization
 		if (authorization && typeof authorization === 'object') {
+			validateIssuer(authorization.iss)
 			if (authorization.error) {
 				throw metro.metroError('oauth2mw: authorization failed: '+authorization.error)
 			}
@@ -387,6 +389,28 @@ export default function oauth2mw(options)
 			throw metro.metroError('oauth2mw: authorization callback did not return an authorization code')
 		}
 		options.tokens.set('authorization_code', code)
+	}
+
+	/**
+	 * Checks the iss parameter of an authorization response (RFC 9207), so an
+	 * authorization code from another issuer is never sent to this issuer's
+	 * token endpoint. Only checked when oauth2_configuration.issuer is known;
+	 * iss is required when the issuer says it always sends it.
+	 */
+	function validateIssuer(iss)
+	{
+		if (!oauth2.issuer) {
+			return
+		}
+		if (!iss) {
+			if (oauth2.authorization_response_iss_parameter_supported) {
+				throw metro.metroError('oauth2mw: authorization response is missing iss, expected '+oauth2.issuer)
+			}
+			return
+		}
+		if (iss !== oauth2.issuer) {
+			throw metro.metroError('oauth2mw: authorization response is from issuer '+iss+', expected '+oauth2.issuer)
+		}
 	}
 
 	/**

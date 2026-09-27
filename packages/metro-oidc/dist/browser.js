@@ -1346,6 +1346,7 @@
           history.pushState({}, "", url2.href);
         }
         if (params) {
+          validateIssuer(params.get("iss"));
           if (params.has("error")) {
             throw metroError("oauth2mw: authorization failed: " + params.get("error") + (params.get("error_description") ? " (" + params.get("error_description") + ")" : ""));
           }
@@ -1494,6 +1495,7 @@
     function storeAuthorizationResult(authorization) {
       let code = authorization;
       if (authorization && typeof authorization === "object") {
+        validateIssuer(authorization.iss);
         if (authorization.error) {
           throw metroError("oauth2mw: authorization failed: " + authorization.error);
         }
@@ -1504,6 +1506,20 @@
         throw metroError("oauth2mw: authorization callback did not return an authorization code");
       }
       options.tokens.set("authorization_code", code);
+    }
+    function validateIssuer(iss) {
+      if (!oauth2.issuer) {
+        return;
+      }
+      if (!iss) {
+        if (oauth2.authorization_response_iss_parameter_supported) {
+          throw metroError("oauth2mw: authorization response is missing iss, expected " + oauth2.issuer);
+        }
+        return;
+      }
+      if (iss !== oauth2.issuer) {
+        throw metroError("oauth2mw: authorization response is from issuer " + iss + ", expected " + oauth2.issuer);
+      }
     }
     function validateState(state) {
       let storedState = options.state.get();
@@ -3686,6 +3702,8 @@
             //FIXME: should only use scopes supported by server
             redirect_uri: options.client_info.redirect_uris[0],
             login_hint: options.login_hint ?? options.webid,
+            issuer: options.openid_configuration.issuer,
+            authorization_response_iss_parameter_supported: options.openid_configuration.authorization_response_iss_parameter_supported,
             nonce
           }
         }
