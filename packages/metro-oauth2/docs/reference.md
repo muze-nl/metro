@@ -111,7 +111,7 @@ const api = client('https://resource.example/')
   }))
 ```
 
-Adds DPoP proofs (RFC 9449) to token endpoint requests, so the issuer binds the tokens to this client's key, and to requests whose `Authorization` header uses the `DPoP` scheme. Other requests are sent unchanged. OIDC uses this by default because Solid identity and storage servers commonly require sender-constrained tokens.
+Adds DPoP proofs (RFC 9449) to token endpoint requests, so the issuer binds the tokens to this client's key, and to requests whose `Authorization` header uses the `DPoP` scheme. Other requests are sent unchanged. When the token endpoint (`400`) or a resource (`401`) answers with `use_dpop_nonce`, the request is sent once more with a proof that includes the server's `DPoP-Nonce`; later proofs for that server include its latest nonce. OIDC uses this by default because Solid identity and storage servers commonly require sender-constrained tokens.
 
 ## Stores
 
