@@ -54,8 +54,9 @@ export default function dpopmw(options) {
 			return req
 		}
 		const nonce = serverNonces.get(metro.url(req.url).origin)
+		const htu = targetURI(req.url)
 		if (req.url.startsWith(options.token_endpoint)) {
-			const proof = await DPoP.generateProof(keyPair, req.url, req.method, nonce)
+			const proof = await DPoP.generateProof(keyPair, htu, req.method, nonce)
 			return req.with({
 				headers: {
 					'DPoP': proof
@@ -63,7 +64,7 @@ export default function dpopmw(options) {
 			})
 		}
 		const accessToken = req.headers.get('Authorization').split(' ')[1]
-		const proof = await DPoP.generateProof(keyPair, req.url, req.method, nonce, accessToken)
+		const proof = await DPoP.generateProof(keyPair, htu, req.method, nonce, accessToken)
 		return req.with({
 			headers: {
 				'Authorization': 'DPoP '+accessToken,
@@ -89,6 +90,18 @@ async function keyPairFor(site)
 		await keys.set(keyInfo)
 	}
 	return keyInfo.keyPair
+}
+
+/**
+ * The htu claim of a proof is the request URI without its query and
+ * fragment (RFC 9449 section 4.2).
+ */
+function targetURI(url)
+{
+	const target = new URL(url)
+	target.search = ''
+	target.hash = ''
+	return target.href
 }
 
 function rememberNonce(origin, res)

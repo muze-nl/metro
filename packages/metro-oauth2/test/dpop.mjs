@@ -109,3 +109,15 @@ tap.test('token endpoint requests get a DPoP proof', async t => {
 
 	t.match(seen.dpop, /^ey/)
 })
+
+tap.test('the proof names the request URI without its query and fragment', async t => {
+	useBrowserStorage(t)
+	const { client, seen } = resourceClient()
+
+	await client.get('https://pod.example/container/?filter=notes#top', {
+		headers: { Authorization: 'DPoP boundToken' }
+	})
+
+	const claims = JSON.parse(Buffer.from(seen.dpop.split('.')[1], 'base64url').toString())
+	t.equal(claims.htu, 'https://pod.example/container/')
+})

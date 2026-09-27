@@ -2193,8 +2193,9 @@
         return req;
       }
       const nonce = serverNonces.get(url(req.url).origin);
+      const htu = targetURI(req.url);
       if (req.url.startsWith(options.token_endpoint)) {
-        const proof2 = await generateProof(keyPair, req.url, req.method, nonce);
+        const proof2 = await generateProof(keyPair, htu, req.method, nonce);
         return req.with({
           headers: {
             "DPoP": proof2
@@ -2202,7 +2203,7 @@
         });
       }
       const accessToken = req.headers.get("Authorization").split(" ")[1];
-      const proof = await generateProof(keyPair, req.url, req.method, nonce, accessToken);
+      const proof = await generateProof(keyPair, htu, req.method, nonce, accessToken);
       return req.with({
         headers: {
           "Authorization": "DPoP " + accessToken,
@@ -2220,6 +2221,12 @@
       await keys.set(keyInfo);
     }
     return keyInfo.keyPair;
+  }
+  function targetURI(url2) {
+    const target = new URL(url2);
+    target.search = "";
+    target.hash = "";
+    return target.href;
   }
   function rememberNonce(origin, res) {
     const nonce = res.headers.get("DPoP-Nonce");
