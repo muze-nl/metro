@@ -141,7 +141,7 @@ export default function oidcmw(options={}) {
 
 		// now initialize an oauth2 client stack, using options.client as default
 		// with forceAuthentication: true
-		const scope = options.scope || 'openid'
+		const scope = options.scope || defaultScope(options)
 		const nonce = options.nonce || oauth2.generateCodeVerifier(32)
 
 		const oauth2Options = Object.assign(
@@ -267,6 +267,20 @@ function expectedClaimsFor(options) {
 		return Object.assign({ webid: options.webid }, options.expected_claims)
 	}
 	return options.expected_claims || {}
+}
+
+/**
+ * Solid-OIDC issuers only include the webid claim when the webid scope is
+ * requested (Solid-OIDC section 7). It is requested when a WebID is given or
+ * the issuer lists it in scopes_supported, which marks a Solid-OIDC issuer.
+ */
+function defaultScope(options) {
+	const supported = options.openid_configuration?.scopes_supported
+	const solidIssuer = Array.isArray(supported) && supported.includes('webid')
+	if (options.webid || solidIssuer) {
+		return 'openid webid'
+	}
+	return 'openid'
 }
 
 function siteFor(issuer, account) {

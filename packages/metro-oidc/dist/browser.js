@@ -3721,7 +3721,7 @@
         }
       }
       await prepareClient();
-      const scope = options.scope || "openid";
+      const scope = options.scope || defaultScope(options);
       const nonce = options.nonce || generateCodeVerifier(32);
       const oauth2Options = Object.assign(
         {
@@ -3827,6 +3827,14 @@
       return Object.assign({ webid: options.webid }, options.expected_claims);
     }
     return options.expected_claims || {};
+  }
+  function defaultScope(options) {
+    const supported = options.openid_configuration?.scopes_supported;
+    const solidIssuer = Array.isArray(supported) && supported.includes("webid");
+    if (options.webid || solidIssuer) {
+      return "openid webid";
+    }
+    return "openid";
   }
   function siteFor(issuer, account) {
     if (!account) {

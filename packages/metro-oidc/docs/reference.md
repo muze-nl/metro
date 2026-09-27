@@ -45,6 +45,8 @@ Tokens are stored per issuer. To keep different users at the same issuer apart, 
 
 With `webid` or `login_hint`, tokens and the ID token are stored for that user only, so logging in as another user never reuses them. An ID token for a different user than expected is refused and not stored, even when the issuer still has a login session for that other user. Pass the same `webid` or `login_hint` to `idToken()` and `idTokenClaims()`.
 
+Without a `scope` option, `oidcmw()` requests `openid webid` when a `webid` is given or the issuer lists `webid` in its `scopes_supported`: Solid-OIDC issuers only include the `webid` claim for that scope. Otherwise it requests `openid`.
+
 ## `discover(options)`
 
 ```js
