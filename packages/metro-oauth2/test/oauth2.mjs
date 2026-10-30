@@ -400,3 +400,38 @@ tap.test('a declined authorization rejects instead of looking like success', asy
 	t.match(error.message, /oauth2mw: authorization was not completed/)
 	t.match(error.request.url, /\/protected\/$/)
 })
+
+for (const failure of ['lost response', 'invalid_grant', 'invalid token data']) {
+	tap.test(`a new login follows ${failure} without reusing the authorization code`, async t => {
+		const server = oauth2mockserver({ redirect_uri, requirePKCE: true })
+		let exchanges = 0
+		let logins = 0
+		const tokens = new Map()
+		const client = metro.client().with(async (req, next) => {
+			const response = await server(req, next)
+			if (new URL(req.url).pathname === '/token/' && ++exchanges === 1) {
+				if (failure === 'lost response') throw new Error('token response lost')
+				return metro.response({
+					status: failure === 'invalid_grant' ? 400 : 200,
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(failure === 'invalid_grant' ? { error: 'invalid_grant' } : {})
+				})
+			}
+			return response
+		})
+		const options = oauth2Options(client, {
+			authorize_callback: async url => {
+				logins++
+				return authorizeWithMock(client, url)
+			}
+		})
+		const api = client.with(oauth2mw({ ...options, tokens }))
+
+		await t.rejects(api.get('/protected/'))
+		t.notOk(tokens.has('authorization_code'), 'the attempted code is no longer reusable')
+		t.equal(logins, 1, 'the failure is surfaced without an automatic login loop')
+		t.ok((await api.get('/protected/')).ok, 'a fresh authorization succeeds')
+		t.equal(logins, 2)
+		t.equal(exchanges, 2)
+	})
+}

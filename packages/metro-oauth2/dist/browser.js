@@ -1388,6 +1388,7 @@
         }
       }
       let tokenReq = getAccessTokenRequest();
+      options.tokens.delete("authorization_code");
       let response2 = await options.client.post(tokenReq);
       if (!response2.ok) {
         let msg = await response2.text();
@@ -1395,7 +1396,6 @@
       }
       let data = await response2.json();
       storeTokenResponse(data);
-      options.tokens.delete("authorization_code");
       return data;
     }
     async function refreshAccessToken() {

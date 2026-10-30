@@ -137,3 +137,9 @@ import oauth2mockserver from '@muze-nl/metro-oauth2/testing'
 ```
 
 The mock server is for tests and examples, not production browser bundles.
+
+Authorization codes are retired before sending their token exchange request.
+A failed, lost, or invalid token response is surfaced to the caller; the next
+attempt requests a fresh authorization instead of reusing a possibly spent code.
+This follows the single-use requirement in
+[RFC 6749 section 4.1.2](https://www.rfc-editor.org/rfc/rfc6749#section-4.1.2).

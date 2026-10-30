@@ -222,6 +222,9 @@ export default function oauth2mw(options)
 			}
 		}
 		let tokenReq = getAccessTokenRequest()
+		// The issuer may redeem the code even if the response is lost or rejected.
+		// Retire it before dispatch so the next attempt starts a fresh login.
+		options.tokens.delete('authorization_code')
 		let response = await options.client.post(tokenReq)
 		if (!response.ok) {
 			let msg = await response.text()
@@ -229,7 +232,6 @@ export default function oauth2mw(options)
 		}
 		let data = await response.json()
 		storeTokenResponse(data)
-		options.tokens.delete('authorization_code')
 		return data
 	}
 
