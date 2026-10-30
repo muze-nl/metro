@@ -189,26 +189,27 @@ export default function oidcmw(options={}) {
 		)
 		
 		const storeIdToken = async (req, next) => {
-			const res = await next(req)
 			const tokenEndpoint = metro.url(options.openid_configuration.token_endpoint, { hash: '' }).href
 			const requestUrl = metro.url(req.url, { hash: '' }).href
 			if (requestUrl !== tokenEndpoint) {
-				return res
+				return next(req)
 			}
+			// Fetch consumes the outgoing body; inspect the grant before dispatch.
+			const isRefresh = await grantTypeOf(req) == 'refresh_token'
+			const res = await next(req)
 			const contentType = res.headers.get('content-type')
 			if (!res.ok || !contentType?.startsWith('application/json')) {
 				// oauth2mw reports the token endpoint's own error
 				return res
 			}
 
-			let data = res.data && typeof res.data === 'object' ? res.data : null
-			if (!data) {
+			let data = res.data
+			if (!data || typeof data !== 'object' || data instanceof ReadableStream) {
 				const res2 = res.clone() // otherwise res.body can't be read again
 				data = await res2.json()
 			}
 
 			const id_token = data?.id_token
-			const isRefresh = await grantTypeOf(req) == 'refresh_token'
 			if (isRefresh && !id_token) {
 				// a refresh response may omit the id_token; the stored one stays
 				return res

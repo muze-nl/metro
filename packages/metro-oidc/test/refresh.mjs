@@ -32,11 +32,23 @@ function expireAccessToken()
 
 function oidcClient(mockOptions = {})
 {
-	const client = metro.client(issuer).with(oidcmockserver({
+	const server = oidcmockserver({
 		issuer,
 		redirect_uri,
 		...mockOptions
-	}))
+	})
+	const client = metro.client(issuer).with(async (req, next) => {
+		const response = await server(req, next)
+		// Refresh requests have the same single-use body as the initial login.
+		if (new URL(req.url).pathname === '/token/') {
+			await req.text()
+			return metro.response(new Response(await response.text(), {
+				status: response.status,
+				headers: response.headers
+			}))
+		}
+		return response
+	})
 	let logins = 0
 	const api = client.with(oidcmw({
 		client,

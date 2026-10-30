@@ -3800,23 +3800,23 @@
         //...
       );
       const storeIdToken = async (req2, next2) => {
-        const res2 = await next2(req2);
         const tokenEndpoint = url(options.openid_configuration.token_endpoint, { hash: "" }).href;
         const requestUrl = url(req2.url, { hash: "" }).href;
         if (requestUrl !== tokenEndpoint) {
-          return res2;
+          return next2(req2);
         }
+        const isRefresh = await grantTypeOf(req2) == "refresh_token";
+        const res2 = await next2(req2);
         const contentType = res2.headers.get("content-type");
         if (!res2.ok || !contentType?.startsWith("application/json")) {
           return res2;
         }
-        let data = res2.data && typeof res2.data === "object" ? res2.data : null;
-        if (!data) {
+        let data = res2.data;
+        if (!data || typeof data !== "object" || data instanceof ReadableStream) {
           const res22 = res2.clone();
           data = await res22.json();
         }
         const id_token = data?.id_token;
-        const isRefresh = await grantTypeOf(req2) == "refresh_token";
         if (isRefresh && !id_token) {
           return res2;
         }

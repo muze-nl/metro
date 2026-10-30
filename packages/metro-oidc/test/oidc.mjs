@@ -9,7 +9,19 @@ const issuer = 'https://issuer.example/'
 const redirect_uri = 'https://client.example/callback'
 
 function mockClient(options = {}) {
-	return metro.client(issuer).with(oidcmockserver({ issuer, redirect_uri, ...options }))
+	const server = oidcmockserver({ issuer, redirect_uri, ...options })
+	return metro.client(issuer).with(async (req, next) => {
+		const response = await server(req, next)
+		// A real transport consumes the outgoing token body before returning.
+		if (new URL(req.url).pathname === '/token/') {
+			await req.text()
+			return metro.response(new Response(await response.text(), {
+				status: response.status,
+				headers: response.headers
+			}))
+		}
+		return response
+	})
 }
 
 async function authorizeWithMock(client, authorizationUrl) {

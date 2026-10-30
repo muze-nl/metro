@@ -109,3 +109,7 @@ import oidcmockserver from '@muze-nl/metro-oidc/testing'
 ```
 
 The mock server exposes discovery metadata, dynamic client registration, JWKS, signed ID tokens, userinfo, and OAuth2-backed protected-resource behaviour for tests.
+
+The middleware captures the token request grant type before sending the request.
+ID-token validation and refresh handling therefore work with transports that
+consume request bodies; callers do not need to buffer or replay token POSTs.
