@@ -409,7 +409,7 @@ export default function oauth2mw(options)
 		if (!oauth2.issuer) {
 			return
 		}
-		if (!iss) {
+		if (iss === undefined || iss === null) {
 			if (oauth2.authorization_response_iss_parameter_supported) {
 				throw metro.metroError('oauth2mw: authorization response is missing iss, expected '+oauth2.issuer)
 			}

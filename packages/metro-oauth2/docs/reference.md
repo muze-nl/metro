@@ -156,7 +156,8 @@ OAuth2 authorization responses are defined in RFC 6749 sections 4.1.2 and
 metadata defaults to false (section 3). Metro validates a supplied issuer
 against the configured issuer and requires it when the provider advertises
 `authorization_response_iss_parameter_supported: true`. Missing required or
-mismatched issuers are rejected for success and error callbacks; successful
+mismatched issuers (including a present but empty `iss`) are rejected for
+success and error callbacks; successful
 code responses must also match the stored state before token exchange.
 
 References: [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2),

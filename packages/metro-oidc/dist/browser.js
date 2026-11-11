@@ -1514,7 +1514,7 @@
       if (!oauth2.issuer) {
         return;
       }
-      if (!iss) {
+      if (iss === void 0 || iss === null) {
         if (oauth2.authorization_response_iss_parameter_supported) {
           throw metroError("oauth2mw: authorization response is missing iss, expected " + oauth2.issuer);
         }

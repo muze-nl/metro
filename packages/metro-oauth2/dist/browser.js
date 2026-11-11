@@ -1529,7 +1529,7 @@
       if (!oauth22.issuer) {
         return;
       }
-      if (!iss) {
+      if (iss === void 0 || iss === null) {
         if (oauth22.authorization_response_iss_parameter_supported) {
           throw metroError("oauth2mw: authorization response is missing iss, expected " + oauth22.issuer);
         }
