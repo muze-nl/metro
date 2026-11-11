@@ -1350,14 +1350,14 @@
       if (typeof window !== "undefined" && window?.location) {
         let url2 = url(window.location);
         let code, state, params;
-        if (url2.searchParams.get("iss") && (url2.searchParams.has("code") || url2.searchParams.has("error"))) {
+        if (url2.searchParams.has("code") || url2.searchParams.has("error")) {
           params = url2.searchParams;
           url2 = url2.with({ search: "" });
           history.pushState({}, "", url2.href);
         } else if (url2.hash) {
           let query = url2.hash.substr(1);
           params = new URLSearchParams("?" + query);
-          if (!params.get("iss") || !(params.has("code") || params.has("error"))) {
+          if (!params.has("code") && !params.has("error")) {
             return;
           }
           url2 = url2.with({ hash: "" });
@@ -1688,18 +1688,12 @@
     return error2;
   }
   function isRedirected() {
-    let url2 = new URL(document.location.href);
-    if (!url2.searchParams.has("code") || !url2.searchParams.get("iss")) {
-      if (url2.hash) {
-        let query = url2.hash.substr(1);
-        const params = new URLSearchParams("?" + query);
-        if (params.has("code") && params.get("iss")) {
-          return true;
-        }
-      }
-      return false;
+    const url2 = new URL(document.location.href);
+    if (url2.searchParams.has("code") || url2.searchParams.has("error")) {
+      return true;
     }
-    return true;
+    const params = new URLSearchParams(url2.hash.slice(1));
+    return params.has("code") || params.has("error");
   }
   function isAuthorized(tokens) {
     if (typeof tokens == "string") {
