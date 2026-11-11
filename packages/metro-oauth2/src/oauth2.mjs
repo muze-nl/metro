@@ -177,13 +177,17 @@ export default function oauth2mw(options)
 		if (typeof window !== 'undefined' && window?.location) {
 			let url = metro.url(window.location)
 			let code, state, params
-			if (url.searchParams.has('code') || url.searchParams.has('error')) {
+			if (url.searchParams.get('iss') &&
+				(url.searchParams.has('code') || url.searchParams.has('error'))) {
 				params = url.searchParams
 				url = url.with({ search:'' })
 				history.pushState({},'',url.href)
 			} else if (url.hash) {
 				let query = url.hash.substr(1)
 				params = new URLSearchParams('?'+query)
+				if (!params.get('iss') || !(params.has('code') || params.has('error'))) {
+					return
+				}
 				url = url.with({ hash:'' })
 				history.pushState({},'',url.href)
 			}
@@ -665,8 +669,8 @@ export function createState(length)
 }
 
 /**
- * Returns true if the current document.location contains an OAuth2 code
- * parameter in either the query string or hash fragment.
+ * Returns true if the current document.location contains OAuth2 code and iss
+ * parameters in either the query string or hash fragment.
  */
 /**
  * No access token was obtained, e.g. because authorize_callback returned no
@@ -685,11 +689,11 @@ function authorizationNotCompleted(req)
 
 export function isRedirected() {
 	let url = new URL(document.location.href)
-	if (!url.searchParams.has('code')) {
+	if (!url.searchParams.has('code') || !url.searchParams.get('iss')) {
 		if (url.hash) {
 			let query = url.hash.substr(1)
 			const params = new URLSearchParams('?'+query)
-			if (params.has('code')) {
+			if (params.has('code') && params.get('iss')) {
 				return true
 			}
 		}

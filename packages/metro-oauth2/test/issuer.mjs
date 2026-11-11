@@ -1,6 +1,6 @@
 import tap from 'tap'
 import metro from '@muze-nl/metro'
-import oauth2mw from '../src/oauth2.mjs'
+import oauth2mw, { isRedirected } from '../src/oauth2.mjs'
 import oauth2mockserver from '../src/oauth2.mockserver.mjs'
 
 const redirect_uri = 'https://client.example/callback'
@@ -71,4 +71,62 @@ tap.test('iss is checked for redirect logins as well', async t => {
 	})
 
 	await t.rejects(login(issuer), /from issuer https:\/\/evil\.example\//)
+})
+
+tap.test('application URLs without iss are not authorization redirects', async t => {
+	t.teardown(() => {
+		delete globalThis.window
+		delete globalThis.document
+		delete globalThis.history
+	})
+	for (const suffix of [
+		'#webid=https%3A%2F%2Falice.example%2Fcard%23me',
+		'#route?webid=https%3A%2F%2Falice.example%2Fcard%23me',
+		'#section',
+		'?code=application-code&state=application-state',
+		'#code=application-code&state=application-state',
+		'?error=application-error',
+		'?code=application-code&state=application-state&iss=',
+		'#code=application-code&state=application-state&iss='
+	]) {
+		const location = new URL(redirect_uri + suffix)
+		globalThis.window = { location }
+		globalThis.document = { location }
+		let historyChanges = 0
+		globalThis.history = { pushState() { historyChanges += 1 } }
+		const tokens = new Map([['access_token', {
+			value: 'mockAccessToken', type: 'Bearer',
+			expires: new Date(Date.now() + 3600000)
+		}]])
+		const client = metro.client().with(oauth2mockserver({ redirect_uri }))
+		const api = client.with(oauth2mw({
+			client, tokens, force_authorization: true,
+			oauth2_configuration: {
+				client_id: 'mockClientId',
+				authorization_endpoint: '/authorize/', token_endpoint: '/token/',
+				redirect_uri, issuer,
+				authorization_response_iss_parameter_supported: true
+			},
+			authorize_callback() {
+				t.fail('An application URL must not start authorization')
+			}
+		}))
+		t.equal(isRedirected(), false, suffix)
+		t.ok((await api.get('/protected/')).ok, suffix)
+		t.equal(historyChanges, 0, 'The application URL is not consumed')
+		t.equal(window.location.href, redirect_uri + suffix)
+		t.equal(tokens.has('authorization_code'), false)
+	}
+})
+
+tap.test('redirect detection requires both code and iss', async t => {
+	t.teardown(() => { delete globalThis.document })
+	for (const separator of ['?', '#']) {
+		globalThis.document = {
+			location: new URL(redirect_uri + separator + new URLSearchParams({
+				code: 'code', state: 'state', iss: issuer
+			}))
+		}
+		t.equal(isRedirected(), true)
+	}
 })
