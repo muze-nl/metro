@@ -1342,6 +1342,9 @@
         } else if (url2.hash) {
           let query = url2.hash.substr(1);
           params = new URLSearchParams("?" + query);
+          if (!params.has("code") && !params.has("error")) {
+            return;
+          }
           url2 = url2.with({ hash: "" });
           history.pushState({}, "", url2.href);
         }
@@ -1511,7 +1514,7 @@
       if (!oauth2.issuer) {
         return;
       }
-      if (!iss) {
+      if (iss === void 0 || iss === null) {
         if (oauth2.authorization_response_iss_parameter_supported) {
           throw metroError("oauth2mw: authorization response is missing iss, expected " + oauth2.issuer);
         }
@@ -1670,18 +1673,12 @@
     return error2;
   }
   function isRedirected() {
-    let url2 = new URL(document.location.href);
-    if (!url2.searchParams.has("code")) {
-      if (url2.hash) {
-        let query = url2.hash.substr(1);
-        const params = new URLSearchParams("?" + query);
-        if (params.has("code")) {
-          return true;
-        }
-      }
-      return false;
+    const url2 = new URL(document.location.href);
+    if (url2.searchParams.has("code") || url2.searchParams.has("error")) {
+      return true;
     }
-    return true;
+    const params = new URLSearchParams(url2.hash.slice(1));
+    return params.has("code") || params.has("error");
   }
   function parseBearerChallenge(value) {
     if (!value || typeof value !== "string") {

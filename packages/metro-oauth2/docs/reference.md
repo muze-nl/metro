@@ -143,3 +143,22 @@ A failed, lost, or invalid token response is surfaced to the caller; the next
 attempt requests a fresh authorization instead of reusing a possibly spent code.
 This follows the single-use requirement in
 [RFC 6749 section 4.1.2](https://www.rfc-editor.org/rfc/rfc6749#section-4.1.2).
+
+
+### Recognizing authorization callbacks
+
+`isRedirected()` recognizes query or fragment parameters containing `code` or
+`error`. Ordinary application fragments such as `#webid=...` or `#section` are
+left untouched. Recognition does not establish that a response is valid.
+
+OAuth2 authorization responses are defined in RFC 6749 sections 4.1.2 and
+4.1.2.1. The response `iss` parameter is the RFC 9207 extension, whose support
+metadata defaults to false (section 3). Metro validates a supplied issuer
+against the configured issuer and requires it when the provider advertises
+`authorization_response_iss_parameter_supported: true`. Missing required or
+mismatched issuers (including a present but empty `iss`) are rejected for
+success and error callbacks; successful
+code responses must also match the stored state before token exchange.
+
+References: [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2),
+[RFC 9207](https://www.rfc-editor.org/rfc/rfc9207.html#section-2.4).

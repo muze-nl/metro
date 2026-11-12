@@ -177,6 +177,8 @@ export default function oauth2mw(options)
 		if (typeof window !== 'undefined' && window?.location) {
 			let url = metro.url(window.location)
 			let code, state, params
+			// RFC 6749 callbacks carry code/error. RFC 9207 issuer support
+			// is optional; validateIssuer enforces the provider's declared policy.
 			if (url.searchParams.has('code') || url.searchParams.has('error')) {
 				params = url.searchParams
 				url = url.with({ search:'' })
@@ -184,6 +186,9 @@ export default function oauth2mw(options)
 			} else if (url.hash) {
 				let query = url.hash.substr(1)
 				params = new URLSearchParams('?'+query)
+				if (!params.has('code') && !params.has('error')) {
+					return
+				}
 				url = url.with({ hash:'' })
 				history.pushState({},'',url.href)
 			}
@@ -404,7 +409,7 @@ export default function oauth2mw(options)
 		if (!oauth2.issuer) {
 			return
 		}
-		if (!iss) {
+		if (iss === undefined || iss === null) {
 			if (oauth2.authorization_response_iss_parameter_supported) {
 				throw metro.metroError('oauth2mw: authorization response is missing iss, expected '+oauth2.issuer)
 			}
@@ -665,10 +670,6 @@ export function createState(length)
 }
 
 /**
- * Returns true if the current document.location contains an OAuth2 code
- * parameter in either the query string or hash fragment.
- */
-/**
  * No access token was obtained, e.g. because authorize_callback returned no
  * authorization code: it declined, or it is redirecting the browser to the
  * authorization endpoint. The request is not sent, so it must not look like
@@ -683,19 +684,17 @@ function authorizationNotCompleted(req)
 	return error
 }
 
+/**
+ * Recognizes code and error callbacks before issuer/state validation. The
+ * issuer response parameter is optional under RFC 9207 sections 2.4 and 3.
+ */
 export function isRedirected() {
-	let url = new URL(document.location.href)
-	if (!url.searchParams.has('code')) {
-		if (url.hash) {
-			let query = url.hash.substr(1)
-			const params = new URLSearchParams('?'+query)
-			if (params.has('code')) {
-				return true
-			}
-		}
-		return false
+	const url = new URL(document.location.href)
+	if (url.searchParams.has('code') || url.searchParams.has('error')) {
+		return true
 	}
-	return true
+	const params = new URLSearchParams(url.hash.slice(1))
+	return params.has('code') || params.has('error')
 }
 
 /**

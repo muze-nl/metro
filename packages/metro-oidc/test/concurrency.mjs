@@ -119,7 +119,8 @@ tap.test('the first request after a login redirect keeps the nonce of that login
 	const code = await authorizeWithMock(client, authorizationUrl)
 	const state = authorizationUrl.searchParams.get('state')
 	globalThis.window = {
-		location: new URL(redirect_uri + '?code=' + code + '&state=' + state)
+		location: new URL(redirect_uri + '?code=' + code + '&state=' + state
+			+ '&iss=' + encodeURIComponent(issuer))
 	}
 
 	// page two: a new page load exchanges the code
