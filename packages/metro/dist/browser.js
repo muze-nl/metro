@@ -367,7 +367,7 @@
         }
       }
     }
-    if (req instanceof Request && req.data) {
+    if (req instanceof Request && typeof req.data !== "undefined") {
       params.body = req.data;
     }
     return params;
@@ -464,7 +464,7 @@
         }
       }
     }
-    if (res instanceof Response && res.data) {
+    if (res instanceof Response && typeof res.data !== "undefined") {
       params.body = res.data;
     }
     return params;
@@ -484,11 +484,11 @@
         }
       }
     }
-    let data = void 0;
-    if (responseParams.body) {
-      data = responseParams.body;
-    }
+    let data = responseParams.body;
     if ([101, 204, 205, 304].includes(responseParams.status)) {
+      if (!data) {
+        data = void 0;
+      }
       responseParams.body = null;
     }
     let r = new Response(responseParams.body, responseParams);
@@ -505,6 +505,9 @@
             break;
           case "with":
             result = function(...options2) {
+              if (typeof data !== "undefined") {
+                options2.unshift({ body: data });
+              }
               return response(target, ...options2);
             };
             break;

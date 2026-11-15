@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Metro empty-body replay regression</title>
+<pre id="result">Running…</pre>
+<script type="module">
+import {request, response} from '../../src/metro.mjs';
+const checks = [];
+function equal(actual, expected, label) {
+  if (actual !== expected) {throw new Error(label + ': ' + actual);}
+  checks.push(label);
+}
+try {
+  const original = request(location.href, {method: 'PUT', body: ''});
+  // A middleware branch may already hold the native stream. The original
+  // string is independently replayable, so composition must use that string.
+  const reader = original.body.getReader();
+  try {
+    const derived = request(original, {headers: {'X-Test': 'empty'}});
+    equal(derived.data, '', 'request retains the empty string');
+    equal(await derived.text(), '', 'request composes despite a locked stream');
+    equal(await original.with({headers: {'X-Test': 'with'}}).text(), '',
+      'request.with replays the original string');
+  } finally {reader.releaseLock();}
+  const originalResponse = response({body: ''});
+  await originalResponse.text();
+  equal(await response(originalResponse).text(), '', 'response replays empty data');
+  equal(await originalResponse.with({headers: {'X-Test': 'with'}}).text(), '',
+    'response.with replays empty data');
+  equal(await originalResponse.with({body: 'override'}).text(), 'override',
+    'explicit body override wins');
+  const stream = new ReadableStream({start(controller) {controller.close();}});
+  const streamed = response(stream);
+  await streamed.text();
+  let refused = false;
+  try {response(streamed);} catch (error) {refused = error instanceof TypeError;}
+  equal(refused, true, 'consumed streams are still rejected');
+  window.metroEmptyBodyResult = {ok: true, checks};
+} catch (error) {
+  window.metroEmptyBodyResult = {ok: false, checks, error: error.stack};
+}
+document.querySelector('#result').textContent =
+  JSON.stringify(window.metroEmptyBodyResult, null, 2);
+</script>

@@ -89,6 +89,17 @@ const posted = request('https://example.com/posts', {
 console.log(posted.data) // original body object
 ```
 
+Empty strings are bodies, not missing values. Reconstructing a Metro request or
+response, including `.with()`, retains the original replayable value even if its
+native stream is already consumed or locked. Later explicit body options still
+win. This does not make a `ReadableStream` replayable: reusing a consumed or
+locked stream continues to fail under Fetch's body rules. Bodyless response
+statuses keep their existing absent-empty-data behavior.
+
+The browser regression is `test/browser/empty-bodies.html`. Serve the
+`packages/metro-core` directory over HTTP and open that page; it reports each
+check and the result without a test framework or remote service.
+
 Binary bodies can be an `ArrayBuffer`, typed array (such as `Uint8Array`), or
 `DataView`, supplied through `{ body }` or as a direct body argument:
 

@@ -466,7 +466,7 @@ function getRequestParams(req, current)
 			}
 		}
 	}
-	if (req instanceof Request && req.data) {
+	if (req instanceof Request && typeof req.data !== 'undefined') {
 		// Request.body is always transformed into ReadableStreem
 		// metro.request.data is the original body passed to Request()
 		params.body = req.data
@@ -612,7 +612,7 @@ function getResponseParams(res, current)
 			}
 		}
 	}
-	if (res instanceof Response && res.data) {
+	if (res instanceof Response && typeof res.data !== 'undefined') {
 		// Response.body is always transformed into ReadableStreem FIXME: check this
 		// metro.response.data is the original body passed to Response()
 		params.body = res.data
@@ -657,14 +657,15 @@ export function response(...options)
 			}
 		}
 	}
-	let data = undefined
-	if (responseParams.body) {
-		data = responseParams.body
-	}
+	let data = responseParams.body
 	// if response status is 'null body status', don't set a body
 	// that is response.status in [101, 204, 205, 304 ] 
 	// see: https://fetch.spec.whatwg.org/#statuses
 	if ([101, 204, 205, 304 ].includes(responseParams.status)) {
+		// Preserve the existing bodyless-response data contract for middleware.
+		if (!data) {
+			data = undefined
+		}
 		responseParams.body = null
 	}
 	let r = new Response(responseParams.body, responseParams)	
@@ -681,6 +682,9 @@ export function response(...options)
 				break
 				case 'with':
 					result = function(...options) {
+						if (typeof data !== 'undefined') {
+							options.unshift({body: data})
+						}
 						return response(target, ...options)
 					}
 				break
