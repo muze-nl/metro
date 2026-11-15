@@ -367,7 +367,7 @@
         }
       }
     }
-    if (req instanceof Request && req.data) {
+    if (req instanceof Request && typeof req.data !== "undefined") {
       params.body = req.data;
     }
     return params;
@@ -381,7 +381,7 @@
     for (let option of options) {
       if (typeof option == "string" || option instanceof URL || option instanceof URLSearchParams) {
         requestParams.url = url(requestParams.url, option);
-      } else if (option && (option instanceof FormData || option instanceof ReadableStream || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView)) {
+      } else if (option && (option instanceof FormData || option instanceof ReadableStream || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || ArrayBuffer.isView(option))) {
         requestParams.body = option;
       } else if (option && typeof option == "object") {
         Object.assign(requestParams, getRequestParams(option, requestParams));
@@ -390,7 +390,7 @@
     let r = new Request(requestParams.url, requestParams);
     let data = requestParams.body;
     if (data) {
-      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && (globalThis.ArrayBuffer && ArrayBuffer.isView(data))) {
+      if (typeof data == "object" && !(data instanceof String) && !(data instanceof ReadableStream) && !(data instanceof Blob) && !(data instanceof ArrayBuffer) && !(data instanceof DataView) && !(data instanceof FormData) && !(data instanceof URLSearchParams) && !ArrayBuffer.isView(data)) {
         if (typeof data.toString == "function") {
           requestParams.body = data.toString({ headers: r.headers });
           r = new Request(requestParams.url, requestParams);
@@ -464,7 +464,7 @@
         }
       }
     }
-    if (res instanceof Response && res.data) {
+    if (res instanceof Response && typeof res.data !== "undefined") {
       params.body = res.data;
     }
     return params;
@@ -477,18 +477,18 @@
       } else if (option instanceof Response) {
         Object.assign(responseParams, getResponseParams(option, responseParams));
       } else if (option && typeof option == "object") {
-        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || typeof globalThis.TypedArray != "undefined" && option instanceof globalThis.TypedArray) {
+        if (option instanceof FormData || option instanceof Blob || option instanceof ArrayBuffer || option instanceof DataView || option instanceof ReadableStream || option instanceof URLSearchParams || option instanceof String || ArrayBuffer.isView(option)) {
           responseParams.body = option;
         } else {
           Object.assign(responseParams, getResponseParams(option, responseParams));
         }
       }
     }
-    let data = void 0;
-    if (responseParams.body) {
-      data = responseParams.body;
-    }
+    let data = responseParams.body;
     if ([101, 204, 205, 304].includes(responseParams.status)) {
+      if (!data) {
+        data = void 0;
+      }
       responseParams.body = null;
     }
     let r = new Response(responseParams.body, responseParams);
@@ -505,6 +505,9 @@
             break;
           case "with":
             result = function(...options2) {
+              if (typeof data !== "undefined") {
+                options2.unshift({ body: data });
+              }
               return response(target, ...options2);
             };
             break;

@@ -89,6 +89,30 @@ const posted = request('https://example.com/posts', {
 console.log(posted.data) // original body object
 ```
 
+Empty strings are bodies, not missing values. Reconstructing a Metro request or
+response, including `.with()`, retains the original replayable value even if its
+native stream is already consumed or locked. Later explicit body options still
+win. This does not make a `ReadableStream` replayable: reusing a consumed or
+locked stream continues to fail under Fetch's body rules. Bodyless response
+statuses keep their existing absent-empty-data behavior.
+
+The browser regression is `test/browser/empty-bodies.html`. Serve the
+`packages/metro-core` directory over HTTP and open that page; it reports each
+check and the result without a test framework or remote service.
+
+Binary bodies can be an `ArrayBuffer`, typed array (such as `Uint8Array`), or
+`DataView`, supplied through `{ body }` or as a direct body argument:
+
+```js
+const bytes = new Uint8Array([91, 0, 255, 128, 92]).subarray(1, 4)
+await api.put('/upload', { body: bytes }) // sends only the bytes 0, 255, 128
+await api.put('/upload', bytes)           // equivalent shorthand
+```
+
+Metro preserves the view's byte offset and length, including zero-length views,
+as required by [Fetch's binary body handling](https://fetch.spec.whatwg.org/#bodyinit).
+Passing `bytes.buffer` instead can include bytes outside the view.
+
 Metro request additions:
 
 ```js
@@ -113,6 +137,8 @@ const changed = res.with({ headers: { 'X-Demo': 'yes' } })
 ```
 
 `with()` returns a derived response. `data` exposes the original body value passed to Metro.
+Binary body values are accepted both directly (`response(bytes)`) and through
+options (`response({ body: bytes })`), with the same byte-range behavior as requests.
 
 ## `url(...options)`
 
