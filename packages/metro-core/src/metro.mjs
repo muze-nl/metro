@@ -508,6 +508,7 @@ export function request(...options)
 			|| option instanceof Blob
 			|| option instanceof ArrayBuffer
 			|| option instanceof DataView
+			|| ArrayBuffer.isView(option)
 		)) {
 			requestParams.body = option
 		} else if (option && typeof option == 'object') {
@@ -525,7 +526,7 @@ export function request(...options)
 			&& !(data instanceof DataView)
 			&& !(data instanceof FormData)
 			&& !(data instanceof URLSearchParams)
-			&& (globalThis.ArrayBuffer && ArrayBuffer.isView(data)) //TypedArray
+			&& !ArrayBuffer.isView(data)
 		) {
 			// if we are here, body is set with an object of a type
 			// not natively understood by Request, coerce it to a string
@@ -648,7 +649,7 @@ export function response(...options)
 				|| option instanceof ReadableStream
 				|| option instanceof URLSearchParams
 				|| option instanceof String
-				|| (typeof globalThis.TypedArray != 'undefined' && option instanceof globalThis.TypedArray)
+				|| ArrayBuffer.isView(option)
 			) {
 				responseParams.body = option
 			} else {
